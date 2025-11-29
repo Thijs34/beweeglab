@@ -1,0 +1,1 @@
+enum ObservationMode { individual, group }
