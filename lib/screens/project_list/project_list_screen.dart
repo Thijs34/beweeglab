@@ -1,18 +1,30 @@
+import 'dart:async';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:my_app/models/navigation_arguments.dart';
 import 'package:my_app/models/project.dart';
 import 'package:my_app/screens/observer_page/observer_page.dart';
 import 'package:my_app/screens/project_list/widgets/project_list_header.dart';
 import 'package:my_app/screens/project_list/widgets/projects_panel.dart';
 import 'package:my_app/screens/project_list/widgets/user_info_bar.dart';
 import 'package:my_app/screens/project_list/widgets/welcome_section.dart';
+import 'package:my_app/services/admin_notification_service.dart';
+import 'package:my_app/services/project_selection_service.dart';
+import 'package:my_app/services/project_service.dart';
 import 'package:my_app/theme/app_theme.dart';
 import 'package:my_app/widgets/profile_menu.dart';
 
 /// Project List screen matching the React UI design.
 class ProjectListScreen extends StatefulWidget {
   final String? userEmail;
+  final String userRole;
 
-  const ProjectListScreen({super.key, this.userEmail});
+  const ProjectListScreen({
+    super.key,
+    this.userEmail,
+    this.userRole = 'observer',
+  });
 
   @override
   State<ProjectListScreen> createState() => _ProjectListScreenState();
@@ -20,37 +32,120 @@ class ProjectListScreen extends StatefulWidget {
 
 class _ProjectListScreenState extends State<ProjectListScreen> {
   final TextEditingController _searchController = TextEditingController();
-  final List<Project> _projects = Project.getMockProjects();
   final GlobalKey _profileButtonKey = GlobalKey();
   bool _showProfileMenu = false;
-  List<Project> _filteredProjects = [];
+  List<Project> _projects = const [];
+  List<Project> _filteredProjects = const [];
+  final AdminNotificationService _notificationService =
+      AdminNotificationService.instance;
+  final ProjectService _projectService = ProjectService.instance;
+  final ProjectSelectionService _selectionService =
+      ProjectSelectionService.instance;
+  StreamSubscription<int>? _notificationCountSubscription;
+  StreamSubscription<List<Project>>? _projectsSubscription;
+  VoidCallback? _selectionListener;
+  int _unreadNotificationCount = 0;
+  bool _isLoadingProjects = true;
+  bool _isRefreshingProjects = false;
+  String? _projectsError;
+
+  bool get _isAdmin => widget.userRole == 'admin';
 
   @override
   void initState() {
     super.initState();
-    _filteredProjects = _projects;
     _searchController.addListener(_filterProjects);
+    _startProjectsWatcher();
+    if (_isAdmin) {
+      _startNotificationWatcher();
+    }
+    _selectionListener = () {
+      if (!mounted) return;
+      setState(() {});
+    };
+    _selectionService.selectedProjectListenable
+        .addListener(_selectionListener!);
   }
 
   @override
   void dispose() {
+    _notificationCountSubscription?.cancel();
+    _projectsSubscription?.cancel();
     _searchController.dispose();
+    if (_selectionListener != null) {
+      _selectionService.selectedProjectListenable
+          .removeListener(_selectionListener!);
+    }
     super.dispose();
   }
 
-  void _filterProjects() {
-    final query = _searchController.text.toLowerCase();
-    setState(() {
-      if (query.isEmpty) {
-        _filteredProjects = _projects;
-      } else {
-        _filteredProjects = _projects.where((project) {
-          return project.name.toLowerCase().contains(query) ||
-              project.location.toLowerCase().contains(query) ||
-              (project.description?.toLowerCase().contains(query) ?? false);
-        }).toList();
-      }
+  void _startProjectsWatcher() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      setState(() {
+        _isLoadingProjects = false;
+        _projectsError = 'Please sign in again to load your projects.';
+      });
+      return;
+    }
+
+    _projectsSubscription?.cancel();
+    _projectsSubscription =
+        _projectService.watchObserverProjects(uid).listen((projects) {
+      if (!mounted) return;
+      _selectionService.syncWithProjects(projects);
+      setState(() {
+        _projects = projects;
+        _filteredProjects = _applyProjectFilter(projects, _searchController.text);
+        _isLoadingProjects = false;
+        _projectsError = null;
+      });
+    }, onError: (error) {
+      debugPrint('Failed to watch projects: $error');
+      if (!mounted) return;
+      setState(() {
+        _isLoadingProjects = false;
+        _projectsError = 'Something went wrong while loading your projects.';
+      });
     });
+  }
+
+  void _startNotificationWatcher() {
+    _notificationCountSubscription = _notificationService
+        .watchUnreadCount()
+        .listen(
+          (count) {
+            if (!mounted) return;
+            setState(() => _unreadNotificationCount = count);
+          },
+          onError: (error) =>
+              debugPrint('Failed to watch unread count: $error'),
+        );
+  }
+
+  void _filterProjects() {
+    setState(() {
+      _filteredProjects =
+          _applyProjectFilter(_projects, _searchController.text);
+    });
+  }
+
+  List<Project> _applyProjectFilter(
+    List<Project> projects,
+    String query,
+  ) {
+    final normalizedQuery = query.trim().toLowerCase();
+    if (normalizedQuery.isEmpty) {
+      return List<Project>.from(projects);
+    }
+    return projects.where((project) {
+      final name = project.name.toLowerCase();
+      final location = project.mainLocation.toLowerCase();
+      final description = project.description?.toLowerCase() ?? '';
+      return name.contains(normalizedQuery) ||
+          location.contains(normalizedQuery) ||
+          description.contains(normalizedQuery);
+    }).toList(growable: false);
   }
 
   String _getFirstName() {
@@ -60,37 +155,85 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
   }
 
   void _handleRefresh() {
-    debugPrint('Refreshing projects...');
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null || _isRefreshingProjects) {
+      return;
+    }
+    setState(() => _isRefreshingProjects = true);
+    _projectService.fetchObserverProjects(uid).then((projects) {
+      if (!mounted) return;
+      _selectionService.syncWithProjects(projects);
+      setState(() {
+        _projects = projects;
+        _filteredProjects =
+            _applyProjectFilter(projects, _searchController.text);
+        _projectsError = null;
+      });
+    }).catchError((error) {
+      debugPrint('Manual refresh failed: $error');
+      if (!mounted) return;
+      setState(() {
+        _projectsError =
+            'Unable to refresh projects right now. Please try again.';
+      });
+    }).whenComplete(() {
+      if (mounted) {
+        setState(() => _isRefreshingProjects = false);
+      }
+    });
   }
 
   void _handleProjectTap(Project project) {
+    _selectionService.setActiveProject(project);
     Navigator.pushNamed(
       context,
       '/observer',
       arguments: ObserverPageArguments(
         project: project,
         userEmail: widget.userEmail,
+        userRole: widget.userRole,
       ),
     );
   }
 
   void _openObserverFromMenu() {
-    final project = _projects.isNotEmpty ? _projects.first : null;
     Navigator.pushNamed(
       context,
       '/observer',
       arguments: ObserverPageArguments(
-        project: project,
+        project: _selectionService.currentProject,
         userEmail: widget.userEmail,
+        userRole: widget.userRole,
       ),
     );
   }
 
   void _openAdminPage() {
-    Navigator.pushNamed(context, '/admin', arguments: widget.userEmail);
+    if (!_isAdmin) return;
+    Navigator.pushNamed(
+      context,
+      '/admin',
+      arguments: AdminPageArguments(
+        userEmail: widget.userEmail,
+        userRole: widget.userRole,
+      ),
+    );
+  }
+
+  void _openNotificationsPage() {
+    if (!_isAdmin) return;
+    Navigator.pushNamed(
+      context,
+      '/admin-notifications',
+      arguments: AdminNotificationsArguments(
+        userEmail: widget.userEmail,
+        userRole: widget.userRole,
+      ),
+    );
   }
 
   void _handleLogout() {
+    _selectionService.clearSelection();
     Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
   }
 
@@ -113,6 +256,9 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
                     ProjectListHeader(
                       profileButtonKey: _profileButtonKey,
                       onProfileTap: _toggleProfileMenu,
+                      unreadNotificationCount: _isAdmin
+                          ? _unreadNotificationCount
+                          : 0,
                     ),
                     Expanded(
                       child: SingleChildScrollView(
@@ -130,6 +276,11 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
                               searchController: _searchController,
                               onProjectTap: _handleProjectTap,
                               onRefresh: _handleRefresh,
+                              isLoading: _isLoadingProjects,
+                              isRefreshing: _isRefreshingProjects,
+                              errorMessage: _projectsError,
+                              selectedProjectId:
+                                  _selectionService.currentProject?.id,
                             ),
                             Padding(
                               padding: const EdgeInsets.all(16),
@@ -165,9 +316,13 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
               onClose: () => setState(() => _showProfileMenu = false),
               onLogout: _handleLogout,
               onObserverTap: _openObserverFromMenu,
-              onAdminTap: _openAdminPage,
+              onAdminTap: _isAdmin ? _openAdminPage : null,
               onProjectsTap: () {},
+              onNotificationsTap: _isAdmin ? _openNotificationsPage : null,
               activeDestination: ProfileMenuDestination.projects,
+              showAdminOption: _isAdmin,
+              showNotificationsOption: _isAdmin,
+              unreadNotificationCount: _isAdmin ? _unreadNotificationCount : 0,
             ),
         ],
       ),

@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:my_app/theme/app_theme.dart';
+import 'package:my_app/widgets/profile_avatar_button.dart';
 
 /// Reusable header for the admin page
 class AdminHeader extends StatelessWidget {
   final GlobalKey profileButtonKey;
   final VoidCallback onProfileTap;
   final String title;
+  final List<Widget> trailingActions;
+  final int unreadNotificationCount;
 
   const AdminHeader({
     super.key,
     required this.profileButtonKey,
     required this.onProfileTap,
     required this.title,
+    this.trailingActions = const [],
+    this.unreadNotificationCount = 0,
   });
 
   @override
@@ -69,18 +74,11 @@ class AdminHeader extends StatelessWidget {
               ],
             ),
           ),
-          GestureDetector(
-            key: profileButtonKey,
+          ...trailingActions,
+          ProfileAvatarButton(
+            buttonKey: profileButtonKey,
             onTap: onProfileTap,
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: const BoxDecoration(
-                color: AppTheme.primaryOrange,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.person, color: AppTheme.white, size: 24),
-            ),
+            unreadCount: unreadNotificationCount,
           ),
         ],
       ),

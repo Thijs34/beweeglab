@@ -1,7 +1,14 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:my_app/models/navigation_arguments.dart';
 import 'package:my_app/models/project.dart';
 import 'package:my_app/theme/app_theme.dart';
 import 'package:my_app/widgets/profile_menu.dart';
+import 'package:my_app/services/admin_notification_service.dart';
+import 'package:my_app/services/project_selection_service.dart';
 import 'package:my_app/screens/observer_page/models/observation_mode.dart';
 import 'package:my_app/screens/observer_page/models/observer_entry.dart';
 import 'package:my_app/screens/observer_page/models/weather_condition.dart';
@@ -14,8 +21,13 @@ import 'package:my_app/screens/observer_page/widgets/success_overlay.dart';
 class ObserverPageArguments {
   final Project? project;
   final String? userEmail;
+  final String userRole;
 
-  const ObserverPageArguments({this.project, this.userEmail});
+  const ObserverPageArguments({
+    this.project,
+    this.userEmail,
+    this.userRole = 'observer',
+  });
 }
 
 class ObserverPage extends StatefulWidget {
@@ -48,6 +60,13 @@ class _ObserverPageState extends State<ObserverPage> {
   bool _showSummary = false;
   bool _isSubmitting = false;
   bool _isEditingPersonId = false;
+  final AdminNotificationService _notificationService =
+      AdminNotificationService.instance;
+    final ProjectSelectionService _projectSelectionService =
+      ProjectSelectionService.instance;
+  StreamSubscription<int>? _notificationCountSubscription;
+    VoidCallback? _projectSelectionListener;
+  int _unreadNotificationCount = 0;
 
   String _personId = '1';
   int _personCounter = 1;
@@ -69,8 +88,11 @@ class _ObserverPageState extends State<ObserverPage> {
   late final String _currentDate;
   late final String _currentTime;
 
-  final String _temperatureLabel = '18°C';
-  final WeatherCondition _weatherCondition = WeatherCondition.sunny;
+  String _temperatureLabel = '--°C';
+  WeatherCondition _weatherCondition = WeatherCondition.sunny;
+  bool _isWeatherLoading = false;
+
+  bool get _isAdmin => (widget.arguments?.userRole ?? 'observer') == 'admin';
 
   @override
   void initState() {
@@ -78,6 +100,20 @@ class _ObserverPageState extends State<ObserverPage> {
     final now = DateTime.now();
     _currentDate = _formatDate(now);
     _currentTime = _formatTime(now);
+    _fetchWeather();
+    if (_isAdmin) {
+      _startNotificationWatcher();
+    }
+    final initialProject = widget.arguments?.project;
+    if (initialProject != null) {
+      _projectSelectionService.setActiveProject(initialProject);
+    }
+    _projectSelectionListener = () {
+      if (!mounted) return;
+      setState(() {});
+    };
+    _projectSelectionService.selectedProjectListenable
+        .addListener(_projectSelectionListener!);
   }
 
   @override
@@ -86,7 +122,25 @@ class _ObserverPageState extends State<ObserverPage> {
     _customLocationController.dispose();
     _activityNotesController.dispose();
     _additionalRemarksController.dispose();
+    _notificationCountSubscription?.cancel();
+    if (_projectSelectionListener != null) {
+      _projectSelectionService.selectedProjectListenable
+          .removeListener(_projectSelectionListener!);
+    }
     super.dispose();
+  }
+
+  void _startNotificationWatcher() {
+    _notificationCountSubscription = _notificationService
+        .watchUnreadCount()
+        .listen(
+          (count) {
+            if (!mounted) return;
+            setState(() => _unreadNotificationCount = count);
+          },
+          onError: (error) =>
+              debugPrint('Failed to watch unread count: $error'),
+        );
   }
 
   @override
@@ -103,9 +157,13 @@ class _ObserverPageState extends State<ObserverPage> {
               onClose: () => setState(() => _showProfileMenu = false),
               onLogout: _handleLogout,
               onObserverTap: () {},
-              onAdminTap: _openAdminPage,
+              onAdminTap: _isAdmin ? _openAdminPage : null,
               onProjectsTap: _navigateToProjects,
+              onNotificationsTap: _isAdmin ? _openNotificationsPage : null,
               activeDestination: ProfileMenuDestination.observer,
+              showAdminOption: _isAdmin,
+              showNotificationsOption: _isAdmin,
+              unreadNotificationCount: _isAdmin ? _unreadNotificationCount : 0,
             ),
           if (_showSuccessOverlay)
             ObserverSuccessOverlay(
@@ -129,7 +187,14 @@ class _ObserverPageState extends State<ObserverPage> {
   }
 
   Widget _buildBaseContent() {
-    return Stack(children: [_buildScrollArea(), _buildBottomBar()]);
+    final hasProject = _activeProject != null;
+    return Stack(
+      children: [
+        _buildScrollArea(),
+        _buildBottomBar(),
+        if (!hasProject) Positioned.fill(child: _buildNoProjectOverlay()),
+      ],
+    );
   }
 
   Widget _buildScrollArea() {
@@ -151,12 +216,17 @@ class _ObserverPageState extends State<ObserverPage> {
                           locationLabel: _headerLocation,
                           dateLabel: _currentDate,
                           timeLabel: _currentTime,
-                          temperatureLabel: _temperatureLabel,
+                          temperatureLabel: _isWeatherLoading
+                              ? 'Loading...'
+                              : _temperatureLabel,
                           weatherCondition: _weatherCondition,
                           profileButtonKey: _profileButtonKey,
                           onProfileTap: () => setState(
                             () => _showProfileMenu = !_showProfileMenu,
                           ),
+                          unreadNotificationCount: _isAdmin
+                              ? _unreadNotificationCount
+                              : 0,
                         ),
                       ),
                       SliverToBoxAdapter(
@@ -284,6 +354,66 @@ class _ObserverPageState extends State<ObserverPage> {
     );
   }
 
+  Future<void> _fetchWeather() async {
+    setState(() => _isWeatherLoading = true);
+    const double latitude = 51.4416;
+    const double longitude = 5.4697;
+    final uri = Uri.parse(
+      'https://api.open-meteo.com/v1/forecast?latitude=$latitude&longitude=$longitude&current_weather=true',
+    );
+
+    try {
+      final response = await http.get(uri);
+      if (response.statusCode != 200) {
+        if (!mounted) return;
+        setState(() => _isWeatherLoading = false);
+        return;
+      }
+
+      final data = json.decode(response.body) as Map<String, dynamic>;
+      final current = data['current_weather'];
+      if (current is! Map<String, dynamic>) {
+        if (!mounted) return;
+        setState(() => _isWeatherLoading = false);
+        return;
+      }
+
+      final double? temperature = (current['temperature'] as num?)?.toDouble();
+      final int? weatherCode = (current['weathercode'] as num?)?.toInt();
+
+      if (!mounted) return;
+      setState(() {
+        if (temperature != null) {
+          _temperatureLabel = '${temperature.round()}°C';
+        }
+        _weatherCondition = _mapWeatherCode(weatherCode);
+        _isWeatherLoading = false;
+      });
+    } catch (error) {
+      debugPrint('Failed to fetch weather: $error');
+      if (!mounted) return;
+      setState(() => _isWeatherLoading = false);
+    }
+  }
+
+  WeatherCondition _mapWeatherCode(int? code) {
+    if (code == null) {
+      return WeatherCondition.sunny;
+    }
+    if (code == 0 || code == 1) {
+      return WeatherCondition.sunny;
+    }
+    if ((code >= 2 && code <= 3) || (code >= 45 && code <= 48)) {
+      return WeatherCondition.cloudy;
+    }
+    if ((code >= 51 && code <= 67) ||
+        (code >= 71 && code <= 82) ||
+        (code >= 95 && code <= 99)) {
+      return WeatherCondition.rainy;
+    }
+    return WeatherCondition.sunny;
+  }
+
   Widget _buildModeToggle() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -348,8 +478,18 @@ class _ObserverPageState extends State<ObserverPage> {
         const SizedBox(height: 4),
         _buildOptionsGrid(
           options: const [
-            _SelectionOption(label: 'Male', value: 'male'),
-            _SelectionOption(label: 'Female', value: 'female'),
+            _SelectionOption(
+              label: 'Male',
+              value: 'male',
+              icon: Icons.male_outlined,
+              iconSize: 18,
+            ),
+            _SelectionOption(
+              label: 'Female',
+              value: 'female',
+              icon: Icons.female_outlined,
+              iconSize: 18,
+            ),
           ],
           value: _gender,
           onChanged: (value) => setState(() {
@@ -363,10 +503,42 @@ class _ObserverPageState extends State<ObserverPage> {
         const SizedBox(height: 4),
         _buildOptionsGrid(
           options: const [
-            _SelectionOption(label: 'Child', value: 'child'),
-            _SelectionOption(label: 'Teen', value: 'teen'),
-            _SelectionOption(label: 'Adult', value: 'adult'),
-            _SelectionOption(label: 'Senior', value: 'senior'),
+            _SelectionOption(
+              label: '11 en jonger',
+              value: '11-and-younger',
+              icon: Icons.child_care,
+              iconSize: 18,
+            ),
+            _SelectionOption(
+              label: '12 t/m 17',
+              value: '12-17',
+              icon: Icons.school,
+              iconSize: 18,
+            ),
+            _SelectionOption(
+              label: '18 t/m 24',
+              value: '18-24',
+              icon: Icons.directions_run,
+              iconSize: 18,
+            ),
+            _SelectionOption(
+              label: '25 t/m 44',
+              value: '25-44',
+              icon: Icons.work_outline,
+              iconSize: 18,
+            ),
+            _SelectionOption(
+              label: '45 t/m 64',
+              value: '45-64',
+              icon: Icons.psychology_alt,
+              iconSize: 18,
+            ),
+            _SelectionOption(
+              label: '65 +',
+              value: '65-plus',
+              icon: Icons.elderly,
+              iconSize: 20,
+            ),
           ],
           value: _ageGroup,
           onChanged: (value) => setState(() {
@@ -380,8 +552,18 @@ class _ObserverPageState extends State<ObserverPage> {
         const SizedBox(height: 4),
         _buildOptionsGrid(
           options: const [
-            _SelectionOption(label: 'Alone', value: 'alone'),
-            _SelectionOption(label: 'Together', value: 'together'),
+            _SelectionOption(
+              label: 'Alone',
+              value: 'alone',
+              icon: Icons.person_outline,
+              iconSize: 18,
+            ),
+            _SelectionOption(
+              label: 'Together',
+              value: 'together',
+              icon: Icons.groups_outlined,
+              iconSize: 18,
+            ),
           ],
           value: _socialContext,
           onChanged: (value) => setState(() {
@@ -458,9 +640,24 @@ class _ObserverPageState extends State<ObserverPage> {
         const SizedBox(height: 4),
         _buildOptionsGrid(
           options: const [
-            _SelectionOption(label: 'Male', value: 'male'),
-            _SelectionOption(label: 'Female', value: 'female'),
-            _SelectionOption(label: 'Mixed', value: 'mixed'),
+            _SelectionOption(
+              label: 'Male',
+              value: 'male',
+              icon: Icons.male,
+              iconSize: 18,
+            ),
+            _SelectionOption(
+              label: 'Female',
+              value: 'female',
+              icon: Icons.female,
+              iconSize: 18,
+            ),
+            _SelectionOption(
+              label: 'Mixed',
+              value: 'mixed',
+              icon: Icons.groups,
+              iconSize: 20,
+            ),
           ],
           columns: 3,
           value: _genderMix,
@@ -475,10 +672,30 @@ class _ObserverPageState extends State<ObserverPage> {
         const SizedBox(height: 4),
         _buildOptionsGrid(
           options: const [
-            _SelectionOption(label: 'Child', value: 'child'),
-            _SelectionOption(label: 'Teen', value: 'teen'),
-            _SelectionOption(label: 'Adult', value: 'adult'),
-            _SelectionOption(label: 'Mixed', value: 'mixed'),
+            _SelectionOption(
+              label: 'Child',
+              value: 'child',
+              icon: Icons.child_care,
+              iconSize: 18,
+            ),
+            _SelectionOption(
+              label: 'Teen',
+              value: 'teen',
+              icon: Icons.school,
+              iconSize: 18,
+            ),
+            _SelectionOption(
+              label: 'Adult',
+              value: 'adult',
+              icon: Icons.work_outline,
+              iconSize: 18,
+            ),
+            _SelectionOption(
+              label: 'Mixed',
+              value: 'mixed',
+              icon: Icons.groups_outlined,
+              iconSize: 20,
+            ),
           ],
           value: _ageMix,
           onChanged: (value) => setState(() {
@@ -505,36 +722,46 @@ class _ObserverPageState extends State<ObserverPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionLabel('Location Type', required: true),
+        _buildSectionLabel('Location Type', required: true, isSmall: true),
         const SizedBox(height: 4),
-        DropdownButtonFormField<String>(
-          key: ValueKey(_locationType ?? 'location-null'),
-          initialValue: _locationType,
-          decoration: _inputDecoration(),
-          items: const [
-            DropdownMenuItem(
-              value: 'cruyff-court',
-              child: Text('C - Cruyff Court'),
+        SizedBox(
+          height: 40,
+          child: DropdownButtonFormField<String>(
+            key: ValueKey(_locationType ?? 'location-null'),
+            initialValue: _locationType,
+            isDense: true,
+            decoration: _inputDecoration().copyWith(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 4,
+              ),
             ),
-            DropdownMenuItem(
-              value: 'basketball-field',
-              child: Text('B - Basketball Field'),
-            ),
-            DropdownMenuItem(
-              value: 'grass-field',
-              child: Text('G - Grass Field'),
-            ),
-            DropdownMenuItem(value: 'custom', child: Text('Custom')),
-          ],
-          onChanged: (value) => setState(() {
-            _locationType = value;
-            _errors.remove('locationType');
-            if (value != 'custom') {
-              _customLocationController.clear();
-              _errors.remove('customLocation');
-            }
-          }),
-          hint: const Text('Select location type'),
+            icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
+            items: const [
+              DropdownMenuItem(
+                value: 'cruyff-court',
+                child: Text('C - Cruyff Court'),
+              ),
+              DropdownMenuItem(
+                value: 'basketball-field',
+                child: Text('B - Basketball Field'),
+              ),
+              DropdownMenuItem(
+                value: 'grass-field',
+                child: Text('G - Grass Field'),
+              ),
+              DropdownMenuItem(value: 'custom', child: Text('Custom')),
+            ],
+            onChanged: (value) => setState(() {
+              _locationType = value;
+              _errors.remove('locationType');
+              if (value != 'custom') {
+                _customLocationController.clear();
+                _errors.remove('customLocation');
+              }
+            }),
+            hint: const Text('Select location type'),
+          ),
         ),
         _buildErrorText('locationType'),
         if (_locationType == 'custom') ...[
@@ -557,9 +784,24 @@ class _ObserverPageState extends State<ObserverPage> {
         const SizedBox(height: 4),
         _buildOptionsGrid(
           options: const [
-            _SelectionOption(label: 'Sedentary', value: 'sedentary'),
-            _SelectionOption(label: 'Moving', value: 'moving'),
-            _SelectionOption(label: 'Intense', value: 'intense'),
+            _SelectionOption(
+              label: 'Sedentary',
+              value: 'sedentary',
+              icon: Icons.self_improvement,
+              iconSize: 18,
+            ),
+            _SelectionOption(
+              label: 'Moving',
+              value: 'moving',
+              icon: Icons.directions_walk,
+              iconSize: 18,
+            ),
+            _SelectionOption(
+              label: 'Intense',
+              value: 'intense',
+              icon: Icons.whatshot,
+              iconSize: 20,
+            ),
           ],
           columns: 3,
           value: _activityLevel,
@@ -574,8 +816,18 @@ class _ObserverPageState extends State<ObserverPage> {
         const SizedBox(height: 4),
         _buildOptionsGrid(
           options: const [
-            _SelectionOption(label: 'Organized', value: 'organized'),
-            _SelectionOption(label: 'Unorganized', value: 'unorganized'),
+            _SelectionOption(
+              label: 'Organized',
+              value: 'organized',
+              icon: Icons.event_available,
+              iconSize: 18,
+            ),
+            _SelectionOption(
+              label: 'Unorganized',
+              value: 'unorganized',
+              icon: Icons.sports_handball,
+              iconSize: 18,
+            ),
           ],
           value: _activityType,
           onChanged: (value) => setState(() {
@@ -717,6 +969,8 @@ class _ObserverPageState extends State<ObserverPage> {
                 selected: value == option.value,
                 onTap: () => onChanged(option.value),
                 height: height,
+                icon: option.icon,
+                iconSize: option.iconSize ?? 16,
               ),
             );
           }).toList(),
@@ -1003,10 +1257,26 @@ class _ObserverPageState extends State<ObserverPage> {
   }
 
   void _openAdminPage() {
+    if (!_isAdmin) return;
     Navigator.pushNamed(
       context,
       '/admin',
-      arguments: widget.arguments?.userEmail,
+      arguments: AdminPageArguments(
+        userEmail: widget.arguments?.userEmail,
+        userRole: widget.arguments?.userRole ?? 'observer',
+      ),
+    );
+  }
+
+  void _openNotificationsPage() {
+    if (!_isAdmin) return;
+    Navigator.pushNamed(
+      context,
+      '/admin-notifications',
+      arguments: AdminNotificationsArguments(
+        userEmail: widget.arguments?.userEmail,
+        userRole: widget.arguments?.userRole ?? 'observer',
+      ),
     );
   }
 
@@ -1015,11 +1285,68 @@ class _ObserverPageState extends State<ObserverPage> {
       context,
       '/projects',
       ModalRoute.withName('/'),
+      arguments: ProjectListArguments(
+        userEmail: widget.arguments?.userEmail,
+        userRole: widget.arguments?.userRole ?? 'observer',
+      ),
     );
   }
 
   String get _headerLocation =>
-      widget.arguments?.project?.name ?? 'Parkstraat Observation Site';
+      _activeProject?.name ?? 'No project selected';
+
+  Project? get _activeProject =>
+      widget.arguments?.project ?? _projectSelectionService.currentProject;
+
+  Widget _buildNoProjectOverlay() {
+    return Container(
+      color: AppTheme.gray50.withValues(alpha: 0.95),
+      padding: const EdgeInsets.all(24),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.info_outline,
+                size: 48,
+                color: AppTheme.primaryOrange,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'No project selected. Please choose a project from the list before starting an observation.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.gray700,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Select a project on the Project List screen to unlock the observation tools.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: AppTheme.gray600),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: 220,
+                child: ElevatedButton(
+                  onPressed: _navigateToProjects,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryOrange,
+                    foregroundColor: AppTheme.white,
+                  ),
+                  child: const Text('Back to Project List'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   String _formatDate(DateTime date) {
     final day = date.day.toString().padLeft(2, '0');
@@ -1044,6 +1371,7 @@ class _ObserverHeaderDelegate extends SliverPersistentHeaderDelegate {
   final WeatherCondition weatherCondition;
   final GlobalKey profileButtonKey;
   final VoidCallback onProfileTap;
+  final int unreadNotificationCount;
 
   const _ObserverHeaderDelegate({
     required this.siteLabel,
@@ -1054,6 +1382,7 @@ class _ObserverHeaderDelegate extends SliverPersistentHeaderDelegate {
     required this.weatherCondition,
     required this.profileButtonKey,
     required this.onProfileTap,
+    required this.unreadNotificationCount,
   });
 
   @override
@@ -1077,6 +1406,7 @@ class _ObserverHeaderDelegate extends SliverPersistentHeaderDelegate {
       weatherCondition: weatherCondition,
       profileButtonKey: profileButtonKey,
       onProfileTap: onProfileTap,
+      unreadNotificationCount: unreadNotificationCount,
     );
   }
 
@@ -1086,12 +1416,21 @@ class _ObserverHeaderDelegate extends SliverPersistentHeaderDelegate {
         dateLabel != oldDelegate.dateLabel ||
         timeLabel != oldDelegate.timeLabel ||
         temperatureLabel != oldDelegate.temperatureLabel ||
-        weatherCondition != oldDelegate.weatherCondition;
+        weatherCondition != oldDelegate.weatherCondition ||
+        unreadNotificationCount != oldDelegate.unreadNotificationCount;
   }
 }
 
 class _SelectionOption {
   final String label;
   final String value;
-  const _SelectionOption({required this.label, required this.value});
+  final IconData? icon;
+  final double? iconSize;
+
+  const _SelectionOption({
+    required this.label,
+    required this.value,
+    this.icon,
+    this.iconSize,
+  });
 }

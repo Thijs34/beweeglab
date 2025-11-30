@@ -1,18 +1,25 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:my_app/models/navigation_arguments.dart';
 import 'package:my_app/screens/admin_page/admin_models.dart';
 import 'package:my_app/screens/admin_page/widgets/admin_header.dart';
 import 'package:my_app/screens/admin_page/widgets/observation_edit_dialog.dart';
 import 'package:my_app/screens/admin_page/widgets/project_detail_view.dart';
 import 'package:my_app/screens/admin_page/widgets/project_list_view.dart';
 import 'package:my_app/screens/observer_page/observer_page.dart';
+import 'package:my_app/services/admin_notification_service.dart';
+import 'package:my_app/services/project_service.dart';
+import 'package:my_app/services/user_service.dart';
 import 'package:my_app/theme/app_theme.dart';
 import 'package:my_app/widgets/profile_menu.dart';
 
 /// Admin Page that mirrors the React Admin Panel UI
 class AdminPage extends StatefulWidget {
   final String? userEmail;
+  final String userRole;
 
-  const AdminPage({super.key, this.userEmail});
+  const AdminPage({super.key, this.userEmail, this.userRole = 'admin'});
 
   @override
   State<AdminPage> createState() => _AdminPageState();
@@ -22,8 +29,11 @@ class _AdminPageState extends State<AdminPage> {
   final GlobalKey _profileButtonKey = GlobalKey();
   bool _showProfileMenu = false;
 
-  late List<AdminProject> _projects;
+  List<AdminProject> _projects = const [];
+  bool _projectsLoading = true;
+  ProjectStatus _statusFilter = ProjectStatus.active;
   String? _selectedProjectId;
+  final Set<String> _statusUpdatesInFlight = <String>{};
 
   bool _showDeleteDialog = false;
   String? _projectPendingDelete;
@@ -31,9 +41,20 @@ class _AdminPageState extends State<AdminPage> {
   bool _showProjectSuccess = false;
   String _lastCreatedProjectName = '';
 
+  StreamSubscription<List<AdminProject>>? _projectSubscription;
+  StreamSubscription<List<AppUserRecord>>? _observerSubscription;
+  StreamSubscription<int>? _notificationCountSubscription;
+  List<AdminObserver> _observers = const [];
+  bool _observersLoading = true;
+  int _unreadNotificationCount = 0;
+  final AdminNotificationService _notificationService =
+      AdminNotificationService.instance;
+
   // New project form state
   bool _showNewProjectForm = false;
   final TextEditingController _newProjectNameController =
+      TextEditingController();
+  final TextEditingController _newProjectMainLocationController =
       TextEditingController();
   final TextEditingController _newProjectDescriptionController =
       TextEditingController();
@@ -53,6 +74,10 @@ class _AdminPageState extends State<AdminPage> {
   String _observerSearchQuery = '';
   bool _showAddLocationField = false;
   final TextEditingController _addLocationController = TextEditingController();
+  final TextEditingController _projectMainLocationController =
+      TextEditingController();
+  bool _isSavingMainLocation = false;
+  String? _projectMainLocationError;
   Map<String, String> _filters = {
     'gender': 'all',
     'ageGroup': 'all',
@@ -65,28 +90,148 @@ class _AdminPageState extends State<AdminPage> {
   @override
   void initState() {
     super.initState();
-    _projects = AdminDataRepository.initialProjects();
+    _startProjectSubscription();
+    _startObserverSubscription();
+    if (_isAdmin) {
+      _startNotificationCountSubscription();
+    }
   }
 
   @override
   void dispose() {
+    _projectSubscription?.cancel();
+    _observerSubscription?.cancel();
+    _notificationCountSubscription?.cancel();
     _newProjectNameController.dispose();
+    _newProjectMainLocationController.dispose();
     _newProjectDescriptionController.dispose();
     _customLocationController.dispose();
     _addLocationController.dispose();
+    _projectMainLocationController.dispose();
     super.dispose();
   }
 
   AdminProject? get _selectedProject {
     if (_selectedProjectId == null) return null;
-    return _projects.firstWhere(
-      (project) => project.id == _selectedProjectId,
-      orElse: () => _projects.first,
+    return _findProjectById(_selectedProjectId!);
+  }
+
+  bool get _isAdmin => widget.userRole == 'admin';
+
+  AdminProject? _findProjectById(String projectId) {
+    for (final project in _projects) {
+      if (project.id == projectId) {
+        return project;
+      }
+    }
+    return null;
+  }
+
+  void _syncMainLocationController(AdminProject project) {
+    final value = project.mainLocation;
+    if (_projectMainLocationController.text != value) {
+      _projectMainLocationController.text = value;
+    }
+  }
+
+  void _startProjectSubscription() {
+    _projectSubscription = ProjectService.instance.watchProjects().listen(
+      (projects) {
+        setState(() {
+          _projects = projects;
+          _projectsLoading = false;
+          if (_selectedProjectId != null) {
+            final matches = projects
+                .where((project) => project.id == _selectedProjectId)
+                .toList();
+            if (matches.isEmpty) {
+              _selectedProjectId = null;
+              _projectMainLocationController.clear();
+              _projectMainLocationError = null;
+              _isSavingMainLocation = false;
+            } else {
+              _syncMainLocationController(matches.first);
+            }
+          }
+        });
+      },
+      onError: (error) {
+        debugPrint('Failed to load projects: $error');
+        setState(() => _projectsLoading = false);
+        _showSnackMessage('Unable to load projects right now', isError: true);
+      },
+    );
+  }
+
+  void _startObserverSubscription() {
+    _observerSubscription = UserService.instance.watchObservers().listen(
+      (records) {
+        setState(() {
+          _observers = records
+              .map(
+                (record) => AdminObserver(
+                  id: record.uid,
+                  name: _deriveObserverName(record.displayName, record.email),
+                  email: record.email ?? 'unknown@innobeweeglab.nl',
+                ),
+              )
+              .toList();
+          _observersLoading = false;
+        });
+      },
+      onError: (error) {
+        debugPrint('Failed to load observers: $error');
+        setState(() => _observersLoading = false);
+        _showSnackMessage('Unable to load observers right now', isError: true);
+      },
+    );
+  }
+
+  void _startNotificationCountSubscription() {
+    _notificationCountSubscription = _notificationService
+        .watchUnreadCount()
+        .listen(
+          (count) {
+            if (!mounted) return;
+            setState(() => _unreadNotificationCount = count);
+          },
+          onError: (error) =>
+              debugPrint('Failed to watch unread count: $error'),
+        );
+  }
+
+  String _deriveObserverName(String? displayName, String? email) {
+    if (displayName != null && displayName.trim().isNotEmpty) {
+      return displayName.trim();
+    }
+    final fallback = (email ?? 'observer').split('@').first;
+    if (fallback.isEmpty) return 'Observer';
+    return fallback
+        .split(RegExp(r'[._-]+'))
+        .where((segment) => segment.isNotEmpty)
+        .map(
+          (segment) =>
+              segment[0].toUpperCase() + segment.substring(1).toLowerCase(),
+        )
+        .join(' ')
+        .trim();
+  }
+
+  void _showSnackMessage(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : AppTheme.primaryOrange,
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 
   void _toggleProfileMenu() {
-    setState(() => _showProfileMenu = !_showProfileMenu);
+    setState(() {
+      _showProfileMenu = !_showProfileMenu;
+    });
   }
 
   void _handleLogout() {
@@ -94,7 +239,14 @@ class _AdminPageState extends State<AdminPage> {
   }
 
   void _navigateToProjects() {
-    Navigator.pushNamed(context, '/projects', arguments: widget.userEmail);
+    Navigator.pushNamed(
+      context,
+      '/projects',
+      arguments: ProjectListArguments(
+        userEmail: widget.userEmail,
+        userRole: widget.userRole,
+      ),
+    );
   }
 
   void _navigateToObserver() {
@@ -104,6 +256,7 @@ class _AdminPageState extends State<AdminPage> {
       arguments: ObserverPageArguments(
         project: null,
         userEmail: widget.userEmail,
+        userRole: widget.userRole,
       ),
     );
   }
@@ -113,6 +266,18 @@ class _AdminPageState extends State<AdminPage> {
     setState(() {});
   }
 
+  void _openNotificationsPage() {
+    if (!_isAdmin) return;
+    Navigator.pushNamed(
+      context,
+      '/admin-notifications',
+      arguments: AdminNotificationsArguments(
+        userEmail: widget.userEmail,
+        userRole: widget.userRole,
+      ),
+    );
+  }
+
   void _toggleNewProjectForm() {
     setState(() => _showNewProjectForm = !_showNewProjectForm);
   }
@@ -120,6 +285,7 @@ class _AdminPageState extends State<AdminPage> {
   void _resetNewProjectForm({bool rebuild = true}) {
     void clearState() {
       _newProjectNameController.clear();
+      _newProjectMainLocationController.clear();
       _newProjectDescriptionController.clear();
       _customLocationController.clear();
       _newProjectLocationTypeIds = [];
@@ -226,8 +392,9 @@ class _AdminPageState extends State<AdminPage> {
   }
 
   List<AdminObserver> get _availableObserversForNewProject {
+    if (_observersLoading) return [];
     final query = _newProjectObserverSearch.toLowerCase();
-    return AdminDataRepository.observers.where((observer) {
+    return _observers.where((observer) {
       final alreadySelected = _newProjectObserverIds.contains(observer.id);
       if (alreadySelected) return false;
       if (query.isEmpty) return true;
@@ -236,10 +403,13 @@ class _AdminPageState extends State<AdminPage> {
     }).toList();
   }
 
-  void _handleCreateProject() {
+  Future<void> _handleCreateProject() async {
     final errors = <String, String>{};
     if (_newProjectNameController.text.trim().isEmpty) {
       errors['name'] = 'Please enter a project name';
+    }
+    if (_newProjectMainLocationController.text.trim().isEmpty) {
+      errors['mainLocation'] = 'Please enter a main location';
     }
     if (_newProjectLocationTypeIds.isEmpty) {
       errors['locationTypes'] = 'Please select at least one location type';
@@ -250,18 +420,31 @@ class _AdminPageState extends State<AdminPage> {
 
     setState(() => _isCreatingProject = true);
 
-    Future.delayed(const Duration(milliseconds: 400), () {
-      final project = AdminProject(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        name: _newProjectNameController.text.trim(),
-        description: _newProjectDescriptionController.text.trim(),
-        locationTypeIds: List<String>.from(_newProjectLocationTypeIds),
-        assignedObserverIds: List<String>.from(_newProjectObserverIds),
-        observations: const [],
+    final project = AdminProject(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      name: _newProjectNameController.text.trim(),
+      description: _newProjectDescriptionController.text.trim(),
+      mainLocation: _newProjectMainLocationController.text.trim(),
+      status: ProjectStatus.active,
+      locationTypeIds: List<String>.from(_newProjectLocationTypeIds),
+      assignedObserverIds: List<String>.from(_newProjectObserverIds),
+      observations: const [],
+    );
+
+    try {
+      await ProjectService.instance.saveProject(
+        projectId: project.id,
+        name: project.name,
+        mainLocation: project.mainLocation,
+        description: project.description,
+        locationTypeIds: project.locationTypeIds,
+        assignedObserverIds: project.assignedObserverIds,
+        status: project.status,
       );
 
       setState(() {
         _projects = [..._projects, project];
+        _statusFilter = ProjectStatus.active;
         _isCreatingProject = false;
         _lastCreatedProjectName = project.name;
         _showProjectSuccess = true;
@@ -273,7 +456,16 @@ class _AdminPageState extends State<AdminPage> {
           setState(() => _showProjectSuccess = false);
         }
       });
-    });
+    } catch (error) {
+      debugPrint('Failed to create project: $error');
+      if (mounted) {
+        setState(() => _isCreatingProject = false);
+      }
+      _showSnackMessage(
+        'Failed to create project. Please try again.',
+        isError: true,
+      );
+    }
   }
 
   void _clearNewProjectError(String key) {
@@ -283,6 +475,50 @@ class _AdminPageState extends State<AdminPage> {
     });
   }
 
+  void _handleDetailMainLocationChanged(String value) {
+    setState(() {
+      if (_projectMainLocationError != null && value.trim().isNotEmpty) {
+        _projectMainLocationError = null;
+      }
+    });
+  }
+
+  Future<void> _handleSaveMainLocation() async {
+    final project = _selectedProject;
+    if (project == null) return;
+    final value = _projectMainLocationController.text.trim();
+    if (value.isEmpty) {
+      setState(() {
+        _projectMainLocationError = 'Please enter a main location';
+      });
+      return;
+    }
+    if (value == project.mainLocation) {
+      return;
+    }
+
+    setState(() {
+      _isSavingMainLocation = true;
+      _projectMainLocationError = null;
+    });
+
+    try {
+      await ProjectService.instance.updateMainLocation(project.id, value);
+      _updateProject(project.copyWith(mainLocation: value));
+      _showSnackMessage('Main location updated');
+    } catch (error) {
+      debugPrint('Failed to update main location: $error');
+      _showSnackMessage(
+        'Unable to update main location right now.',
+        isError: true,
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSavingMainLocation = false);
+      }
+    }
+  }
+
   void _handleProjectTap(AdminProject project) {
     setState(() {
       _selectedProjectId = project.id;
@@ -290,6 +526,9 @@ class _AdminPageState extends State<AdminPage> {
       _observerSearchQuery = '';
       _showAddLocationField = false;
       _addLocationController.clear();
+      _syncMainLocationController(project);
+      _projectMainLocationError = null;
+      _isSavingMainLocation = false;
       _filters = {
         'gender': 'all',
         'ageGroup': 'all',
@@ -306,6 +545,9 @@ class _AdminPageState extends State<AdminPage> {
       _selectedProjectId = null;
       _showDeleteDialog = false;
       _projectPendingDelete = null;
+      _projectMainLocationController.clear();
+      _projectMainLocationError = null;
+      _isSavingMainLocation = false;
     });
   }
 
@@ -323,29 +565,51 @@ class _AdminPageState extends State<AdminPage> {
     });
   }
 
-  void _confirmProjectDeletion() {
-    if (_projectPendingDelete == null) return;
-    setState(() {
-      _projects = _projects
-          .where((project) => project.id != _projectPendingDelete)
-          .toList();
-      if (_selectedProjectId == _projectPendingDelete) {
-        _selectedProjectId = null;
-      }
-      _showDeleteDialog = false;
-      _projectPendingDelete = null;
-    });
+  Future<void> _confirmProjectDeletion() async {
+    final projectId = _projectPendingDelete;
+    if (projectId == null) return;
+
+    try {
+      await ProjectService.instance.deleteProject(projectId);
+      if (!mounted) return;
+      setState(() {
+        _projects =
+            _projects.where((project) => project.id != projectId).toList();
+        if (_selectedProjectId == projectId) {
+          _selectedProjectId = null;
+        }
+        _showDeleteDialog = false;
+        _projectPendingDelete = null;
+      });
+      _showSnackMessage('Project deleted permanently.');
+    } catch (error) {
+      debugPrint('Failed to delete project: $error');
+      _showSnackMessage(
+        'Unable to delete this project right now.',
+        isError: true,
+      );
+    }
   }
 
   void _toggleObserverSelector() {
     setState(() => _showObserverSelector = !_showObserverSelector);
   }
 
+  bool _isStatusUpdating(String projectId) {
+    return _statusUpdatesInFlight.contains(projectId);
+  }
+
+  void _handleStatusFilterChanged(ProjectStatus status) {
+    if (_statusFilter == status) return;
+    setState(() => _statusFilter = status);
+  }
+
   List<AdminObserver> get _availableObserversForProject {
     final project = _selectedProject;
     if (project == null) return [];
+    if (_observersLoading) return [];
     final query = _observerSearchQuery.toLowerCase();
-    return AdminDataRepository.observers.where((observer) {
+    return _observers.where((observer) {
       final alreadyAssigned = project.assignedObserverIds.contains(observer.id);
       if (alreadyAssigned) return false;
       if (query.isEmpty) return true;
@@ -358,21 +622,21 @@ class _AdminPageState extends State<AdminPage> {
     final project = _selectedProject;
     if (project == null) return;
     if (project.assignedObserverIds.contains(id)) return;
-    final updated = project.copyWith(
-      assignedObserverIds: [...project.assignedObserverIds, id],
-    );
+    final updatedObserverIds = [...project.assignedObserverIds, id];
+    final updated = project.copyWith(assignedObserverIds: updatedObserverIds);
     _updateProject(updated);
+    _persistObserverAssignments(project.id, updatedObserverIds);
   }
 
   void _removeObserverFromProject(String id) {
     final project = _selectedProject;
     if (project == null) return;
-    final updated = project.copyWith(
-      assignedObserverIds: project.assignedObserverIds
-          .where((obsId) => obsId != id)
-          .toList(),
-    );
+    final updatedObserverIds = project.assignedObserverIds
+        .where((obsId) => obsId != id)
+        .toList();
+    final updated = project.copyWith(assignedObserverIds: updatedObserverIds);
     _updateProject(updated);
+    _persistObserverAssignments(project.id, updatedObserverIds);
   }
 
   void _toggleAddLocationField() {
@@ -419,6 +683,8 @@ class _AdminPageState extends State<AdminPage> {
             id: updated.id,
             name: updated.name,
             description: updated.description,
+            mainLocation: updated.mainLocation,
+            status: updated.status,
             locationTypeIds: List<String>.from(updated.locationTypeIds),
             assignedObserverIds: List<String>.from(updated.assignedObserverIds),
             observations: List<ObservationRecord>.from(updated.observations),
@@ -427,6 +693,18 @@ class _AdminPageState extends State<AdminPage> {
         return project;
       }).toList();
     });
+  }
+
+  void _persistObserverAssignments(String projectId, List<String> observerIds) {
+    ProjectService.instance
+        .updateAssignedObservers(projectId, observerIds)
+        .catchError((error) {
+          debugPrint('Failed to update observer assignments: $error');
+          _showSnackMessage(
+            'Unable to update observers for this project.',
+            isError: true,
+          );
+        });
   }
 
   void _updateFilter(String key, String value) {
@@ -446,6 +724,55 @@ class _AdminPageState extends State<AdminPage> {
         'activityType': 'all',
       };
     });
+  }
+
+  Future<void> _handleProjectStatusChange(
+    AdminProject project,
+    ProjectStatus status,
+  ) async {
+    if (project.status == status) {
+      return;
+    }
+
+    setState(() {
+      _statusUpdatesInFlight.add(project.id);
+    });
+
+    try {
+      await ProjectService.instance.updateProjectStatus(project.id, status);
+      _updateProject(project.copyWith(status: status));
+      _showSnackMessage('Project marked as ${status.label}.');
+    } catch (error) {
+      debugPrint('Failed to update project status: $error');
+      _showSnackMessage(
+        'Unable to update project status right now.',
+        isError: true,
+      );
+    } finally {
+      if (!mounted) {
+        _statusUpdatesInFlight.remove(project.id);
+      } else {
+        setState(() {
+          _statusUpdatesInFlight.remove(project.id);
+        });
+      }
+    }
+  }
+
+  Map<ProjectStatus, int> get _statusCounts {
+    final counts = {
+      for (final status in ProjectStatus.values) status: 0,
+    };
+    for (final project in _projects) {
+      counts[project.status] = counts[project.status]! + 1;
+    }
+    return counts;
+  }
+
+  List<AdminProject> get _filteredProjectsByStatus {
+    return _projects
+        .where((project) => project.status == _statusFilter)
+        .toList(growable: false);
   }
 
   List<ObservationRecord> _filteredObservations(AdminProject project) {
@@ -503,6 +830,10 @@ class _AdminPageState extends State<AdminPage> {
   @override
   Widget build(BuildContext context) {
     final selectedProject = _selectedProject;
+    final bool mainLocationHasChanges =
+        selectedProject != null &&
+        _projectMainLocationController.text.trim() !=
+            selectedProject.mainLocation;
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -520,68 +851,98 @@ class _AdminPageState extends State<AdminPage> {
                       profileButtonKey: _profileButtonKey,
                       onProfileTap: _toggleProfileMenu,
                       title: 'Admin Panel',
+                      unreadNotificationCount: _isAdmin
+                          ? _unreadNotificationCount
+                          : 0,
                     ),
                     Expanded(
                       child: SingleChildScrollView(
                         child: Padding(
                           padding: const EdgeInsets.only(bottom: 32),
                           child: selectedProject == null
-                              ? AdminProjectListView(
-                                  projects: _projects,
-                                  locationOptions:
-                                      AdminDataRepository.locationOptions,
-                                  showNewProjectForm: _showNewProjectForm,
-                                  showProjectSuccess: _showProjectSuccess,
-                                  lastCreatedProjectName:
-                                      _lastCreatedProjectName,
-                                  newProjectNameController:
-                                      _newProjectNameController,
-                                  newProjectDescriptionController:
-                                      _newProjectDescriptionController,
-                                  customLocationController:
-                                      _customLocationController,
-                                  selectedLocationTypeIds:
-                                      _newProjectLocationTypeIds,
-                                  customLocations: _customLocations,
-                                  hiddenDefaultLocationIds:
-                                      _hiddenDefaultLocationIds,
-                                  showObserverSelector:
-                                      _showNewProjectObserverSelector,
-                                  newProjectObserverSearch:
-                                      _newProjectObserverSearch,
-                                  selectedObserverIds: _newProjectObserverIds,
-                                  allObservers: AdminDataRepository.observers,
-                                  availableObserverOptions:
-                                      _availableObserversForNewProject,
-                                  newProjectErrors: _newProjectErrors,
-                                  isCreatingProject: _isCreatingProject,
-                                  onProjectNameChanged: () =>
-                                      _clearNewProjectError('name'),
-                                  onToggleForm: _toggleNewProjectForm,
-                                  onAddCustomLocation: _handleAddCustomLocation,
-                                  onRemoveCustomLocation: _removeCustomLocation,
-                                  onToggleLocationType:
-                                      _toggleLocationTypeInNewProject,
-                                  onHideDefaultLocation: _hideDefaultLocation,
-                                  onRestoreDefaultLocation:
-                                      _restoreDefaultLocation,
-                                  onObserverSelectorToggle:
-                                      _toggleNewProjectObserverSelector,
-                                  onObserverSearchChanged: (value) => setState(
-                                    () => _newProjectObserverSearch = value,
-                                  ),
-                                  onAddObserver: _addObserverToNewProject,
-                                  onRemoveObserver:
-                                      _removeObserverFromNewProject,
-                                  onSubmitProject: _handleCreateProject,
-                                  onCancelForm: _resetNewProjectForm,
-                                  onProjectTap: _handleProjectTap,
-                                )
+                              ? (_projectsLoading && _projects.isEmpty
+                                    ? const _AdminLoadingState()
+                                    : AdminProjectListView(
+                                    projects: _filteredProjectsByStatus,
+                                        locationOptions:
+                                            AdminDataRepository.locationOptions,
+                                        showNewProjectForm: _showNewProjectForm,
+                                        showProjectSuccess: _showProjectSuccess,
+                                        lastCreatedProjectName:
+                                            _lastCreatedProjectName,
+                                    statusFilter: _statusFilter,
+                                    statusCounts: _statusCounts,
+                                    onStatusFilterChanged:
+                                      _handleStatusFilterChanged,
+                                        newProjectNameController:
+                                            _newProjectNameController,
+                                        newProjectMainLocationController:
+                                            _newProjectMainLocationController,
+                                        newProjectDescriptionController:
+                                            _newProjectDescriptionController,
+                                        customLocationController:
+                                            _customLocationController,
+                                        selectedLocationTypeIds:
+                                            _newProjectLocationTypeIds,
+                                        customLocations: _customLocations,
+                                        hiddenDefaultLocationIds:
+                                            _hiddenDefaultLocationIds,
+                                        showObserverSelector:
+                                            _showNewProjectObserverSelector,
+                                        newProjectObserverSearch:
+                                            _newProjectObserverSearch,
+                                        selectedObserverIds:
+                                            _newProjectObserverIds,
+                                        allObservers: _observers,
+                                        availableObserverOptions:
+                                            _availableObserversForNewProject,
+                                        newProjectErrors: _newProjectErrors,
+                                        isCreatingProject: _isCreatingProject,
+                                        onProjectNameChanged: () =>
+                                            _clearNewProjectError('name'),
+                                        onMainLocationChanged: () =>
+                                            _clearNewProjectError(
+                                              'mainLocation',
+                                            ),
+                                        onToggleForm: _toggleNewProjectForm,
+                                        onAddCustomLocation:
+                                            _handleAddCustomLocation,
+                                        onRemoveCustomLocation:
+                                            _removeCustomLocation,
+                                        onToggleLocationType:
+                                            _toggleLocationTypeInNewProject,
+                                        onHideDefaultLocation:
+                                            _hideDefaultLocation,
+                                        onRestoreDefaultLocation:
+                                            _restoreDefaultLocation,
+                                        onObserverSelectorToggle:
+                                            _toggleNewProjectObserverSelector,
+                                        onObserverSearchChanged: (value) =>
+                                            setState(
+                                              () => _newProjectObserverSearch =
+                                                  value,
+                                            ),
+                                        onAddObserver: _addObserverToNewProject,
+                                        onRemoveObserver:
+                                            _removeObserverFromNewProject,
+                                        onSubmitProject: _handleCreateProject,
+                                        onCancelForm: _resetNewProjectForm,
+                                        onProjectTap: _handleProjectTap,
+                                      ))
                               : ProjectDetailView(
                                   project: selectedProject,
-                                  observers: AdminDataRepository.observers,
+                                  observers: _observers,
                                   locationOptions:
                                       AdminDataRepository.locationOptions,
+                                  mainLocationController:
+                                      _projectMainLocationController,
+                                  mainLocationError: _projectMainLocationError,
+                                  onMainLocationChanged:
+                                      _handleDetailMainLocationChanged,
+                                  onSaveMainLocation: _handleSaveMainLocation,
+                                  isSavingMainLocation: _isSavingMainLocation,
+                                  hasMainLocationChanges:
+                                      mainLocationHasChanges,
                                   filters: _filters,
                                   showObserverSelector: _showObserverSelector,
                                   observerSearchQuery: _observerSearchQuery,
@@ -593,6 +954,13 @@ class _AdminPageState extends State<AdminPage> {
                                   onDelete: () => _requestProjectDeletion(
                                     selectedProject.id,
                                   ),
+                                  onStatusChange: (status) =>
+                                      _handleProjectStatusChange(
+                                    selectedProject,
+                                    status,
+                                  ),
+                                  isStatusUpdating:
+                                      _isStatusUpdating(selectedProject.id),
                                   onToggleAddLocation: _toggleAddLocationField,
                                   onAddLocation: _handleAddLocationToProject,
                                   onRemoveLocation: _removeLocationFromProject,
@@ -627,27 +995,58 @@ class _AdminPageState extends State<AdminPage> {
                 onClose: () => setState(() => _showProfileMenu = false),
                 onLogout: _handleLogout,
                 onObserverTap: _navigateToObserver,
-                onAdminTap: _navigateToAdmin,
+                onAdminTap: _isAdmin ? _navigateToAdmin : null,
                 onProjectsTap: _navigateToProjects,
+                onNotificationsTap: _isAdmin ? _openNotificationsPage : null,
                 activeDestination: ProfileMenuDestination.admin,
+                showAdminOption: _isAdmin,
+                showNotificationsOption: _isAdmin,
+                unreadNotificationCount: _unreadNotificationCount,
               ),
             if (_showDeleteDialog && _projectPendingDelete != null)
               Builder(
                 builder: (context) {
-                  final projectForDialog = _projects.firstWhere(
-                    (project) => project.id == _projectPendingDelete,
-                    orElse: () => _projects.first,
+                  final projectForDialog = _findProjectById(
+                    _projectPendingDelete!,
                   );
+                  if (projectForDialog == null) {
+                    return const SizedBox.shrink();
+                  }
                   return _DeleteDialogOverlay(
                     project: projectForDialog,
                     observationCount: projectForDialog.observations.length,
                     onCancel: _cancelProjectDeletion,
-                    onConfirm: _confirmProjectDeletion,
+                    onConfirm: () => _confirmProjectDeletion(),
                   );
                 },
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _AdminLoadingState extends StatelessWidget {
+  const _AdminLoadingState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 80),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: const [
+          CircularProgressIndicator(color: AppTheme.primaryOrange),
+          SizedBox(height: 16),
+          Text(
+            'Loading projects...',
+            style: TextStyle(
+              color: AppTheme.gray600,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -670,7 +1069,7 @@ class _DeleteDialogOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return Positioned.fill(
       child: Container(
-        color: Colors.black.withOpacity(0.4),
+        color: Colors.black.withValues(alpha: 0.4),
         alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Container(

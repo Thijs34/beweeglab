@@ -10,6 +10,10 @@ class ProjectsPanel extends StatelessWidget {
   final TextEditingController searchController;
   final ValueChanged<Project> onProjectTap;
   final VoidCallback onRefresh;
+  final bool isLoading;
+  final bool isRefreshing;
+  final String? errorMessage;
+  final String? selectedProjectId;
 
   const ProjectsPanel({
     super.key,
@@ -18,6 +22,10 @@ class ProjectsPanel extends StatelessWidget {
     required this.searchController,
     required this.onProjectTap,
     required this.onRefresh,
+    this.isLoading = false,
+    this.isRefreshing = false,
+    this.errorMessage,
+    this.selectedProjectId,
   });
 
   bool get _hasSearchQuery => searchController.text.isNotEmpty;
@@ -44,6 +52,7 @@ class ProjectsPanel extends StatelessWidget {
             _ProjectsPanelHeader(
               projectCount: projects.length,
               onRefresh: onRefresh,
+              isRefreshing: isRefreshing,
             ),
             Padding(
               padding: const EdgeInsets.all(16),
@@ -51,7 +60,14 @@ class ProjectsPanel extends StatelessWidget {
                 children: [
                   _buildSearchField(),
                   const SizedBox(height: 16),
-                  if (filteredProjects.isNotEmpty)
+                  if (isLoading)
+                    const _ProjectsLoadingState()
+                  else if (errorMessage != null)
+                    _ProjectsErrorState(
+                      message: errorMessage!,
+                      onRetry: onRefresh,
+                    )
+                  else if (filteredProjects.isNotEmpty)
                     ...List.generate(
                       filteredProjects.length,
                       (index) => Padding(
@@ -61,6 +77,8 @@ class ProjectsPanel extends StatelessWidget {
                         child: ProjectCard(
                           project: filteredProjects[index],
                           onTap: () => onProjectTap(filteredProjects[index]),
+                          isSelected: selectedProjectId ==
+                              filteredProjects[index].id,
                         ),
                       ),
                     )
@@ -130,10 +148,12 @@ class ProjectsPanel extends StatelessWidget {
 class _ProjectsPanelHeader extends StatelessWidget {
   final int projectCount;
   final VoidCallback onRefresh;
+  final bool isRefreshing;
 
   const _ProjectsPanelHeader({
     required this.projectCount,
     required this.onRefresh,
+    required this.isRefreshing,
   });
 
   @override
@@ -166,12 +186,68 @@ class _ProjectsPanelHeader extends StatelessWidget {
             ],
           ),
           IconButton(
-            onPressed: onRefresh,
-            icon: const Icon(Icons.refresh, size: 16, color: AppTheme.gray500),
+            onPressed: isRefreshing ? null : onRefresh,
+            icon: isRefreshing
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(
+                    Icons.refresh,
+                    size: 16,
+                    color: AppTheme.gray500,
+                  ),
             tooltip: 'Refresh projects',
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ProjectsLoadingState extends StatelessWidget {
+  const _ProjectsLoadingState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Column(
+        children: const [
+          CircularProgressIndicator(),
+          SizedBox(height: 12),
+          Text(
+            'Loading your projects...',
+            style: TextStyle(fontSize: 13, color: AppTheme.gray500),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProjectsErrorState extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _ProjectsErrorState({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        EmptyStateMessage(
+          icon: Icons.error_outline,
+          title: 'Unable to load projects',
+          subtitle: message,
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton(
+          onPressed: onRetry,
+          child: const Text('Try again'),
+        ),
+      ],
     );
   }
 }

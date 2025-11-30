@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:my_app/screens/admin_page/admin_models.dart';
+import 'package:my_app/screens/admin_page/widgets/project_status_badge.dart';
 import 'package:my_app/theme/app_theme.dart';
 
 class ProjectDetailView extends StatelessWidget {
   final AdminProject project;
   final List<AdminObserver> observers;
   final List<AdminLocationOption> locationOptions;
+  final TextEditingController mainLocationController;
+  final String? mainLocationError;
+  final ValueChanged<String> onMainLocationChanged;
+  final VoidCallback onSaveMainLocation;
+  final bool isSavingMainLocation;
+  final bool hasMainLocationChanges;
   final Map<String, String> filters;
   final bool showObserverSelector;
   final String observerSearchQuery;
@@ -15,6 +22,8 @@ class ProjectDetailView extends StatelessWidget {
   final List<ObservationRecord> filteredObservations;
   final VoidCallback onBack;
   final VoidCallback onDelete;
+  final ValueChanged<ProjectStatus> onStatusChange;
+  final bool isStatusUpdating;
   final VoidCallback onToggleAddLocation;
   final VoidCallback onAddLocation;
   final ValueChanged<String> onRemoveLocation;
@@ -32,6 +41,12 @@ class ProjectDetailView extends StatelessWidget {
     required this.project,
     required this.observers,
     required this.locationOptions,
+    required this.mainLocationController,
+    required this.mainLocationError,
+    required this.onMainLocationChanged,
+    required this.onSaveMainLocation,
+    required this.isSavingMainLocation,
+    required this.hasMainLocationChanges,
     required this.filters,
     required this.showObserverSelector,
     required this.observerSearchQuery,
@@ -41,6 +56,8 @@ class ProjectDetailView extends StatelessWidget {
     required this.filteredObservations,
     required this.onBack,
     required this.onDelete,
+    required this.onStatusChange,
+    required this.isStatusUpdating,
     required this.onToggleAddLocation,
     required this.onAddLocation,
     required this.onRemoveLocation,
@@ -85,6 +102,17 @@ class ProjectDetailView extends StatelessWidget {
             observerCount: assignedObservers.length,
             observationCount: project.observations.length,
             onDelete: onDelete,
+            onStatusChange: onStatusChange,
+            isStatusUpdating: isStatusUpdating,
+          ),
+          const SizedBox(height: 16),
+          _MainLocationCard(
+            controller: mainLocationController,
+            errorText: mainLocationError,
+            onChanged: onMainLocationChanged,
+            onSave: onSaveMainLocation,
+            isSaving: isSavingMainLocation,
+            hasChanges: hasMainLocationChanges,
           ),
           const SizedBox(height: 16),
           _LocationTypesCard(
@@ -129,12 +157,16 @@ class _ProjectInfoCard extends StatelessWidget {
   final int observationCount;
   final int observerCount;
   final VoidCallback onDelete;
+  final ValueChanged<ProjectStatus> onStatusChange;
+  final bool isStatusUpdating;
 
   const _ProjectInfoCard({
     required this.project,
     required this.observationCount,
     required this.observerCount,
     required this.onDelete,
+    required this.onStatusChange,
+    required this.isStatusUpdating,
   });
 
   @override
@@ -154,8 +186,8 @@ class _ProjectInfoCard extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  AppTheme.primaryOrange.withOpacity(0.05),
-                  AppTheme.primaryOrange.withOpacity(0.1),
+                  AppTheme.primaryOrange.withValues(alpha: 0.05),
+                  AppTheme.primaryOrange.withValues(alpha: 0.1),
                 ],
               ),
               borderRadius: const BorderRadius.vertical(
@@ -182,6 +214,35 @@ class _ProjectInfoCard extends StatelessWidget {
                       Text(
                         project.description,
                         style: const TextStyle(color: AppTheme.gray600),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.location_on_outlined,
+                            size: 18,
+                            color: AppTheme.primaryOrange,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              project.mainLocation.isEmpty
+                                  ? 'Main location not set'
+                                  : project.mainLocation,
+                              style: const TextStyle(
+                                color: AppTheme.gray700,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      _ProjectStatusControl(
+                        status: project.status,
+                        isUpdating: isStatusUpdating,
+                        onStatusChange: onStatusChange,
                       ),
                     ],
                   ),
@@ -245,6 +306,236 @@ class _ProjectInfoCard extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProjectStatusControl extends StatelessWidget {
+  final ProjectStatus status;
+  final bool isUpdating;
+  final ValueChanged<ProjectStatus> onStatusChange;
+
+  const _ProjectStatusControl({
+    required this.status,
+    required this.isUpdating,
+    required this.onStatusChange,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Project Status',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.gray600,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 12,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            ProjectStatusBadge(
+              status: status,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              fontSize: 13,
+            ),
+            _StatusMenuButton(
+              current: status,
+              disabled: isUpdating,
+              onSelected: onStatusChange,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _StatusMenuButton extends StatelessWidget {
+  final ProjectStatus current;
+  final bool disabled;
+  final ValueChanged<ProjectStatus> onSelected;
+
+  const _StatusMenuButton({
+    required this.current,
+    required this.disabled,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<ProjectStatus>(
+      enabled: !disabled,
+      tooltip: 'Change project status',
+      onSelected: (status) {
+        if (status == current) {
+          return;
+        }
+        onSelected(status);
+      },
+      itemBuilder: (context) {
+        return ProjectStatus.values.map((status) {
+          final isCurrent = status == current;
+          return PopupMenuItem<ProjectStatus>(
+            value: status,
+            enabled: !isCurrent,
+            child: Row(
+              children: [
+                Icon(
+                  _statusIcon(status),
+                  size: 18,
+                  color: _statusIconColor(status),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  isCurrent ? '${status.label} (current)' : status.label,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          );
+        }).toList();
+      },
+      child: _StatusMenuButtonChild(disabled: disabled),
+    );
+  }
+}
+
+class _StatusMenuButtonChild extends StatelessWidget {
+  final bool disabled;
+
+  const _StatusMenuButtonChild({required this.disabled});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: disabled ? AppTheme.gray100 : AppTheme.white,
+        borderRadius: BorderRadius.circular(AppTheme.borderRadiusLarge),
+        border: Border.all(
+          color: disabled ? AppTheme.gray200 : AppTheme.gray300,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (disabled)
+            const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(AppTheme.gray500),
+              ),
+            )
+          else
+            const Icon(
+              Icons.swap_horiz,
+              size: 18,
+              color: AppTheme.gray600,
+            ),
+          const SizedBox(width: 8),
+          Text(
+            disabled ? 'Updating...' : 'Change Status',
+            style: TextStyle(
+              color: disabled ? AppTheme.gray500 : AppTheme.gray700,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(width: 4),
+          const Icon(Icons.expand_more, size: 18, color: AppTheme.gray500),
+        ],
+      ),
+    );
+  }
+}
+
+IconData _statusIcon(ProjectStatus status) {
+  switch (status) {
+    case ProjectStatus.active:
+      return Icons.play_arrow_rounded;
+    case ProjectStatus.finished:
+      return Icons.flag_outlined;
+    case ProjectStatus.archived:
+      return Icons.inventory_2_outlined;
+  }
+}
+
+Color _statusIconColor(ProjectStatus status) {
+  switch (status) {
+    case ProjectStatus.active:
+      return AppTheme.green700;
+    case ProjectStatus.finished:
+      return AppTheme.primaryOrange;
+    case ProjectStatus.archived:
+      return AppTheme.gray600;
+  }
+}
+
+class _MainLocationCard extends StatelessWidget {
+  final TextEditingController controller;
+  final String? errorText;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onSave;
+  final bool isSaving;
+  final bool hasChanges;
+
+  const _MainLocationCard({
+    required this.controller,
+    required this.errorText,
+    required this.onChanged,
+    required this.onSave,
+    required this.isSaving,
+    required this.hasChanges,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      title: 'Main Location',
+      trailing: ElevatedButton.icon(
+        onPressed: (!hasChanges || isSaving) ? null : onSave,
+        style: ElevatedButton.styleFrom(
+          minimumSize: const Size(0, 36),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+        ),
+        icon: isSaving
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(AppTheme.white),
+                ),
+              )
+            : const Icon(Icons.save_outlined, size: 18),
+        label: Text(isSaving ? 'Saving...' : 'Save Changes'),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Specify the main site this project covers. Individual location types below should describe areas inside this location.',
+            style: TextStyle(color: AppTheme.gray600, fontSize: 13),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              hintText: 'e.g., Parkstraat, Amsterdam Noord',
+              errorText: errorText,
+            ),
+            onChanged: onChanged,
           ),
         ],
       ),
@@ -824,7 +1115,7 @@ class _ObservationCard extends StatelessWidget {
                 onPressed: onEdit,
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(
-                    color: AppTheme.primaryOrange.withOpacity(0.3),
+                    color: AppTheme.primaryOrange.withValues(alpha: 0.3),
                   ),
                   foregroundColor: AppTheme.primaryOrange,
                   minimumSize: const Size(0, 32),
@@ -984,7 +1275,7 @@ class _LocationChip extends StatelessWidget {
         color: AppTheme.orange50,
         borderRadius: BorderRadius.circular(AppTheme.borderRadiusLarge),
         border: Border.all(
-          color: AppTheme.primaryOrange.withOpacity(0.2),
+          color: AppTheme.primaryOrange.withValues(alpha: 0.2),
           width: 2,
         ),
       ),
@@ -1036,26 +1327,32 @@ class _FilterDropdown extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: 150,
-      child: DropdownButtonFormField<String>(
-        value: value,
-        items: options
-            .map(
-              (option) => DropdownMenuItem(
-                value: option,
-                child: Text(
-                  optionBuilder?.call(option) ?? _formatLabel(option),
-                ),
-              ),
-            )
-            .toList(),
-        onChanged: (val) {
-          if (val != null) onChanged(val);
-        },
+      child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 12,
             vertical: 8,
+          ),
+        ),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            value: value,
+            isExpanded: true,
+            isDense: true,
+            items: options
+                .map(
+                  (option) => DropdownMenuItem(
+                    value: option,
+                    child: Text(
+                      optionBuilder?.call(option) ?? _formatLabel(option),
+                    ),
+                  ),
+                )
+                .toList(),
+            onChanged: (val) {
+              if (val != null) onChanged(val);
+            },
           ),
         ),
       ),

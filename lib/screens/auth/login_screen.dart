@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:my_app/models/navigation_arguments.dart';
+import 'package:my_app/services/auth_service.dart';
 import 'package:my_app/theme/app_theme.dart';
 import 'package:my_app/widgets/auth/auth_brand_header.dart';
 import 'package:my_app/widgets/auth/auth_form_card.dart';
@@ -18,6 +20,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  String? _errorMessage;
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -26,14 +30,51 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _handleLogin() {
-    Navigator.pushNamed(
-      context,
-      '/projects',
-      arguments: _emailController.text.isNotEmpty
-          ? _emailController.text
-          : null,
-    );
+  Future<void> _handleLogin() async {
+    if (_isSubmitting) return;
+    final isValid = _formKey.currentState?.validate() ?? false;
+    if (!isValid) return;
+
+    FocusScope.of(context).unfocus();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    setState(() {
+      _errorMessage = null;
+      _isSubmitting = true;
+    });
+
+    try {
+      final credential = await AuthService.instance.signInWithEmail(
+        email: email,
+        password: password,
+      );
+
+      final uid = credential.user?.uid;
+      final role = uid != null
+          ? await AuthService.instance.getUserRole(uid)
+          : 'observer';
+
+      if (!mounted) return;
+      Navigator.pushNamed(
+        context,
+        '/projects',
+        arguments: ProjectListArguments(
+          userEmail: credential.user?.email ?? email,
+          userRole: role,
+        ),
+      );
+    } on AuthException catch (error) {
+      setState(() => _errorMessage = error.message);
+    } catch (_) {
+      setState(
+        () => _errorMessage = 'Unable to login right now. Please try again.',
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
   }
 
   void _handleForgotPassword() {
@@ -74,6 +115,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     placeholder: 'your.email@example.com',
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
+                    validator: (value) {
+                      final text = value?.trim() ?? '';
+                      if (text.isEmpty) {
+                        return 'Email is required';
+                      }
+                      if (!text.contains('@')) {
+                        return 'Please enter a valid email';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 16),
                   CustomTextField(
@@ -81,6 +132,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     placeholder: 'Enter your password',
                     controller: _passwordController,
                     isPassword: true,
+                    validator: (value) {
+                      if ((value ?? '').trim().isEmpty) {
+                        return 'Password is required';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 12),
                   Align(
@@ -100,7 +157,19 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  CustomButton(text: 'Login', onPressed: _handleLogin),
+                  CustomButton(
+                    text: 'Login',
+                    onPressed: _handleLogin,
+                    isLoading: _isSubmitting,
+                  ),
+                  if (_errorMessage != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      _errorMessage!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.red, fontSize: 13),
+                    ),
+                  ],
                 ],
               ),
             ),

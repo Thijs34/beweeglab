@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:my_app/models/navigation_arguments.dart';
+import 'package:my_app/services/auth_service.dart';
 import 'package:my_app/theme/app_theme.dart';
 import 'package:my_app/widgets/auth/auth_brand_header.dart';
 import 'package:my_app/widgets/auth/auth_form_card.dart';
@@ -21,6 +23,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  String? _errorMessage;
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -32,14 +36,62 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
-  void _handleSignUp() {
-    Navigator.pushNamed(
-      context,
-      '/projects',
-      arguments: _emailController.text.isNotEmpty
-          ? _emailController.text
-          : null,
-    );
+  Future<void> _handleSignUp() async {
+    if (_isSubmitting) return;
+    final isValid = _formKey.currentState?.validate() ?? false;
+    if (!isValid) return;
+
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    final confirmPassword = _confirmPasswordController.text.trim();
+    final displayName =
+        '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}'
+            .trim();
+
+    if (password != confirmPassword) {
+      setState(() => _errorMessage = 'Passwords do not match');
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _errorMessage = null;
+      _isSubmitting = true;
+    });
+
+    try {
+      final credential = await AuthService.instance.signUpWithEmail(
+        email: email,
+        password: password,
+        displayName: displayName.isEmpty ? null : displayName,
+      );
+
+      final uid = credential.user?.uid;
+      final role = uid != null
+          ? await AuthService.instance.getUserRole(uid)
+          : 'observer';
+
+      if (!mounted) return;
+      Navigator.pushNamed(
+        context,
+        '/projects',
+        arguments: ProjectListArguments(
+          userEmail: credential.user?.email ?? email,
+          userRole: role,
+        ),
+      );
+    } on AuthException catch (error) {
+      setState(() => _errorMessage = error.message);
+    } catch (_) {
+      setState(
+        () => _errorMessage =
+            'Unable to create an account right now. Please try again.',
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
   }
 
   void _navigateToLogin() {
@@ -89,6 +141,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     placeholder: 'your.email@example.com',
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
+                    validator: (value) {
+                      final text = value?.trim() ?? '';
+                      if (text.isEmpty) {
+                        return 'Email is required';
+                      }
+                      if (!text.contains('@')) {
+                        return 'Please enter a valid email';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 16),
                   CustomTextField(
@@ -96,6 +158,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     placeholder: 'Create a password',
                     controller: _passwordController,
                     isPassword: true,
+                    validator: (value) {
+                      final text = value?.trim() ?? '';
+                      if (text.isEmpty) {
+                        return 'Password is required';
+                      }
+                      if (text.length < 6) {
+                        return 'Password must be at least 6 characters';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 16),
                   CustomTextField(
@@ -103,12 +175,27 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     placeholder: 'Re-enter your password',
                     controller: _confirmPasswordController,
                     isPassword: true,
+                    validator: (value) {
+                      if ((value ?? '').trim().isEmpty) {
+                        return 'Please confirm your password';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 16),
                   CustomButton(
                     text: 'Create Account',
                     onPressed: _handleSignUp,
+                    isLoading: _isSubmitting,
                   ),
+                  if (_errorMessage != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      _errorMessage!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.red, fontSize: 13),
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   Container(
                     decoration: BoxDecoration(

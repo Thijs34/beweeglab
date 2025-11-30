@@ -1,5 +1,43 @@
 import 'package:flutter/material.dart';
 
+enum ProjectStatus { active, finished, archived }
+
+ProjectStatus projectStatusFromString(String? rawValue) {
+  switch (rawValue?.toLowerCase()) {
+    case 'finished':
+      return ProjectStatus.finished;
+    case 'archived':
+      return ProjectStatus.archived;
+    case 'active':
+    default:
+      return ProjectStatus.active;
+  }
+}
+
+extension ProjectStatusX on ProjectStatus {
+  String get label {
+    switch (this) {
+      case ProjectStatus.active:
+        return 'Active';
+      case ProjectStatus.finished:
+        return 'Finished';
+      case ProjectStatus.archived:
+        return 'Archived';
+    }
+  }
+
+  String get firestoreValue {
+    switch (this) {
+      case ProjectStatus.active:
+        return 'active';
+      case ProjectStatus.finished:
+        return 'finished';
+      case ProjectStatus.archived:
+        return 'archived';
+    }
+  }
+}
+
 /// Helper to generate abbreviations for custom location labels
 String generateLocationAbbreviation(String name) {
   final trimmed = name.trim();
@@ -71,6 +109,8 @@ class AdminProject {
   final String id;
   final String name;
   final String description;
+  final String mainLocation;
+  final ProjectStatus status;
   final List<String> locationTypeIds;
   final List<String> assignedObserverIds;
   final List<ObservationRecord> observations;
@@ -79,6 +119,8 @@ class AdminProject {
     required this.id,
     required this.name,
     required this.description,
+    required this.mainLocation,
+    this.status = ProjectStatus.active,
     required this.locationTypeIds,
     required this.assignedObserverIds,
     required this.observations,
@@ -87,6 +129,8 @@ class AdminProject {
   AdminProject copyWith({
     String? name,
     String? description,
+    String? mainLocation,
+    ProjectStatus? status,
     List<String>? locationTypeIds,
     List<String>? assignedObserverIds,
     List<ObservationRecord>? observations,
@@ -95,6 +139,8 @@ class AdminProject {
       id: id,
       name: name ?? this.name,
       description: description ?? this.description,
+      mainLocation: mainLocation ?? this.mainLocation,
+      status: status ?? this.status,
       locationTypeIds: List<String>.from(
         locationTypeIds ?? this.locationTypeIds,
       ),
@@ -260,6 +306,8 @@ class AdminDataRepository {
         id: '1',
         name: 'Parkstraat Observation Site',
         description: 'Main observation location with multiple facilities',
+        mainLocation: 'Amsterdam Noord',
+        status: ProjectStatus.active,
         locationTypeIds: const ['cruyff-court', 'grass-field'],
         assignedObserverIds: const ['1', '2'],
         observations: _observationsForProject('1'),
@@ -268,6 +316,8 @@ class AdminDataRepository {
         id: '2',
         name: 'Eindhoven Sportpark',
         description: 'Community sports area with diverse activities',
+        mainLocation: 'Eindhoven',
+        status: ProjectStatus.active,
         locationTypeIds: ['grass-field', 'basketball-field'],
         assignedObserverIds: ['3'],
         observations: [],
@@ -276,6 +326,8 @@ class AdminDataRepository {
         id: '3',
         name: 'City Center Basketball Court',
         description: 'Urban basketball facility',
+        mainLocation: 'Rotterdam Centrum',
+        status: ProjectStatus.active,
         locationTypeIds: ['basketball-field'],
         assignedObserverIds: [],
         observations: [],
@@ -288,6 +340,7 @@ class AdminDataRepository {
             id: project.id,
             name: project.name,
             description: project.description,
+            mainLocation: project.mainLocation,
             locationTypeIds: List<String>.from(project.locationTypeIds),
             assignedObserverIds: List<String>.from(project.assignedObserverIds),
             observations: project.observations,

@@ -6,8 +6,14 @@ import 'package:my_app/models/project.dart';
 class ProjectCard extends StatefulWidget {
   final Project project;
   final VoidCallback onTap;
+  final bool isSelected;
 
-  const ProjectCard({super.key, required this.project, required this.onTap});
+  const ProjectCard({
+    super.key,
+    required this.project,
+    required this.onTap,
+    this.isSelected = false,
+  });
 
   @override
   State<ProjectCard> createState() => _ProjectCardState();
@@ -29,13 +35,17 @@ class _ProjectCardState extends State<ProjectCard> {
             color: AppTheme.white,
             borderRadius: BorderRadius.circular(AppTheme.borderRadiusLarge),
             border: Border.all(
-              color: _isHovered ? AppTheme.primaryOrange : AppTheme.gray200,
+              color: _isHovered || widget.isSelected
+                  ? AppTheme.primaryOrange
+                  : AppTheme.gray200,
               width: 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: _isHovered ? 0.08 : 0.05),
-                blurRadius: _isHovered ? 6 : 3,
+                color: Colors.black.withValues(
+                  alpha: _isHovered || widget.isSelected ? 0.1 : 0.05,
+                ),
+                blurRadius: _isHovered || widget.isSelected ? 8 : 3,
                 offset: const Offset(0, 1),
               ),
             ],
@@ -50,14 +60,44 @@ class _ProjectCardState extends State<ProjectCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Project Name
-                    Text(
-                      widget.project.name,
-                      style: const TextStyle(
-                        fontFamily: AppTheme.fontFamilyHeading,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.gray900,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            widget.project.name,
+                            style: const TextStyle(
+                              fontFamily: AppTheme.fontFamilyHeading,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.gray900,
+                            ),
+                          ),
+                        ),
+                        if (widget.isSelected) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryOrange.withValues(
+                                alpha: 0.15,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              'Selected',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.primaryOrange,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 8),
 
@@ -72,7 +112,7 @@ class _ProjectCardState extends State<ProjectCard> {
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            widget.project.location,
+                            widget.project.mainLocation,
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
@@ -104,7 +144,9 @@ class _ProjectCardState extends State<ProjectCard> {
               Icon(
                 Icons.chevron_right,
                 size: 20,
-                color: _isHovered ? AppTheme.primaryOrange : AppTheme.gray400,
+                color: (_isHovered || widget.isSelected)
+                    ? AppTheme.primaryOrange
+                    : AppTheme.gray400,
               ),
             ],
           ),

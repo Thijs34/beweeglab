@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:my_app/screens/admin_page/admin_models.dart';
+import 'package:my_app/screens/admin_page/widgets/project_status_badge.dart';
 import 'package:my_app/theme/app_theme.dart';
 
 class AdminProjectListView extends StatelessWidget {
@@ -8,7 +9,11 @@ class AdminProjectListView extends StatelessWidget {
   final bool showNewProjectForm;
   final bool showProjectSuccess;
   final String lastCreatedProjectName;
+  final ProjectStatus statusFilter;
+  final Map<ProjectStatus, int> statusCounts;
+  final ValueChanged<ProjectStatus> onStatusFilterChanged;
   final TextEditingController newProjectNameController;
+  final TextEditingController newProjectMainLocationController;
   final TextEditingController newProjectDescriptionController;
   final TextEditingController customLocationController;
   final List<String> selectedLocationTypeIds;
@@ -22,6 +27,7 @@ class AdminProjectListView extends StatelessWidget {
   final Map<String, String> newProjectErrors;
   final bool isCreatingProject;
   final VoidCallback onProjectNameChanged;
+  final VoidCallback onMainLocationChanged;
   final VoidCallback onToggleForm;
   final VoidCallback onAddCustomLocation;
   final ValueChanged<String> onRemoveCustomLocation;
@@ -43,7 +49,11 @@ class AdminProjectListView extends StatelessWidget {
     required this.showNewProjectForm,
     required this.showProjectSuccess,
     required this.lastCreatedProjectName,
+    required this.statusFilter,
+    required this.statusCounts,
+    required this.onStatusFilterChanged,
     required this.newProjectNameController,
+    required this.newProjectMainLocationController,
     required this.newProjectDescriptionController,
     required this.customLocationController,
     required this.selectedLocationTypeIds,
@@ -57,6 +67,7 @@ class AdminProjectListView extends StatelessWidget {
     required this.newProjectErrors,
     required this.isCreatingProject,
     required this.onProjectNameChanged,
+    required this.onMainLocationChanged,
     required this.onToggleForm,
     required this.onAddCustomLocation,
     required this.onRemoveCustomLocation,
@@ -97,6 +108,12 @@ class AdminProjectListView extends StatelessWidget {
             style: TextStyle(color: AppTheme.gray600, fontSize: 15),
           ),
           const SizedBox(height: 16),
+          _StatusFilterChips(
+            selectedStatus: statusFilter,
+            statusCounts: statusCounts,
+            onStatusSelected: onStatusFilterChanged,
+          ),
+          const SizedBox(height: 16),
           if (!showNewProjectForm) ...[
             SizedBox(
               width: double.infinity,
@@ -126,6 +143,8 @@ class AdminProjectListView extends StatelessWidget {
               onProjectNameChanged: onProjectNameChanged,
               locationOptions: locationOptions,
               newProjectNameController: newProjectNameController,
+              newProjectMainLocationController:
+                  newProjectMainLocationController,
               newProjectDescriptionController: newProjectDescriptionController,
               customLocationController: customLocationController,
               selectedLocationTypeIds: selectedLocationTypeIds,
@@ -138,6 +157,7 @@ class AdminProjectListView extends StatelessWidget {
               availableObserverOptions: availableObserverOptions,
               errors: newProjectErrors,
               isCreatingProject: isCreatingProject,
+              onMainLocationChanged: onMainLocationChanged,
               onAddCustomLocation: onAddCustomLocation,
               onRemoveCustomLocation: onRemoveCustomLocation,
               onToggleLocationType: onToggleLocationType,
@@ -153,7 +173,7 @@ class AdminProjectListView extends StatelessWidget {
           if (showNewProjectForm) const SizedBox(height: 16),
           const SizedBox(height: 24),
           Text(
-            'Active Projects (${projects.length})',
+            '${statusFilter.label} Projects (${projects.length})',
             style: const TextStyle(
               fontFamily: AppTheme.fontFamilyHeading,
               fontSize: 18,
@@ -174,22 +194,22 @@ class AdminProjectListView extends StatelessWidget {
               alignment: Alignment.center,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(
+                children: [
+                  const Icon(
                     Icons.shield_outlined,
                     size: 48,
                     color: AppTheme.gray300,
                   ),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   Text(
-                    'No projects yet',
+                    'No ${statusFilter.label.toLowerCase()} projects yet',
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       color: AppTheme.gray500,
                     ),
                   ),
-                  SizedBox(height: 4),
-                  Text(
+                  const SizedBox(height: 4),
+                  const Text(
                     'Create your first project to get started',
                     style: TextStyle(color: AppTheme.gray400, fontSize: 13),
                   ),
@@ -215,6 +235,47 @@ class AdminProjectListView extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+class _StatusFilterChips extends StatelessWidget {
+  final ProjectStatus selectedStatus;
+  final Map<ProjectStatus, int> statusCounts;
+  final ValueChanged<ProjectStatus> onStatusSelected;
+
+  const _StatusFilterChips({
+    required this.selectedStatus,
+    required this.statusCounts,
+    required this.onStatusSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 12,
+      runSpacing: 8,
+      children: ProjectStatus.values.map((status) {
+        final isSelected = status == selectedStatus;
+        final count = statusCounts[status] ?? 0;
+        return ChoiceChip(
+          label: Text('${status.label} ($count)'),
+          selected: isSelected,
+          onSelected: (_) => onStatusSelected(status),
+          labelStyle: TextStyle(
+            color: isSelected ? AppTheme.primaryOrange : AppTheme.gray700,
+            fontWeight: FontWeight.w600,
+          ),
+          backgroundColor: AppTheme.white,
+          selectedColor: AppTheme.orange50,
+          side: BorderSide(
+            color: isSelected ? AppTheme.primaryOrange : AppTheme.gray200,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppTheme.borderRadiusLarge),
+          ),
+        );
+      }).toList(),
     );
   }
 }
@@ -270,6 +331,7 @@ class _NewProjectForm extends StatelessWidget {
   final VoidCallback onProjectNameChanged;
   final List<AdminLocationOption> locationOptions;
   final TextEditingController newProjectNameController;
+  final TextEditingController newProjectMainLocationController;
   final TextEditingController newProjectDescriptionController;
   final TextEditingController customLocationController;
   final List<String> selectedLocationTypeIds;
@@ -282,6 +344,7 @@ class _NewProjectForm extends StatelessWidget {
   final List<AdminObserver> availableObserverOptions;
   final Map<String, String> errors;
   final bool isCreatingProject;
+  final VoidCallback onMainLocationChanged;
   final VoidCallback onAddCustomLocation;
   final ValueChanged<String> onRemoveCustomLocation;
   final ValueChanged<String> onToggleLocationType;
@@ -298,6 +361,7 @@ class _NewProjectForm extends StatelessWidget {
     required this.onProjectNameChanged,
     required this.locationOptions,
     required this.newProjectNameController,
+    required this.newProjectMainLocationController,
     required this.newProjectDescriptionController,
     required this.customLocationController,
     required this.selectedLocationTypeIds,
@@ -310,6 +374,7 @@ class _NewProjectForm extends StatelessWidget {
     required this.availableObserverOptions,
     required this.errors,
     required this.isCreatingProject,
+    required this.onMainLocationChanged,
     required this.onAddCustomLocation,
     required this.onRemoveCustomLocation,
     required this.onToggleLocationType,
@@ -362,6 +427,19 @@ class _NewProjectForm extends StatelessWidget {
                 errorText: errors['name'],
               ),
               onChanged: (_) => onProjectNameChanged(),
+            ),
+          ),
+          const SizedBox(height: 20),
+          _LabeledField(
+            label: 'Main Location',
+            isRequired: true,
+            child: TextField(
+              controller: newProjectMainLocationController,
+              decoration: InputDecoration(
+                hintText: 'e.g., Parkstraat, Amsterdam',
+                errorText: errors['mainLocation'],
+              ),
+              onChanged: (_) => onMainLocationChanged(),
             ),
           ),
           const SizedBox(height: 20),
@@ -869,10 +947,46 @@ class _ProjectCard extends StatelessWidget {
                         project.description,
                         style: const TextStyle(color: AppTheme.gray600),
                       ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.location_on_outlined,
+                            size: 16,
+                            color: AppTheme.primaryOrange,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              project.mainLocation.isEmpty
+                                  ? 'Main location not set'
+                                  : project.mainLocation,
+                              style: const TextStyle(
+                                color: AppTheme.gray700,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right, color: AppTheme.gray400),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    ProjectStatusBadge(
+                      status: project.status,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      fontSize: 11,
+                    ),
+                    const SizedBox(height: 12),
+                    const Icon(Icons.chevron_right, color: AppTheme.gray400),
+                  ],
+                ),
               ],
             ),
             const SizedBox(height: 12),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:my_app/theme/app_theme.dart';
 
-enum ProfileMenuDestination { observer, admin, projects }
+enum ProfileMenuDestination { notifications, admin, projects, observer }
 
 /// Profile menu dropdown widget
 class ProfileMenu extends StatelessWidget {
@@ -12,7 +12,11 @@ class ProfileMenu extends StatelessWidget {
   final VoidCallback? onObserverTap;
   final VoidCallback? onAdminTap;
   final VoidCallback? onProjectsTap;
+  final VoidCallback? onNotificationsTap;
   final ProfileMenuDestination activeDestination;
+  final bool showAdminOption;
+  final bool showNotificationsOption;
+  final int unreadNotificationCount;
 
   const ProfileMenu({
     super.key,
@@ -23,7 +27,11 @@ class ProfileMenu extends StatelessWidget {
     this.onObserverTap,
     this.onAdminTap,
     this.onProjectsTap,
+    this.onNotificationsTap,
     this.activeDestination = ProfileMenuDestination.projects,
+    this.showAdminOption = true,
+    this.showNotificationsOption = false,
+    this.unreadNotificationCount = 0,
   });
 
   @override
@@ -76,37 +84,7 @@ class ProfileMenu extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _MenuButton(
-                    icon: Icons.assignment_outlined,
-                    label: 'Observer Page',
-                    isActive:
-                        activeDestination == ProfileMenuDestination.observer,
-                    onTap: () {
-                      onClose();
-                      onObserverTap?.call();
-                    },
-                  ),
-                  const SizedBox(height: 4),
-                  _MenuButton(
-                    icon: Icons.shield_outlined,
-                    label: 'Admin Page',
-                    isActive: activeDestination == ProfileMenuDestination.admin,
-                    onTap: () {
-                      onClose();
-                      onAdminTap?.call();
-                    },
-                  ),
-                  const SizedBox(height: 4),
-                  _MenuButton(
-                    icon: Icons.folder_outlined,
-                    label: 'Project List',
-                    onTap: () {
-                      onClose();
-                      onProjectsTap?.call();
-                    },
-                    isActive:
-                        activeDestination == ProfileMenuDestination.projects,
-                  ),
+                  ..._buildMenuButtons(),
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 4),
                     child: Divider(height: 1, color: AppTheme.gray200),
@@ -127,6 +105,78 @@ class ProfileMenu extends StatelessWidget {
       ],
     );
   }
+
+  List<Widget> _buildMenuButtons() {
+    final children = <Widget>[];
+
+    void addButton({
+      required IconData icon,
+      required String label,
+      required ProfileMenuDestination destination,
+      VoidCallback? onTap,
+      String? badgeLabel,
+    }) {
+      if (children.isNotEmpty) {
+        children.add(const SizedBox(height: 4));
+      }
+      children.add(
+        _MenuButton(
+          icon: icon,
+          label: label,
+          isActive: activeDestination == destination,
+          onTap: () {
+            onClose();
+            onTap?.call();
+          },
+          badgeLabel: badgeLabel,
+        ),
+      );
+    }
+
+    final showNotifications =
+        showNotificationsOption && onNotificationsTap != null;
+    final showAdmin = showAdminOption && onAdminTap != null;
+
+    if (showNotifications) {
+      final badgeLabel = unreadNotificationCount > 0
+          ? (unreadNotificationCount > 9
+                ? '9+'
+                : unreadNotificationCount.toString())
+          : null;
+      addButton(
+        icon: Icons.notifications_none,
+        label: 'Notifications',
+        destination: ProfileMenuDestination.notifications,
+        onTap: onNotificationsTap,
+        badgeLabel: badgeLabel,
+      );
+    }
+
+    if (showAdmin) {
+      addButton(
+        icon: Icons.shield_outlined,
+        label: 'Admin Page',
+        destination: ProfileMenuDestination.admin,
+        onTap: onAdminTap,
+      );
+    }
+
+    addButton(
+      icon: Icons.folder_outlined,
+      label: 'Project List',
+      destination: ProfileMenuDestination.projects,
+      onTap: onProjectsTap,
+    );
+
+    addButton(
+      icon: Icons.assignment_outlined,
+      label: 'Observer Page',
+      destination: ProfileMenuDestination.observer,
+      onTap: onObserverTap,
+    );
+
+    return children;
+  }
 }
 
 class _MenuButton extends StatefulWidget {
@@ -134,12 +184,14 @@ class _MenuButton extends StatefulWidget {
   final String label;
   final VoidCallback onTap;
   final bool isActive;
+  final String? badgeLabel;
 
   const _MenuButton({
     required this.icon,
     required this.label,
     required this.onTap,
     this.isActive = false,
+    this.badgeLabel,
   });
 
   @override
@@ -181,6 +233,25 @@ class _MenuButtonState extends State<_MenuButton> {
                   style: TextStyle(fontSize: 14, color: textColor),
                 ),
               ),
+              if (widget.badgeLabel != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryOrange,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    widget.badgeLabel!,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
             ],
           ),
         ),

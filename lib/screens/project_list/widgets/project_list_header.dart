@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:my_app/theme/app_theme.dart';
+import 'package:my_app/widgets/profile_avatar_button.dart';
 
 class ProjectListHeader extends StatelessWidget {
   final GlobalKey profileButtonKey;
   final VoidCallback onProfileTap;
+  final int unreadNotificationCount;
 
   const ProjectListHeader({
     super.key,
     required this.profileButtonKey,
     required this.onProfileTap,
+    this.unreadNotificationCount = 0,
   });
 
   @override
@@ -51,18 +54,10 @@ class ProjectListHeader extends StatelessWidget {
               ],
             ),
           ),
-          GestureDetector(
-            key: profileButtonKey,
+          ProfileAvatarButton(
+            buttonKey: profileButtonKey,
             onTap: onProfileTap,
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: const BoxDecoration(
-                color: AppTheme.primaryOrange,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.person, color: AppTheme.white, size: 24),
-            ),
+            unreadCount: unreadNotificationCount,
           ),
         ],
       ),
