@@ -107,4 +107,14 @@ class UserService {
               .toList(),
         );
   }
+
+  Future<List<AppUserRecord>> fetchObservers() async {
+    final snapshot = await _firestore
+        .collection(_collection)
+        .where('role', whereIn: ['observer', 'admin'])
+        .get();
+    return snapshot.docs
+        .map((doc) => AppUserRecord.fromSnapshot(doc))
+        .toList(growable: false);
+  }
 }

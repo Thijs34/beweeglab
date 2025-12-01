@@ -60,6 +60,14 @@ class _ObservationEditDialogState extends State<ObservationEditDialog> {
         activityType: _activityType,
         notes: _notesController.text.trim(),
         timestamp: widget.record.timestamp,
+        projectId: widget.record.projectId,
+        mode: widget.record.mode,
+        observerEmail: widget.record.observerEmail,
+        observerUid: widget.record.observerUid,
+        groupSize: widget.record.groupSize,
+        genderMix: widget.record.genderMix,
+        ageMix: widget.record.ageMix,
+        locationLabel: widget.record.locationLabel,
       ),
     );
   }

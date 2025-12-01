@@ -20,6 +20,10 @@ class ProjectDetailView extends StatelessWidget {
   final TextEditingController addLocationController;
   final List<AdminObserver> availableObservers;
   final List<ObservationRecord> filteredObservations;
+  final int entriesPageSize;
+  final List<int> pageSizeOptions;
+  final ValueChanged<int> onPageSizeChange;
+  final bool isExportingObservations;
   final VoidCallback onBack;
   final VoidCallback onDelete;
   final ValueChanged<ProjectStatus> onStatusChange;
@@ -35,6 +39,10 @@ class ProjectDetailView extends StatelessWidget {
   final void Function(String key, String value) onFilterChanged;
   final VoidCallback onClearFilters;
   final ValueChanged<ObservationRecord> onEditObservation;
+  final VoidCallback onRefreshObservations;
+  final bool canLoadMoreObservations;
+  final bool isLoadingMoreObservations;
+  final VoidCallback onLoadMoreObservations;
 
   const ProjectDetailView({
     super.key,
@@ -54,6 +62,10 @@ class ProjectDetailView extends StatelessWidget {
     required this.addLocationController,
     required this.availableObservers,
     required this.filteredObservations,
+    required this.entriesPageSize,
+    required this.pageSizeOptions,
+    required this.onPageSizeChange,
+    required this.isExportingObservations,
     required this.onBack,
     required this.onDelete,
     required this.onStatusChange,
@@ -69,6 +81,10 @@ class ProjectDetailView extends StatelessWidget {
     required this.onFilterChanged,
     required this.onClearFilters,
     required this.onEditObservation,
+    required this.onRefreshObservations,
+    required this.canLoadMoreObservations,
+    required this.isLoadingMoreObservations,
+    required this.onLoadMoreObservations,
   });
 
   @override
@@ -100,7 +116,7 @@ class ProjectDetailView extends StatelessWidget {
           _ProjectInfoCard(
             project: project,
             observerCount: assignedObservers.length,
-            observationCount: project.observations.length,
+            observationCount: project.totalObservationCount,
             onDelete: onDelete,
             onStatusChange: onStatusChange,
             isStatusUpdating: isStatusUpdating,
@@ -141,10 +157,18 @@ class ProjectDetailView extends StatelessWidget {
             locationOptions: locationOptions,
             filters: filters,
             filteredObservations: filteredObservations,
+            entriesPageSize: entriesPageSize,
+            pageSizeOptions: pageSizeOptions,
+            onPageSizeChange: onPageSizeChange,
+            isExporting: isExportingObservations,
             onFilterChanged: onFilterChanged,
             onClearFilters: onClearFilters,
             onDownload: onDownload,
             onEditObservation: onEditObservation,
+            onRefreshObservations: onRefreshObservations,
+            canLoadMoreObservations: canLoadMoreObservations,
+            isLoadingMoreObservations: isLoadingMoreObservations,
+            onLoadMoreObservations: onLoadMoreObservations,
           ),
         ],
       ),
@@ -847,34 +871,58 @@ class _ObservationDataCard extends StatelessWidget {
   final List<AdminLocationOption> locationOptions;
   final Map<String, String> filters;
   final List<ObservationRecord> filteredObservations;
+  final int entriesPageSize;
+  final List<int> pageSizeOptions;
+  final ValueChanged<int> onPageSizeChange;
+  final bool isExporting;
   final void Function(String key, String value) onFilterChanged;
   final VoidCallback onClearFilters;
   final VoidCallback onDownload;
   final ValueChanged<ObservationRecord> onEditObservation;
+  final VoidCallback onRefreshObservations;
+  final bool canLoadMoreObservations;
+  final bool isLoadingMoreObservations;
+  final VoidCallback onLoadMoreObservations;
 
   const _ObservationDataCard({
     required this.project,
     required this.locationOptions,
     required this.filters,
     required this.filteredObservations,
+    required this.entriesPageSize,
+    required this.pageSizeOptions,
+    required this.onPageSizeChange,
+    required this.isExporting,
     required this.onFilterChanged,
     required this.onClearFilters,
     required this.onDownload,
     required this.onEditObservation,
+    required this.onRefreshObservations,
+    required this.canLoadMoreObservations,
+    required this.isLoadingMoreObservations,
+    required this.onLoadMoreObservations,
   });
 
   @override
   Widget build(BuildContext context) {
     final hasFilters = filters.values.any((value) => value != 'all');
+    final locationFilterOptions = <String>{
+      ...project.locationTypeIds,
+      ...project.observations.map((record) => record.locationTypeId),
+    };
+    final totalRecords = project.totalObservationCount;
+    final subtitle = totalRecords == 0
+        ? 'No records collected yet'
+        : hasFilters
+            ? 'Filtered results (showing ${filteredObservations.length})'
+            : 'Showing latest ${filteredObservations.length} of $totalRecords records';
     return _SectionCard(
       title: 'Observation Data',
-      subtitle: hasFilters
-          ? '${filteredObservations.length} of ${project.observations.length} records'
-          : '${project.observations.length} records collected',
+      subtitle: subtitle,
       trailing: project.observations.isEmpty
           ? null
           : ElevatedButton.icon(
-              onPressed: onDownload,
+              onPressed: isExporting ? null : onDownload,
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(0, 46),
                 padding: const EdgeInsets.symmetric(
@@ -891,8 +939,18 @@ class _ObservationDataCard extends StatelessWidget {
                   ),
                 ),
               ),
-              icon: const Icon(Icons.download, size: 18),
-              label: const Text('Export'),
+              icon: isExporting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(AppTheme.white),
+                      ),
+                    )
+                  : const Icon(Icons.download, size: 18),
+              label: Text(isExporting ? 'Exporting...' : 'Export'),
             ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -924,6 +982,16 @@ class _ObservationDataCard extends StatelessWidget {
                           color: AppTheme.gray900,
                         ),
                       ),
+                      IconButton(
+                        tooltip: 'Refresh data',
+                        splashRadius: 18,
+                        iconSize: 18,
+                        onPressed: isLoadingMoreObservations
+                            ? null
+                            : onRefreshObservations,
+                        icon: const Icon(Icons.refresh,
+                            color: AppTheme.primaryOrange),
+                      ),
                       const Spacer(),
                       if (hasFilters)
                         TextButton(
@@ -949,10 +1017,12 @@ class _ObservationDataCard extends StatelessWidget {
                             onFilterChanged('ageGroup', value),
                         options: const [
                           'all',
-                          'child',
-                          'teen',
-                          'adult',
-                          'senior',
+                          '11-and-younger',
+                          '12-17',
+                          '18-24',
+                          '25-44',
+                          '45-64',
+                          '65-plus',
                         ],
                         label: 'Age',
                       ),
@@ -967,21 +1037,14 @@ class _ObservationDataCard extends StatelessWidget {
                         value: filters['activityLevel']!,
                         onChanged: (value) =>
                             onFilterChanged('activityLevel', value),
-                        options: const ['all', 'sitting', 'moving', 'intense'],
+                        options: const ['all', 'sedentary', 'moving', 'intense'],
                         label: 'Level',
-                      ),
-                      _FilterDropdown(
-                        value: filters['activityType']!,
-                        onChanged: (value) =>
-                            onFilterChanged('activityType', value),
-                        options: const ['all', 'organized', 'unorganized'],
-                        label: 'Type',
                       ),
                       _FilterDropdown(
                         value: filters['locationType']!,
                         onChanged: (value) =>
                             onFilterChanged('locationType', value),
-                        options: ['all', ...project.locationTypeIds],
+                        options: ['all', ...locationFilterOptions],
                         label: 'Location',
                         optionBuilder: (value) => value == 'all'
                             ? 'Location'
@@ -989,6 +1052,11 @@ class _ObservationDataCard extends StatelessWidget {
                                 value,
                                 locationOptions,
                               ).label,
+                      ),
+                      _PageSizeDropdown(
+                        value: entriesPageSize,
+                        options: pageSizeOptions,
+                        onChanged: onPageSizeChange,
                       ),
                     ],
                   ),
@@ -1005,25 +1073,30 @@ class _ObservationDataCard extends StatelessWidget {
                 color: AppTheme.gray50,
                 borderRadius: BorderRadius.circular(AppTheme.borderRadiusLarge),
               ),
-              child: Column(
-                children: const [
-                  Icon(
-                    Icons.storage_outlined,
-                    size: 48,
-                    color: AppTheme.gray300,
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'No observation data yet',
-                    style: TextStyle(color: AppTheme.gray500),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Data will appear here once observers start collecting',
-                    style: TextStyle(fontSize: 12, color: AppTheme.gray400),
-                  ),
-                ],
-              ),
+              child: isLoadingMoreObservations
+                  ? const CircularProgressIndicator(
+                      color: AppTheme.primaryOrange,
+                    )
+                  : Column(
+                      children: const [
+                        Icon(
+                          Icons.storage_outlined,
+                          size: 48,
+                          color: AppTheme.gray300,
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'No observation data yet',
+                          style: TextStyle(color: AppTheme.gray500),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Data will appear here once observers start collecting',
+                          style:
+                              TextStyle(fontSize: 12, color: AppTheme.gray400),
+                        ),
+                      ],
+                    ),
             )
           else if (filteredObservations.isEmpty)
             Container(
@@ -1056,10 +1129,40 @@ class _ObservationDataCard extends StatelessWidget {
                     (record) => _ObservationCard(
                       record: record,
                       locationOptions: locationOptions,
-                      onEdit: () => onEditObservation(record),
+                      onEdit:
+                          record.isGroup ? null : () => onEditObservation(record),
                     ),
                   )
                   .toList(),
+            ),
+          if (project.observations.isNotEmpty &&
+              (canLoadMoreObservations || isLoadingMoreObservations))
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: canLoadMoreObservations &&
+                          !isLoadingMoreObservations
+                      ? onLoadMoreObservations
+                      : null,
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  icon: isLoadingMoreObservations
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.history),
+                  label: Text(
+                    isLoadingMoreObservations
+                        ? 'Loading more...'
+                        : 'Load older observations',
+                  ),
+                ),
+              ),
             ),
         ],
       ),
@@ -1070,12 +1173,12 @@ class _ObservationDataCard extends StatelessWidget {
 class _ObservationCard extends StatelessWidget {
   final ObservationRecord record;
   final List<AdminLocationOption> locationOptions;
-  final VoidCallback onEdit;
+  final VoidCallback? onEdit;
 
   const _ObservationCard({
     required this.record,
     required this.locationOptions,
-    required this.onEdit,
+    this.onEdit,
   });
 
   @override
@@ -1084,6 +1187,7 @@ class _ObservationCard extends StatelessWidget {
       record.locationTypeId,
       locationOptions,
     );
+    final locationLabel = record.locationLabel ?? locationDisplay.label;
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 12),
@@ -1110,28 +1214,92 @@ class _ObservationCard extends StatelessWidget {
                 record.timestamp,
                 style: const TextStyle(fontSize: 12, color: AppTheme.gray500),
               ),
-              const Spacer(),
-              OutlinedButton.icon(
-                onPressed: onEdit,
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(
-                    color: AppTheme.primaryOrange.withValues(alpha: 0.3),
-                  ),
-                  foregroundColor: AppTheme.primaryOrange,
-                  minimumSize: const Size(0, 32),
+              const SizedBox(width: 8),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: record.isGroup
+                      ? AppTheme.gray200
+                      : AppTheme.primaryOrange.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(999),
                 ),
-                icon: const Icon(Icons.edit, size: 16),
-                label: const Text('Edit'),
+                child: Text(
+                  record.isGroup ? 'Group' : 'Individual',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: record.isGroup
+                        ? AppTheme.gray700
+                        : AppTheme.primaryOrange,
+                  ),
+                ),
               ),
+              const Spacer(),
+              if (onEdit != null)
+                OutlinedButton.icon(
+                  onPressed: onEdit,
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(
+                      color: AppTheme.primaryOrange.withValues(alpha: 0.3),
+                    ),
+                    foregroundColor: AppTheme.primaryOrange,
+                    minimumSize: const Size(0, 32),
+                  ),
+                  icon: const Icon(Icons.edit, size: 16),
+                  label: const Text('Edit'),
+                ),
             ],
           ),
           const SizedBox(height: 12),
           _ObservationRow(label: 'Gender', value: record.gender),
           _ObservationRow(label: 'Age', value: record.ageGroup),
           _ObservationRow(label: 'Social', value: record.socialContext),
+          if (record.isGroup && record.groupSize != null)
+            _ObservationRow(
+              label: 'Group Size',
+              value: record.groupSize.toString(),
+            ),
+          if (record.isGroup && record.genderMix != null)
+            _ObservationRow(label: 'Gender Mix', value: record.genderMix!),
+          if (record.isGroup && record.ageMix != null)
+            _ObservationRow(label: 'Age Mix', value: record.ageMix!),
           _ObservationRow(label: 'Activity', value: record.activityLevel),
           _ObservationRow(label: 'Type', value: record.activityType),
-          _ObservationRow(label: 'Location', value: locationDisplay.label),
+          _ObservationRow(label: 'Location', value: locationLabel),
+          if (record.observerEmail?.isNotEmpty ?? false) ...[
+            const SizedBox(height: 8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.email_outlined,
+                  size: 18,
+                  color: AppTheme.gray500,
+                ),
+                const SizedBox(width: 6),
+                const Text(
+                  'Email:',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.gray500,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    record.observerEmail!,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.gray700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
           if (record.notes.isNotEmpty) ...[
             const SizedBox(height: 8),
             const Text(
@@ -1362,5 +1530,48 @@ class _FilterDropdown extends StatelessWidget {
   String _formatLabel(String value) {
     if (value == 'all') return label;
     return value[0].toUpperCase() + value.substring(1);
+  }
+}
+
+class _PageSizeDropdown extends StatelessWidget {
+  final int value;
+  final List<int> options;
+  final ValueChanged<int> onChanged;
+
+  const _PageSizeDropdown({
+    required this.value,
+    required this.options,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 140,
+      child: InputDecorator(
+        decoration: const InputDecoration(
+          labelText: 'Entries',
+          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        ),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<int>(
+            value: value,
+            isExpanded: true,
+            isDense: true,
+            items: options
+                .map(
+                  (option) => DropdownMenuItem(
+                    value: option,
+                    child: Text('$option entries'),
+                  ),
+                )
+                .toList(),
+            onChanged: (val) {
+              if (val != null) onChanged(val);
+            },
+          ),
+        ),
+      ),
+    );
   }
 }

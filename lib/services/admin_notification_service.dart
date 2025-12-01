@@ -32,6 +32,14 @@ class AdminNotificationService {
         .map((snapshot) => snapshot.docs.length);
   }
 
+  Future<int> fetchUnreadCount() async {
+    final aggregate = await _collectionRef
+        .where('isRead', isEqualTo: false)
+        .count()
+        .get();
+    return aggregate.count ?? 0;
+  }
+
   Future<void> recordNewUserSignup({
     required String uid,
     required String email,

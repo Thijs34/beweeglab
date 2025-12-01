@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:my_app/models/navigation_arguments.dart';
@@ -8,6 +9,9 @@ import 'package:my_app/models/project.dart';
 import 'package:my_app/theme/app_theme.dart';
 import 'package:my_app/widgets/profile_menu.dart';
 import 'package:my_app/services/admin_notification_service.dart';
+import 'package:my_app/services/observation_service.dart';
+import 'package:my_app/services/person_id_service.dart';
+import 'package:my_app/services/session_draft_service.dart';
 import 'package:my_app/services/project_selection_service.dart';
 import 'package:my_app/screens/observer_page/models/observation_mode.dart';
 import 'package:my_app/screens/observer_page/models/observer_entry.dart';
@@ -62,6 +66,11 @@ class _ObserverPageState extends State<ObserverPage> {
   bool _isEditingPersonId = false;
   final AdminNotificationService _notificationService =
       AdminNotificationService.instance;
+    final ObservationService _observationService =
+      ObservationService.instance;
+    final PersonIdService _personIdService = PersonIdService.instance;
+    final SessionDraftService _sessionDraftService =
+      SessionDraftService.instance;
     final ProjectSelectionService _projectSelectionService =
       ProjectSelectionService.instance;
   StreamSubscription<int>? _notificationCountSubscription;
@@ -70,6 +79,10 @@ class _ObserverPageState extends State<ObserverPage> {
 
   String _personId = '1';
   int _personCounter = 1;
+  String? _counterProjectKey;
+  bool _counterRestored = false;
+  String? _sessionProjectKey;
+  bool _sessionDraftRestored = false;
 
   String? _gender;
   String? _ageGroup;
@@ -111,9 +124,13 @@ class _ObserverPageState extends State<ObserverPage> {
     _projectSelectionListener = () {
       if (!mounted) return;
       setState(() {});
+      _restorePersonCounter();
+      _restoreSessionDrafts();
     };
     _projectSelectionService.selectedProjectListenable
         .addListener(_projectSelectionListener!);
+    _restorePersonCounter();
+    _restoreSessionDrafts();
   }
 
   @override
@@ -1059,24 +1076,39 @@ class _ObserverPageState extends State<ObserverPage> {
   }
 
   Future<void> _handleSubmitEntry() async {
+    if (_isSubmitting) return;
+
+    final project = _activeProject;
+    if (project == null) {
+      _showSnackMessage(
+        'Select a project before recording observations.',
+        isError: true,
+      );
+      return;
+    }
+
+    final observerUid = FirebaseAuth.instance.currentUser?.uid;
+    if (observerUid == null) {
+      _showSnackMessage('Please sign in again to continue.', isError: true);
+      return;
+    }
+
     final validation = _validateCurrent();
     if (validation.isNotEmpty) {
       setState(() => _errors = validation);
       return;
     }
 
-    setState(() {
-      _isSubmitting = true;
-    });
-
-    await Future.delayed(const Duration(milliseconds: 300));
-
     final entry = _buildSnapshot();
-    setState(() {
-      _sessionEntries.add(entry);
-      _isSubmitting = false;
-      _showSuccessOverlay = true;
-    });
+    final success = await _submitEntry(
+      entry: entry,
+      project: project,
+      observerUid: observerUid,
+      showSuccessOverlay: true,
+    );
+    if (!success || !mounted) {
+      return;
+    }
 
     await Future.delayed(const Duration(milliseconds: 800));
     if (!mounted) return;
@@ -1084,16 +1116,43 @@ class _ObserverPageState extends State<ObserverPage> {
     _resetInputs(preservePersonId: false);
   }
 
-  void _handleFinishSession() {
+  Future<void> _handleFinishSession() async {
+    if (_isSubmitting) return;
+
+    await _restoreSessionDrafts();
+
     if (!_isFormEmpty()) {
       final validation = _validateCurrent();
       if (validation.isNotEmpty) {
         setState(() => _errors = validation);
         return;
       }
-      setState(() => _sessionEntries.add(_buildSnapshot()));
+      final project = _activeProject;
+      if (project == null) {
+        _showSnackMessage(
+          'Select a project before recording observations.',
+          isError: true,
+        );
+        return;
+      }
+      final observerUid = FirebaseAuth.instance.currentUser?.uid;
+      if (observerUid == null) {
+        _showSnackMessage('Please sign in again to continue.', isError: true);
+        return;
+      }
+      final entry = _buildSnapshot();
+      final success = await _submitEntry(
+        entry: entry,
+        project: project,
+        observerUid: observerUid,
+        showSuccessOverlay: false,
+      );
+      if (!success) {
+        return;
+      }
       _resetInputs(preservePersonId: false);
     }
+    if (!mounted) return;
     setState(() => _showSummary = true);
   }
 
@@ -1107,6 +1166,8 @@ class _ObserverPageState extends State<ObserverPage> {
       _sessionEntries.clear();
       _showSummary = false;
     });
+    unawaited(_clearSessionDrafts());
+    _clearPersistedPersonCounter();
     _navigateToProjects();
   }
 
@@ -1234,6 +1295,134 @@ class _ObserverPageState extends State<ObserverPage> {
     _customLocationController.clear();
     _activityNotesController.clear();
     _additionalRemarksController.clear();
+    if (shouldIncrement) {
+      _persistPersonCounter();
+    }
+  }
+
+  Future<void> _restorePersonCounter() async {
+    final project = _activeProject;
+    final observerUid = FirebaseAuth.instance.currentUser?.uid;
+    if (project == null || observerUid == null) {
+      return;
+    }
+    final key = '$observerUid-${project.id}';
+    if (_counterProjectKey != key) {
+      _counterProjectKey = key;
+      _counterRestored = false;
+    }
+    if (_counterRestored) {
+      return;
+    }
+    final stored = await _personIdService.getNextPersonId(
+      observerUid: observerUid,
+      projectId: project.id,
+    );
+    if (!mounted) return;
+    setState(() {
+      _counterRestored = true;
+      if (stored != null && stored > 0) {
+        _personCounter = stored;
+        _personIdController.text = stored.toString();
+        _personId = _personIdController.text;
+      } else {
+        _personCounter = 1;
+        _personIdController.text = '1';
+        _personId = '1';
+      }
+    });
+  }
+
+  Future<void> _restoreSessionDrafts() async {
+    final project = _activeProject;
+    final observerUid = FirebaseAuth.instance.currentUser?.uid;
+    if (project == null || observerUid == null) {
+      return;
+    }
+    final key = '$observerUid-${project.id}';
+    if (_sessionProjectKey != key) {
+      _sessionProjectKey = key;
+      _sessionDraftRestored = false;
+      if (_sessionEntries.isNotEmpty) {
+        if (mounted) {
+          setState(() => _sessionEntries.clear());
+        } else {
+          _sessionEntries.clear();
+        }
+      }
+    }
+    if (_sessionDraftRestored) {
+      return;
+    }
+    final restored = await _sessionDraftService.restoreEntries(
+      observerUid: observerUid,
+      projectId: project.id,
+    );
+    if (!mounted) return;
+    setState(() {
+      _sessionEntries
+        ..clear()
+        ..addAll(restored);
+      _sessionDraftRestored = true;
+    });
+  }
+
+  Future<void> _persistSessionDrafts() async {
+    final project = _activeProject;
+    final observerUid = FirebaseAuth.instance.currentUser?.uid;
+    if (project == null || observerUid == null) {
+      return;
+    }
+    await _sessionDraftService.saveEntries(
+      observerUid: observerUid,
+      projectId: project.id,
+      entries: List<ObserverEntry>.from(_sessionEntries),
+    );
+  }
+
+  Future<void> _clearSessionDrafts() async {
+    final project = _activeProject;
+    final observerUid = FirebaseAuth.instance.currentUser?.uid;
+    if (project == null || observerUid == null) {
+      return;
+    }
+    await _sessionDraftService.clearEntries(
+      observerUid: observerUid,
+      projectId: project.id,
+    );
+    _sessionDraftRestored = false;
+  }
+
+  Future<void> _persistPersonCounter() async {
+    final project = _activeProject;
+    final observerUid = FirebaseAuth.instance.currentUser?.uid;
+    if (project == null || observerUid == null) {
+      return;
+    }
+    final nextId = _personCounter;
+    await _personIdService.saveNextPersonId(
+      observerUid: observerUid,
+      projectId: project.id,
+      nextPersonId: nextId,
+    );
+  }
+
+  Future<void> _clearPersistedPersonCounter() async {
+    final project = _activeProject;
+    final observerUid = FirebaseAuth.instance.currentUser?.uid;
+    if (project == null || observerUid == null) {
+      return;
+    }
+    await _personIdService.clearCounter(
+      observerUid: observerUid,
+      projectId: project.id,
+    );
+    if (!mounted) return;
+    setState(() {
+      _personCounter = 1;
+      _personIdController.text = '1';
+      _personId = '1';
+    });
   }
 
   void _incrementGroupSize() {
@@ -1297,6 +1486,58 @@ class _ObserverPageState extends State<ObserverPage> {
 
   Project? get _activeProject =>
       widget.arguments?.project ?? _projectSelectionService.currentProject;
+
+  Future<bool> _submitEntry({
+    required ObserverEntry entry,
+    required Project project,
+    required String observerUid,
+    required bool showSuccessOverlay,
+  }) async {
+    setState(() => _isSubmitting = true);
+    try {
+      await _observationService.saveObservation(
+        project: project,
+        entry: entry,
+        observerUid: observerUid,
+        observerEmail: widget.arguments?.userEmail,
+      );
+    } catch (error) {
+      debugPrint('Failed to save observation: $error');
+      if (!mounted) return false;
+      setState(() => _isSubmitting = false);
+      _showSnackMessage(
+        'Unable to save observation right now. Please try again.',
+        isError: true,
+      );
+      return false;
+    }
+
+    if (!mounted) {
+      return true;
+    }
+
+    setState(() {
+      _sessionEntries.add(entry);
+      _isSubmitting = false;
+      if (showSuccessOverlay) {
+        _showSuccessOverlay = true;
+      }
+    });
+
+    unawaited(_persistSessionDrafts());
+
+    return true;
+  }
+
+  void _showSnackMessage(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : AppTheme.primaryOrange,
+      ),
+    );
+  }
 
   Widget _buildNoProjectOverlay() {
     return Container(

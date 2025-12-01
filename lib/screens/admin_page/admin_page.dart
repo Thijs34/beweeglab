@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:my_app/models/navigation_arguments.dart';
 import 'package:my_app/screens/admin_page/admin_models.dart';
@@ -9,6 +10,8 @@ import 'package:my_app/screens/admin_page/widgets/project_detail_view.dart';
 import 'package:my_app/screens/admin_page/widgets/project_list_view.dart';
 import 'package:my_app/screens/observer_page/observer_page.dart';
 import 'package:my_app/services/admin_notification_service.dart';
+import 'package:my_app/services/observation_service.dart';
+import 'package:my_app/services/observation_export_service.dart';
 import 'package:my_app/services/project_service.dart';
 import 'package:my_app/services/user_service.dart';
 import 'package:my_app/theme/app_theme.dart';
@@ -41,14 +44,30 @@ class _AdminPageState extends State<AdminPage> {
   bool _showProjectSuccess = false;
   String _lastCreatedProjectName = '';
 
-  StreamSubscription<List<AdminProject>>? _projectSubscription;
-  StreamSubscription<List<AppUserRecord>>? _observerSubscription;
-  StreamSubscription<int>? _notificationCountSubscription;
   List<AdminObserver> _observers = const [];
   bool _observersLoading = true;
   int _unreadNotificationCount = 0;
   final AdminNotificationService _notificationService =
       AdminNotificationService.instance;
+  final Map<String, List<ObservationRecord>> _observationCache = {};
+  final ObservationExportService _observationExportService =
+      ObservationExportService.instance;
+  static const int _projectFetchLimit = 40;
+  static const int _defaultObservationPageSize = 5;
+  static const List<int> _observationPageSizeOptions = [5, 10, 20, 50];
+  int _observationPageSize = _defaultObservationPageSize;
+  bool _isLoadingMoreObservations = false;
+  bool _canLoadMoreObservations = true;
+  String? _observationsProjectId;
+  final Map<String, DocumentSnapshot<Map<String, dynamic>>?>
+      _observationCursors = {};
+  final Set<String> _observationExhausted = <String>{};
+  final Set<String> _countBackfillInFlight = <String>{};
+  final Map<String, int> _lastSyncedCounts = <String, int>{};
+  String? _exportingProjectId;
+  Map<ProjectStatus, int> _statusCounts = {
+    for (final status in ProjectStatus.values) status: 0,
+  };
 
   // New project form state
   bool _showNewProjectForm = false;
@@ -84,24 +103,21 @@ class _AdminPageState extends State<AdminPage> {
     'socialContext': 'all',
     'locationType': 'all',
     'activityLevel': 'all',
-    'activityType': 'all',
   };
 
   @override
   void initState() {
     super.initState();
-    _startProjectSubscription();
-    _startObserverSubscription();
+    _loadStatusCounts();
+    _loadProjects();
+    _loadObservers();
     if (_isAdmin) {
-      _startNotificationCountSubscription();
+      _loadUnreadNotificationCount();
     }
   }
 
   @override
   void dispose() {
-    _projectSubscription?.cancel();
-    _observerSubscription?.cancel();
-    _notificationCountSubscription?.cancel();
     _newProjectNameController.dispose();
     _newProjectMainLocationController.dispose();
     _newProjectDescriptionController.dispose();
@@ -134,70 +150,128 @@ class _AdminPageState extends State<AdminPage> {
     }
   }
 
-  void _startProjectSubscription() {
-    _projectSubscription = ProjectService.instance.watchProjects().listen(
-      (projects) {
-        setState(() {
-          _projects = projects;
-          _projectsLoading = false;
-          if (_selectedProjectId != null) {
-            final matches = projects
-                .where((project) => project.id == _selectedProjectId)
-                .toList();
-            if (matches.isEmpty) {
-              _selectedProjectId = null;
-              _projectMainLocationController.clear();
-              _projectMainLocationError = null;
-              _isSavingMainLocation = false;
-            } else {
-              _syncMainLocationController(matches.first);
-            }
+  Future<void> _loadProjects() async {
+    setState(() => _projectsLoading = true);
+    try {
+      final projects = await ProjectService.instance.fetchProjects(
+        status: _statusFilter,
+        limit: _projectFetchLimit,
+      );
+      final hydratedProjects = projects.map((project) {
+        final cached = _observationCache[project.id];
+        if (cached == null) {
+          return project;
+        }
+        return project.copyWith(observations: cached);
+      }).toList(growable: false);
+      if (!mounted) return;
+      setState(() {
+        _projects = hydratedProjects;
+        _projectsLoading = false;
+      });
+      if (_selectedProjectId != null) {
+        final selected = hydratedProjects
+            .where((project) => project.id == _selectedProjectId)
+            .toList();
+        if (selected.isEmpty) {
+          _handleBackToProjects();
+        } else {
+          _syncMainLocationController(selected.first);
+        }
+      }
+      for (final project in projects) {
+        if (project.totalObservationCount == 0) {
+          _refreshObservationCount(project.id, force: true);
+        }
+      }
+    } catch (error) {
+      debugPrint('Failed to load projects: $error');
+      if (!mounted) return;
+      setState(() => _projectsLoading = false);
+      _showSnackMessage('Unable to load projects right now', isError: true);
+    }
+  }
+
+  Future<void> _loadStatusCounts() async {
+    try {
+      final counts = await ProjectService.instance.fetchStatusCounts();
+      if (!mounted) return;
+      setState(() => _statusCounts = counts);
+    } catch (error) {
+      debugPrint('Failed to load project status counts: $error');
+    }
+  }
+
+  void _refreshObservationCount(String projectId, {bool force = false}) {
+    if (!force &&
+        (_countBackfillInFlight.contains(projectId) ||
+            _lastSyncedCounts.containsKey(projectId))) {
+      return;
+    }
+    if (_countBackfillInFlight.contains(projectId)) {
+      return;
+    }
+    _countBackfillInFlight.add(projectId);
+    ObservationService.instance
+        .countObservations(projectId: projectId)
+        .then((count) async {
+          _lastSyncedCounts[projectId] = count;
+          if (mounted) {
+            setState(() {
+              _projects = _projects.map((project) {
+                if (project.id == projectId) {
+                  return project.copyWith(
+                    totalObservationCount: count,
+                  );
+                }
+                return project;
+              }).toList();
+            });
           }
+          await ProjectService.instance.syncObservationCount(projectId, count);
+        })
+        .catchError(
+          (error) => debugPrint(
+            'Failed to refresh observation count for $projectId: $error',
+          ),
+        )
+        .whenComplete(() {
+          _countBackfillInFlight.remove(projectId);
         });
-      },
-      onError: (error) {
-        debugPrint('Failed to load projects: $error');
-        setState(() => _projectsLoading = false);
-        _showSnackMessage('Unable to load projects right now', isError: true);
-      },
-    );
   }
 
-  void _startObserverSubscription() {
-    _observerSubscription = UserService.instance.watchObservers().listen(
-      (records) {
-        setState(() {
-          _observers = records
-              .map(
-                (record) => AdminObserver(
-                  id: record.uid,
-                  name: _deriveObserverName(record.displayName, record.email),
-                  email: record.email ?? 'unknown@innobeweeglab.nl',
-                ),
-              )
-              .toList();
-          _observersLoading = false;
-        });
-      },
-      onError: (error) {
-        debugPrint('Failed to load observers: $error');
-        setState(() => _observersLoading = false);
-        _showSnackMessage('Unable to load observers right now', isError: true);
-      },
-    );
+  Future<void> _loadObservers() async {
+    try {
+      final records = await UserService.instance.fetchObservers();
+      if (!mounted) return;
+      setState(() {
+        _observers = records
+            .map(
+              (record) => AdminObserver(
+                id: record.uid,
+                name: _deriveObserverName(record.displayName, record.email),
+                email: record.email ?? 'unknown@innobeweeglab.nl',
+              ),
+            )
+            .toList(growable: false);
+        _observersLoading = false;
+      });
+    } catch (error) {
+      debugPrint('Failed to load observers: $error');
+      if (!mounted) return;
+      setState(() => _observersLoading = false);
+      _showSnackMessage('Unable to load observers right now', isError: true);
+    }
   }
 
-  void _startNotificationCountSubscription() {
-    _notificationCountSubscription = _notificationService
-        .watchUnreadCount()
-        .listen(
-          (count) {
-            if (!mounted) return;
-            setState(() => _unreadNotificationCount = count);
-          },
-          onError: (error) =>
-              debugPrint('Failed to watch unread count: $error'),
-        );
+  Future<void> _loadUnreadNotificationCount() async {
+    try {
+      final count = await _notificationService.fetchUnreadCount();
+      if (!mounted) return;
+      setState(() => _unreadNotificationCount = count);
+    } catch (error) {
+      debugPrint('Failed to load unread notifications: $error');
+    }
   }
 
   String _deriveObserverName(String? displayName, String? email) {
@@ -429,6 +503,7 @@ class _AdminPageState extends State<AdminPage> {
       locationTypeIds: List<String>.from(_newProjectLocationTypeIds),
       assignedObserverIds: List<String>.from(_newProjectObserverIds),
       observations: const [],
+      totalObservationCount: 0,
     );
 
     try {
@@ -441,11 +516,13 @@ class _AdminPageState extends State<AdminPage> {
         assignedObserverIds: project.assignedObserverIds,
         status: project.status,
       );
-
+      if (_statusFilter != ProjectStatus.active) {
+        setState(() => _statusFilter = ProjectStatus.active);
+      }
+      await _loadProjects();
+      await _loadStatusCounts();
+      if (!mounted) return;
       setState(() {
-        _projects = [..._projects, project];
-        _statusFilter = ProjectStatus.active;
-        _isCreatingProject = false;
         _lastCreatedProjectName = project.name;
         _showProjectSuccess = true;
         _resetNewProjectForm(rebuild: false);
@@ -458,13 +535,14 @@ class _AdminPageState extends State<AdminPage> {
       });
     } catch (error) {
       debugPrint('Failed to create project: $error');
-      if (mounted) {
-        setState(() => _isCreatingProject = false);
-      }
       _showSnackMessage(
         'Failed to create project. Please try again.',
         isError: true,
       );
+    } finally {
+      if (mounted) {
+        setState(() => _isCreatingProject = false);
+      }
     }
   }
 
@@ -535,9 +613,13 @@ class _AdminPageState extends State<AdminPage> {
         'socialContext': 'all',
         'locationType': 'all',
         'activityLevel': 'all',
-        'activityType': 'all',
       };
+      _observationsProjectId = project.id;
+      _canLoadMoreObservations = !_observationExhausted.contains(project.id);
     });
+    if (!_observationCache.containsKey(project.id)) {
+      _loadObservationPage(project.id, reset: true);
+    }
   }
 
   void _handleBackToProjects() {
@@ -549,6 +631,10 @@ class _AdminPageState extends State<AdminPage> {
       _projectMainLocationError = null;
       _isSavingMainLocation = false;
     });
+    _observationsProjectId = null;
+    _observationPageSize = _defaultObservationPageSize;
+    _isLoadingMoreObservations = false;
+    _canLoadMoreObservations = true;
   }
 
   void _requestProjectDeletion(String projectId) {
@@ -580,8 +666,11 @@ class _AdminPageState extends State<AdminPage> {
         }
         _showDeleteDialog = false;
         _projectPendingDelete = null;
+        _observationCache.remove(projectId);
       });
       _showSnackMessage('Project deleted permanently.');
+      await _loadStatusCounts();
+      await _loadProjects();
     } catch (error) {
       debugPrint('Failed to delete project: $error');
       _showSnackMessage(
@@ -601,7 +690,11 @@ class _AdminPageState extends State<AdminPage> {
 
   void _handleStatusFilterChanged(ProjectStatus status) {
     if (_statusFilter == status) return;
+    if (_selectedProjectId != null) {
+      _handleBackToProjects();
+    }
     setState(() => _statusFilter = status);
+    _loadProjects();
   }
 
   List<AdminObserver> get _availableObserversForProject {
@@ -688,6 +781,7 @@ class _AdminPageState extends State<AdminPage> {
             locationTypeIds: List<String>.from(updated.locationTypeIds),
             assignedObserverIds: List<String>.from(updated.assignedObserverIds),
             observations: List<ObservationRecord>.from(updated.observations),
+            totalObservationCount: updated.totalObservationCount,
           );
         }
         return project;
@@ -721,9 +815,113 @@ class _AdminPageState extends State<AdminPage> {
         'socialContext': 'all',
         'locationType': 'all',
         'activityLevel': 'all',
-        'activityType': 'all',
       };
     });
+  }
+
+  void _handleObservationPageSizeChange(int size) {
+    if (_observationPageSize == size) {
+      return;
+    }
+    setState(() {
+      _observationPageSize = size;
+    });
+    final projectId = _selectedProjectId;
+    if (projectId != null) {
+      _observationCache.remove(projectId);
+      _observationCursors.remove(projectId);
+      _observationExhausted.remove(projectId);
+      _loadObservationPage(projectId, reset: true);
+    }
+  }
+
+  Future<void> _loadObservationPage(
+    String projectId, {
+    bool reset = false,
+  }) async {
+    _observationsProjectId = projectId;
+    if (_isLoadingMoreObservations) {
+      return;
+    }
+    if (!reset &&
+        (_observationExhausted.contains(projectId) ||
+            (_observationCache[projectId]?.isEmpty == false &&
+                _observationCursors[projectId] == null))) {
+      return;
+    }
+
+    setState(() {
+      _isLoadingMoreObservations = true;
+      if (reset) {
+        _observationCache.remove(projectId);
+        _observationCursors.remove(projectId);
+        _observationExhausted.remove(projectId);
+      }
+    });
+
+    try {
+      final result = await ObservationService.instance.fetchObservationPage(
+        projectId: projectId,
+        limit: _observationPageSize,
+        startAfter: reset ? null : _observationCursors[projectId],
+      );
+
+      if (!mounted || _observationsProjectId != projectId) {
+        return;
+      }
+
+      setState(() {
+        final existing = reset
+            ? <ObservationRecord>[]
+            : (_observationCache[projectId] ?? const <ObservationRecord>[]);
+        final updated = [...existing, ...result.records];
+        _observationCache[projectId] = updated;
+        _observationCursors[projectId] = result.lastDocument;
+        _canLoadMoreObservations = result.hasMore;
+        if (!result.hasMore) {
+          _observationExhausted.add(projectId);
+        } else {
+          _observationExhausted.remove(projectId);
+        }
+        _isLoadingMoreObservations = false;
+        _projects = _projects.map((project) {
+          if (project.id == projectId) {
+            return project.copyWith(observations: updated);
+          }
+          return project;
+        }).toList();
+      });
+    } catch (error) {
+      debugPrint('Failed to load observations: $error');
+      if (!mounted) return;
+      setState(() {
+        _isLoadingMoreObservations = false;
+      });
+      _showSnackMessage(
+        'Unable to load observations right now.',
+        isError: true,
+      );
+    }
+  }
+
+  void _handleLoadMoreObservations() {
+    final projectId = _selectedProjectId;
+    if (projectId == null || !_canLoadMoreObservations) {
+      return;
+    }
+    _loadObservationPage(projectId);
+  }
+
+  Future<void> _handleRefreshObservations(AdminProject project) async {
+    _observationCache.remove(project.id);
+    _observationCursors.remove(project.id);
+    _observationExhausted.remove(project.id);
+    _observationsProjectId = project.id;
+    setState(() {
+      _canLoadMoreObservations = true;
+    });
+    await _loadObservationPage(project.id, reset: true);
+    _refreshObservationCount(project.id, force: true);
   }
 
   Future<void> _handleProjectStatusChange(
@@ -742,6 +940,8 @@ class _AdminPageState extends State<AdminPage> {
       await ProjectService.instance.updateProjectStatus(project.id, status);
       _updateProject(project.copyWith(status: status));
       _showSnackMessage('Project marked as ${status.label}.');
+      await _loadStatusCounts();
+      await _loadProjects();
     } catch (error) {
       debugPrint('Failed to update project status: $error');
       _showSnackMessage(
@@ -759,24 +959,14 @@ class _AdminPageState extends State<AdminPage> {
     }
   }
 
-  Map<ProjectStatus, int> get _statusCounts {
-    final counts = {
-      for (final status in ProjectStatus.values) status: 0,
-    };
-    for (final project in _projects) {
-      counts[project.status] = counts[project.status]! + 1;
-    }
-    return counts;
-  }
-
   List<AdminProject> get _filteredProjectsByStatus {
-    return _projects
-        .where((project) => project.status == _statusFilter)
-        .toList(growable: false);
+    return List<AdminProject>.from(_projects);
   }
 
-  List<ObservationRecord> _filteredObservations(AdminProject project) {
-    return project.observations.where((record) {
+  List<ObservationRecord> _filteredObservations(
+    List<ObservationRecord> observations,
+  ) {
+    return observations.where((record) {
       if (_filters['gender'] != 'all' && record.gender != _filters['gender']) {
         return false;
       }
@@ -796,21 +986,55 @@ class _AdminPageState extends State<AdminPage> {
           record.activityLevel != _filters['activityLevel']) {
         return false;
       }
-      if (_filters['activityType'] != 'all' &&
-          record.activityType != _filters['activityType']) {
-        return false;
-      }
       return true;
     }).toList();
   }
 
-  void _handleDownloadObservations(AdminProject project) {
-    debugPrint('Downloading observations for ${project.name}');
+  List<ObservationRecord> _projectObservations(AdminProject project) {
+    return _observationCache[project.id] ?? project.observations;
+  }
+
+  Future<void> _handleDownloadObservations(AdminProject project) async {
+    if (_exportingProjectId != null) {
+      return;
+    }
+    setState(() => _exportingProjectId = project.id);
+    try {
+      await _observationExportService.exportProjectObservations(
+        project: project,
+      );
+      _showSnackMessage('Excel export saved to your device.');
+    } catch (error) {
+      debugPrint('Failed to export observations: $error');
+      _showSnackMessage(
+        'Unable to export observations right now.',
+        isError: true,
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _exportingProjectId = null);
+      }
+    }
   }
 
   Future<void> _openObservationEditor(ObservationRecord record) async {
+    if (record.isGroup) {
+      _showSnackMessage(
+        'Editing group observations is not supported yet.',
+        isError: true,
+      );
+      return;
+    }
+
     final project = _selectedProject;
-    if (project == null) return;
+    if (project == null && record.projectId.isEmpty) {
+      return;
+    }
+
+    final targetProjectId = record.projectId.isNotEmpty
+        ? record.projectId
+        : project?.id ?? '';
+    if (targetProjectId.isEmpty) return;
 
     final updatedRecord = await showDialog<ObservationRecord>(
       context: context,
@@ -820,20 +1044,54 @@ class _AdminPageState extends State<AdminPage> {
 
     if (updatedRecord == null) return;
 
-    final updatedObservations = project.observations
-        .map((obs) => obs.id == updatedRecord.id ? updatedRecord : obs)
-        .toList();
-
-    _updateProject(project.copyWith(observations: updatedObservations));
+    try {
+      await ObservationService.instance.updateObservation(
+        projectId: targetProjectId,
+        record: updatedRecord,
+      );
+      if (mounted) {
+        setState(() {
+          final existing = _observationCache[targetProjectId];
+          if (existing != null) {
+            final updatedList = existing
+                .map((item) => item.id == updatedRecord.id ? updatedRecord : item)
+                .toList();
+            _observationCache[targetProjectId] = updatedList;
+            _projects = _projects.map((project) {
+              if (project.id == targetProjectId) {
+                return project.copyWith(observations: updatedList);
+              }
+              return project;
+            }).toList();
+          }
+        });
+      }
+      _showSnackMessage('Observation updated.');
+    } catch (error) {
+      debugPrint('Failed to update observation: $error');
+      _showSnackMessage(
+        'Unable to update observation right now.',
+        isError: true,
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final selectedProject = _selectedProject;
+    final AdminProject? hydratedProject = selectedProject == null
+        ? null
+        : selectedProject.copyWith(
+            observations: _projectObservations(selectedProject),
+          );
+    final List<ObservationRecord> filteredObservationList =
+      hydratedProject == null
+        ? const []
+        : _filteredObservations(hydratedProject.observations);
     final bool mainLocationHasChanges =
-        selectedProject != null &&
-        _projectMainLocationController.text.trim() !=
-            selectedProject.mainLocation;
+      selectedProject != null &&
+      _projectMainLocationController.text.trim() !=
+        selectedProject.mainLocation;
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -859,7 +1117,7 @@ class _AdminPageState extends State<AdminPage> {
                       child: SingleChildScrollView(
                         child: Padding(
                           padding: const EdgeInsets.only(bottom: 32),
-                          child: selectedProject == null
+                          child: hydratedProject == null
                               ? (_projectsLoading && _projects.isEmpty
                                     ? const _AdminLoadingState()
                                     : AdminProjectListView(
@@ -929,8 +1187,8 @@ class _AdminPageState extends State<AdminPage> {
                                         onCancelForm: _resetNewProjectForm,
                                         onProjectTap: _handleProjectTap,
                                       ))
-                              : ProjectDetailView(
-                                  project: selectedProject,
+                                : ProjectDetailView(
+                                  project: hydratedProject,
                                   observers: _observers,
                                   locationOptions:
                                       AdminDataRepository.locationOptions,
@@ -950,17 +1208,27 @@ class _AdminPageState extends State<AdminPage> {
                                   addLocationController: _addLocationController,
                                   availableObservers:
                                       _availableObserversForProject,
+                                    entriesPageSize: _observationPageSize,
+                                    pageSizeOptions: _observationPageSizeOptions,
+                                    onPageSizeChange:
+                                      _handleObservationPageSizeChange,
                                   onBack: _handleBackToProjects,
-                                  onDelete: () => _requestProjectDeletion(
-                                    selectedProject.id,
-                                  ),
+                                  onDelete: () {
+                                    final projectForActions =
+                                        selectedProject ?? hydratedProject;
+                                    if (projectForActions == null) return;
+                                    _requestProjectDeletion(
+                                      projectForActions.id,
+                                    );
+                                  },
                                   onStatusChange: (status) =>
                                       _handleProjectStatusChange(
-                                    selectedProject,
+                                    (selectedProject ?? hydratedProject)!,
                                     status,
                                   ),
-                                  isStatusUpdating:
-                                      _isStatusUpdating(selectedProject.id),
+                                  isStatusUpdating: _isStatusUpdating(
+                                    (selectedProject ?? hydratedProject)!.id,
+                                  ),
                                   onToggleAddLocation: _toggleAddLocationField,
                                   onAddLocation: _handleAddLocationToProject,
                                   onRemoveLocation: _removeLocationFromProject,
@@ -971,15 +1239,27 @@ class _AdminPageState extends State<AdminPage> {
                                   ),
                                   onAddObserver: _addObserverToProject,
                                   onRemoveObserver: _removeObserverFromProject,
-                                  onDownload: () => _handleDownloadObservations(
-                                    selectedProject,
+                                  onDownload: () =>
+                                      _handleDownloadObservations(
+                                    hydratedProject,
                                   ),
                                   onFilterChanged: _updateFilter,
                                   onClearFilters: _clearFilters,
-                                  filteredObservations: _filteredObservations(
-                                    selectedProject,
-                                  ),
+                                  filteredObservations:
+                                      filteredObservationList,
+                                  isExportingObservations:
+                                      _exportingProjectId == hydratedProject.id,
                                   onEditObservation: _openObservationEditor,
+                                    onRefreshObservations: () =>
+                                      _handleRefreshObservations(
+                                    hydratedProject,
+                                    ),
+                                  canLoadMoreObservations:
+                                      _canLoadMoreObservations,
+                                  isLoadingMoreObservations:
+                                      _isLoadingMoreObservations,
+                                  onLoadMoreObservations:
+                                      _handleLoadMoreObservations,
                                 ),
                         ),
                       ),
@@ -1014,7 +1294,7 @@ class _AdminPageState extends State<AdminPage> {
                   }
                   return _DeleteDialogOverlay(
                     project: projectForDialog,
-                    observationCount: projectForDialog.observations.length,
+                    observationCount: projectForDialog.totalObservationCount,
                     onCancel: _cancelProjectDeletion,
                     onConfirm: () => _confirmProjectDeletion(),
                   );

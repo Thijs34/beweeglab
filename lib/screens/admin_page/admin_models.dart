@@ -89,6 +89,14 @@ class ObservationRecord {
   final String activityType;
   final String notes;
   final String timestamp;
+  final String projectId;
+  final String mode;
+  final String? observerEmail;
+  final String? observerUid;
+  final int? groupSize;
+  final String? genderMix;
+  final String? ageMix;
+  final String? locationLabel;
 
   const ObservationRecord({
     required this.id,
@@ -101,7 +109,17 @@ class ObservationRecord {
     required this.activityType,
     required this.notes,
     required this.timestamp,
+    this.projectId = '',
+    this.mode = 'individual',
+    this.observerEmail,
+    this.observerUid,
+    this.groupSize,
+    this.genderMix,
+    this.ageMix,
+    this.locationLabel,
   });
+
+  bool get isGroup => mode == 'group';
 }
 
 /// Project entity matching the React Admin Panel mock
@@ -114,6 +132,7 @@ class AdminProject {
   final List<String> locationTypeIds;
   final List<String> assignedObserverIds;
   final List<ObservationRecord> observations;
+  final int totalObservationCount;
 
   const AdminProject({
     required this.id,
@@ -124,6 +143,7 @@ class AdminProject {
     required this.locationTypeIds,
     required this.assignedObserverIds,
     required this.observations,
+    this.totalObservationCount = 0,
   });
 
   AdminProject copyWith({
@@ -134,6 +154,7 @@ class AdminProject {
     List<String>? locationTypeIds,
     List<String>? assignedObserverIds,
     List<ObservationRecord>? observations,
+    int? totalObservationCount,
   }) {
     return AdminProject(
       id: id,
@@ -150,6 +171,8 @@ class AdminProject {
       observations: List<ObservationRecord>.from(
         observations ?? this.observations,
       ),
+      totalObservationCount:
+          totalObservationCount ?? this.totalObservationCount,
     );
   }
 }
@@ -272,6 +295,7 @@ class AdminDataRepository {
         activityType: 'organized',
         notes: 'Playing soccer with team',
         timestamp: '2025-11-17 14:23',
+        projectId: '1',
       ),
       ObservationRecord(
         id: 'obs-2',
@@ -284,6 +308,7 @@ class AdminDataRepository {
         activityType: 'unorganized',
         notes: 'Jogging around the court',
         timestamp: '2025-11-17 14:35',
+        projectId: '1',
       ),
       ObservationRecord(
         id: 'obs-3',
@@ -296,11 +321,13 @@ class AdminDataRepository {
         activityType: 'unorganized',
         notes: 'Playing tag with friends',
         timestamp: '2025-11-17 15:12',
+        projectId: '1',
       ),
     ];
   }
 
   static List<AdminProject> initialProjects() {
+    final initialObservations = _observationsForProject('1');
     final List<AdminProject> base = [
       AdminProject(
         id: '1',
@@ -310,7 +337,8 @@ class AdminDataRepository {
         status: ProjectStatus.active,
         locationTypeIds: const ['cruyff-court', 'grass-field'],
         assignedObserverIds: const ['1', '2'],
-        observations: _observationsForProject('1'),
+        observations: initialObservations,
+        totalObservationCount: initialObservations.length,
       ),
       const AdminProject(
         id: '2',
@@ -321,6 +349,7 @@ class AdminDataRepository {
         locationTypeIds: ['grass-field', 'basketball-field'],
         assignedObserverIds: ['3'],
         observations: [],
+        totalObservationCount: 0,
       ),
       const AdminProject(
         id: '3',
@@ -331,6 +360,7 @@ class AdminDataRepository {
         locationTypeIds: ['basketball-field'],
         assignedObserverIds: [],
         observations: [],
+        totalObservationCount: 0,
       ),
     ];
 
@@ -344,6 +374,7 @@ class AdminDataRepository {
             locationTypeIds: List<String>.from(project.locationTypeIds),
             assignedObserverIds: List<String>.from(project.assignedObserverIds),
             observations: project.observations,
+            totalObservationCount: project.totalObservationCount,
           ),
         )
         .toList();

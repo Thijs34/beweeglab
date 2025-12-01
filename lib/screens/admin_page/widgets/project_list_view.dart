@@ -226,7 +226,7 @@ class AdminProjectListView extends StatelessWidget {
                         project: project,
                         locationOptions: locationOptions,
                         observerCount: project.assignedObserverIds.length,
-                        observationCount: project.observations.length,
+                        observationCount: project.totalObservationCount,
                         onTap: () => onProjectTap(project),
                       ),
                     ),
