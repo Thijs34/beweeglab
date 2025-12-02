@@ -214,26 +214,32 @@ class _AdminPageState extends State<AdminPage> {
     _countBackfillInFlight.add(projectId);
     ObservationService.instance
         .countObservations(projectId: projectId)
-        .then((count) async {
-          _lastSyncedCounts[projectId] = count;
+        .then((observationCount) async {
+          _lastSyncedCounts[projectId] = observationCount;
           if (mounted) {
             setState(() {
               _projects = _projects.map((project) {
                 if (project.id == projectId) {
                   return project.copyWith(
-                    totalObservationCount: count,
+                    totalObservationCount: observationCount,
                   );
                 }
                 return project;
               }).toList();
             });
           }
-          await ProjectService.instance.syncObservationCount(projectId, count);
+          await ProjectService.instance.syncObservationCount(
+            projectId,
+            observationCount,
+          );
         })
         .catchError(
-          (error) => debugPrint(
-            'Failed to refresh observation count for $projectId: $error',
-          ),
+          (error, stackTrace) {
+            debugPrint(
+              'Failed to refresh observation count for $projectId: $error',
+            );
+            return null;
+          },
         )
         .whenComplete(() {
           _countBackfillInFlight.remove(projectId);
@@ -1079,11 +1085,9 @@ class _AdminPageState extends State<AdminPage> {
   @override
   Widget build(BuildContext context) {
     final selectedProject = _selectedProject;
-    final AdminProject? hydratedProject = selectedProject == null
-        ? null
-        : selectedProject.copyWith(
-            observations: _projectObservations(selectedProject),
-          );
+    final AdminProject? hydratedProject = selectedProject?.copyWith(
+      observations: _projectObservations(selectedProject),
+    );
     final List<ObservationRecord> filteredObservationList =
       hydratedProject == null
         ? const []
@@ -1213,22 +1217,16 @@ class _AdminPageState extends State<AdminPage> {
                                     onPageSizeChange:
                                       _handleObservationPageSizeChange,
                                   onBack: _handleBackToProjects,
-                                  onDelete: () {
-                                    final projectForActions =
-                                        selectedProject ?? hydratedProject;
-                                    if (projectForActions == null) return;
-                                    _requestProjectDeletion(
-                                      projectForActions.id,
-                                    );
-                                  },
+                                  onDelete: () => _requestProjectDeletion(
+                                    hydratedProject.id,
+                                  ),
                                   onStatusChange: (status) =>
                                       _handleProjectStatusChange(
-                                    (selectedProject ?? hydratedProject)!,
+                                    hydratedProject,
                                     status,
                                   ),
-                                  isStatusUpdating: _isStatusUpdating(
-                                    (selectedProject ?? hydratedProject)!.id,
-                                  ),
+                                  isStatusUpdating:
+                                      _isStatusUpdating(hydratedProject.id),
                                   onToggleAddLocation: _toggleAddLocationField,
                                   onAddLocation: _handleAddLocationToProject,
                                   onRemoveLocation: _removeLocationFromProject,
