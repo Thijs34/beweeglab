@@ -291,44 +291,50 @@ class _ProjectInfoCard extends StatelessWidget {
                 bottom: Radius.circular(AppTheme.borderRadiusLarge),
               ),
             ),
-            child: Row(
-              children: [
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.storage_outlined,
-                      color: AppTheme.primaryOrange,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '$observationCount observation${observationCount == 1 ? '' : 's'} recorded',
-                      style: const TextStyle(
-                        color: AppTheme.gray700,
-                        fontWeight: FontWeight.w600,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Wrap(
+                spacing: 24, // horizontal spacing between items
+                runSpacing: 8, // vertical spacing if wrapped
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.storage_outlined,
+                        color: AppTheme.primaryOrange,
+                        size: 18,
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 24),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.group_outlined,
-                      color: AppTheme.primaryOrange,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '$observerCount observer${observerCount == 1 ? '' : 's'} assigned',
-                      style: const TextStyle(
-                        color: AppTheme.gray700,
-                        fontWeight: FontWeight.w600,
+                      const SizedBox(width: 8),
+                      Text(
+                        '$observationCount observation${observationCount == 1 ? '' : 's'} recorded',
+                        style: const TextStyle(
+                          color: AppTheme.gray700,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.group_outlined,
+                        color: AppTheme.primaryOrange,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '$observerCount observer${observerCount == 1 ? '' : 's'} assigned',
+                        style: const TextStyle(
+                          color: AppTheme.gray700,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -463,11 +469,7 @@ class _StatusMenuButtonChild extends StatelessWidget {
               ),
             )
           else
-            const Icon(
-              Icons.swap_horiz,
-              size: 18,
-              color: AppTheme.gray600,
-            ),
+            const Icon(Icons.swap_horiz, size: 18, color: AppTheme.gray600),
           const SizedBox(width: 8),
           Text(
             disabled ? 'Updating...' : 'Change Status',
@@ -914,8 +916,8 @@ class _ObservationDataCard extends StatelessWidget {
     final subtitle = totalRecords == 0
         ? 'No records collected yet'
         : hasFilters
-            ? 'Filtered results (showing ${filteredObservations.length})'
-            : 'Showing latest ${filteredObservations.length} of $totalRecords records';
+        ? 'Filtered results (showing ${filteredObservations.length})'
+        : 'Showing latest ${filteredObservations.length} of $totalRecords records';
     return _SectionCard(
       title: 'Observation Data',
       subtitle: subtitle,
@@ -945,8 +947,9 @@ class _ObservationDataCard extends StatelessWidget {
                       height: 18,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(AppTheme.white),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppTheme.white,
+                        ),
                       ),
                     )
                   : const Icon(Icons.download, size: 18),
@@ -989,8 +992,10 @@ class _ObservationDataCard extends StatelessWidget {
                         onPressed: isLoadingMoreObservations
                             ? null
                             : onRefreshObservations,
-                        icon: const Icon(Icons.refresh,
-                            color: AppTheme.primaryOrange),
+                        icon: const Icon(
+                          Icons.refresh,
+                          color: AppTheme.primaryOrange,
+                        ),
                       ),
                       const Spacer(),
                       if (hasFilters)
@@ -1037,7 +1042,12 @@ class _ObservationDataCard extends StatelessWidget {
                         value: filters['activityLevel']!,
                         onChanged: (value) =>
                             onFilterChanged('activityLevel', value),
-                        options: const ['all', 'sedentary', 'moving', 'intense'],
+                        options: const [
+                          'all',
+                          'sedentary',
+                          'moving',
+                          'intense',
+                        ],
                         label: 'Level',
                       ),
                       _FilterDropdown(
@@ -1092,8 +1102,10 @@ class _ObservationDataCard extends StatelessWidget {
                         SizedBox(height: 4),
                         Text(
                           'Data will appear here once observers start collecting',
-                          style:
-                              TextStyle(fontSize: 12, color: AppTheme.gray400),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.gray400,
+                          ),
                         ),
                       ],
                     ),
@@ -1129,8 +1141,9 @@ class _ObservationDataCard extends StatelessWidget {
                     (record) => _ObservationCard(
                       record: record,
                       locationOptions: locationOptions,
-                      onEdit:
-                          record.isGroup ? null : () => onEditObservation(record),
+                      onEdit: record.isGroup
+                          ? null
+                          : () => onEditObservation(record),
                     ),
                   )
                   .toList(),
@@ -1142,8 +1155,8 @@ class _ObservationDataCard extends StatelessWidget {
               child: SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
-                  onPressed: canLoadMoreObservations &&
-                          !isLoadingMoreObservations
+                  onPressed:
+                      canLoadMoreObservations && !isLoadingMoreObservations
                       ? onLoadMoreObservations
                       : null,
                   style: OutlinedButton.styleFrom(
@@ -1216,8 +1229,10 @@ class _ObservationCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: record.isGroup
                       ? AppTheme.gray200
