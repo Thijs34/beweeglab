@@ -373,15 +373,15 @@ class _ProjectStatusControl extends StatelessWidget {
           runSpacing: 8,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            ProjectStatusBadge(
-              status: status,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              fontSize: 13,
-            ),
             _StatusMenuButton(
               current: status,
               disabled: isUpdating,
               onSelected: onStatusChange,
+            ),
+            ProjectStatusBadge(
+              status: status,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              fontSize: 13,
             ),
           ],
         ),
@@ -447,14 +447,24 @@ class _StatusMenuButtonChild extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: disabled ? AppTheme.gray100 : AppTheme.white,
+        color: disabled ? AppTheme.gray100 : AppTheme.gray50,
         borderRadius: BorderRadius.circular(AppTheme.borderRadiusLarge),
         border: Border.all(
           color: disabled ? AppTheme.gray200 : AppTheme.gray300,
         ),
+        boxShadow: disabled
+            ? null
+            : const [
+                BoxShadow(
+                  color: Color(0x14000000),
+                  blurRadius: 6,
+                  offset: Offset(0, 2),
+                ),
+              ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -468,17 +478,36 @@ class _StatusMenuButtonChild extends StatelessWidget {
                 valueColor: AlwaysStoppedAnimation<Color>(AppTheme.gray500),
               ),
             )
-          else
-            const Icon(Icons.swap_horiz, size: 18, color: AppTheme.gray600),
+          else ...[
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: AppTheme.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.gray200),
+              ),
+              child: const Icon(
+                Icons.tune_rounded,
+                size: 14,
+                color: AppTheme.gray600,
+              ),
+            ),
+          ],
           const SizedBox(width: 8),
-          Text(
-            disabled ? 'Updating...' : 'Change Status',
-            style: TextStyle(
-              color: disabled ? AppTheme.gray500 : AppTheme.gray700,
-              fontWeight: FontWeight.w600,
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 150),
+            child: Text(
+              disabled ? 'Updating...' : 'Adjust status',
+              key: ValueKey(disabled),
+              style: TextStyle(
+                color: disabled ? AppTheme.gray500 : AppTheme.gray700,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
             ),
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 6),
           const Icon(Icons.expand_more, size: 18, color: AppTheme.gray500),
         ],
       ),

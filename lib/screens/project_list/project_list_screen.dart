@@ -12,6 +12,7 @@ import 'package:my_app/screens/project_list/widgets/welcome_section.dart';
 import 'package:my_app/services/admin_notification_service.dart';
 import 'package:my_app/services/project_selection_service.dart';
 import 'package:my_app/services/project_service.dart';
+import 'package:my_app/services/user_service.dart';
 import 'package:my_app/theme/app_theme.dart';
 import 'package:my_app/widgets/profile_menu.dart';
 
@@ -41,6 +42,7 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
   final ProjectService _projectService = ProjectService.instance;
   final ProjectSelectionService _selectionService =
       ProjectSelectionService.instance;
+  final UserService _userService = UserService.instance;
   StreamSubscription<int>? _notificationCountSubscription;
   StreamSubscription<List<Project>>? _projectsSubscription;
   VoidCallback? _selectionListener;
@@ -48,6 +50,7 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
   bool _isLoadingProjects = true;
   bool _isRefreshingProjects = false;
   String? _projectsError;
+  String? _displayName;
 
   bool get _isAdmin => widget.userRole == 'admin';
 
@@ -59,6 +62,7 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
     if (_isAdmin) {
       _startNotificationWatcher();
     }
+    _loadUserProfile();
     _selectionListener = () {
       if (!mounted) return;
       setState(() {});
@@ -123,6 +127,45 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
         );
   }
 
+  void _loadUserProfile() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      return;
+    }
+
+    final authDisplayName =
+        FirebaseAuth.instance.currentUser?.displayName?.trim();
+    if (authDisplayName != null && authDisplayName.isNotEmpty) {
+      setState(() => _displayName = authDisplayName);
+    }
+
+    void applyRecord(AppUserRecord? record) {
+      if (!mounted || record == null) {
+        return;
+      }
+      final preferred = (record.displayName?.trim().isNotEmpty ?? false)
+          ? record.displayName!.trim()
+          : record.email;
+      if (preferred == null || preferred == _displayName) {
+        return;
+      }
+      setState(() => _displayName = preferred);
+    }
+
+    final cached = _userService.getCachedUser(uid);
+    var needsRefresh = true;
+    if (cached != null) {
+      applyRecord(cached);
+      needsRefresh = (cached.displayName == null ||
+          (cached.displayName?.trim().isEmpty ?? true));
+    }
+
+    _userService
+        .getUserProfile(uid, forceRefresh: needsRefresh)
+        .then(applyRecord)
+        .catchError((error) => debugPrint('Failed to load user name: $error'));
+  }
+
   void _filterProjects() {
     setState(() {
       _filteredProjects =
@@ -149,9 +192,11 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
   }
 
   String _getFirstName() {
-    if (widget.userEmail == null) return 'Observer';
-    final name = widget.userEmail!.split('@')[0];
-    return name[0].toUpperCase() + name.substring(1);
+    final name = _displayName?.trim();
+    if (name == null || name.isEmpty) {
+      return 'Observer';
+    }
+    return name;
   }
 
   void _handleRefresh() {

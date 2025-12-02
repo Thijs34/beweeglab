@@ -36,15 +36,22 @@ class ProfileAvatarButton extends StatelessWidget {
           ),
           if (showBadge)
             Positioned(
-              right: -2,
-              top: -2,
+              right: 0,
+              top: -1,
               child: Container(
                 constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
                 decoration: BoxDecoration(
                   color: AppTheme.red600,
                   borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: AppTheme.white, width: 2),
+                  border: Border.all(color: AppTheme.background, width: 1.5),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x33000000),
+                      blurRadius: 3,
+                      offset: Offset(0, 1),
+                    ),
+                  ],
                 ),
                 alignment: Alignment.center,
                 child: Text(
