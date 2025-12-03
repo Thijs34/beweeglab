@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:my_app/models/observation_field.dart';
 import 'package:my_app/screens/admin_page/admin_models.dart';
+import 'package:my_app/screens/admin_page/widgets/project_detail_section_selector.dart';
 import 'package:my_app/screens/admin_page/widgets/project_observation_fields_card.dart';
 import 'package:my_app/screens/admin_page/widgets/project_status_badge.dart';
 import 'package:my_app/theme/app_theme.dart';
@@ -9,6 +10,8 @@ class ProjectDetailView extends StatelessWidget {
   final AdminProject project;
   final List<AdminObserver> observers;
   final List<AdminLocationOption> locationOptions;
+  final ProjectDetailSection activeSection;
+  final ValueChanged<ProjectDetailSection> onSectionChange;
   final TextEditingController mainLocationController;
   final String? mainLocationError;
   final ValueChanged<String> onMainLocationChanged;
@@ -49,10 +52,8 @@ class ProjectDetailView extends StatelessWidget {
   final bool fieldEditsDirty;
   final bool isSavingFieldEdits;
   final Future<void> Function(BuildContext context) onAddField;
-  final Future<void> Function(
-    BuildContext context,
-    ObservationField field,
-  ) onEditField;
+  final Future<void> Function(BuildContext context, ObservationField field)
+  onEditField;
   final void Function(int oldIndex, int newIndex) onReorderField;
   final void Function(String fieldId, bool isEnabled) onToggleField;
   final void Function(String fieldId) onDeleteField;
@@ -64,6 +65,8 @@ class ProjectDetailView extends StatelessWidget {
     required this.project,
     required this.observers,
     required this.locationOptions,
+    required this.activeSection,
+    required this.onSectionChange,
     required this.mainLocationController,
     required this.mainLocationError,
     required this.onMainLocationChanged,
@@ -138,13 +141,31 @@ class ProjectDetailView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          _ProjectInfoCard(
+          _ProjectHeaderBar(
             project: project,
-            observerCount: assignedObservers.length,
-            observationCount: project.totalObservationCount,
-            onDelete: onDelete,
-            onStatusChange: onStatusChange,
             isStatusUpdating: isStatusUpdating,
+            onStatusChange: onStatusChange,
+            onDelete: onDelete,
+          ),
+          const SizedBox(height: 16),
+          ProjectDetailSectionSelector(
+            activeSection: activeSection,
+            onSectionSelected: onSectionChange,
+          ),
+          const SizedBox(height: 16),
+          ..._buildSectionContent(assignedObservers),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _buildSectionContent(List<AdminObserver> assignedObservers) {
+    switch (activeSection) {
+      case ProjectDetailSection.general:
+        return [
+          _ProjectMetricsCard(
+            observationCount: project.totalObservationCount,
+            observerCount: assignedObservers.length,
           ),
           const SizedBox(height: 16),
           _MainLocationCard(
@@ -165,7 +186,9 @@ class ProjectDetailView extends StatelessWidget {
             onAddLocation: onAddLocation,
             onRemoveLocation: onRemoveLocation,
           ),
-          const SizedBox(height: 16),
+        ];
+      case ProjectDetailSection.observers:
+        return [
           _AssignedObserversCard(
             assignedObservers: assignedObservers,
             showObserverSelector: showObserverSelector,
@@ -176,7 +199,9 @@ class ProjectDetailView extends StatelessWidget {
             onAddObserver: onAddObserver,
             onRemoveObserver: onRemoveObserver,
           ),
-          const SizedBox(height: 16),
+        ];
+      case ProjectDetailSection.fields:
+        return [
           ProjectObservationFieldsCard(
             fields: fieldDrafts,
             hasChanges: fieldEditsDirty,
@@ -189,7 +214,9 @@ class ProjectDetailView extends StatelessWidget {
             onResetFields: onResetFields,
             onSaveFields: onSaveFields,
           ),
-          const SizedBox(height: 16),
+        ];
+      case ProjectDetailSection.data:
+        return [
           _ObservationDataCard(
             project: project,
             locationOptions: locationOptions,
@@ -208,222 +235,187 @@ class ProjectDetailView extends StatelessWidget {
             isLoadingMoreObservations: isLoadingMoreObservations,
             onLoadMoreObservations: onLoadMoreObservations,
           ),
+        ];
+    }
+  }
+}
+
+class _ProjectHeaderBar extends StatelessWidget {
+  final AdminProject project;
+  final bool isStatusUpdating;
+  final ValueChanged<ProjectStatus> onStatusChange;
+  final VoidCallback onDelete;
+
+  const _ProjectHeaderBar({
+    required this.project,
+    required this.isStatusUpdating,
+    required this.onStatusChange,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final locationLabel = project.mainLocation.isEmpty
+        ? 'Main location not set'
+        : project.mainLocation;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.white,
+        borderRadius: BorderRadius.circular(AppTheme.borderRadiusLarge),
+        border: Border.all(color: AppTheme.gray200),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x08000000),
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  project.name,
+                  style: const TextStyle(
+                    fontFamily: AppTheme.fontFamilyHeading,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (project.description.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    project.description,
+                    style: const TextStyle(color: AppTheme.gray600),
+                  ),
+                ],
+                const SizedBox(height: 10),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.location_on_outlined,
+                      size: 18,
+                      color: AppTheme.primaryOrange,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        locationLabel,
+                        style: const TextStyle(
+                          color: AppTheme.gray700,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              ProjectStatusBadge(
+                status: project.status,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 6,
+                ),
+                fontSize: 13,
+              ),
+              _StatusMenuButton(
+                current: project.status,
+                disabled: isStatusUpdating,
+                onSelected: onStatusChange,
+              ),
+              OutlinedButton.icon(
+                onPressed: onDelete,
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppTheme.red200),
+                  foregroundColor: AppTheme.red600,
+                ),
+                icon: const Icon(Icons.delete_outline, size: 18),
+                label: const Text('Delete'),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 }
 
-class _ProjectInfoCard extends StatelessWidget {
-  final AdminProject project;
+class _ProjectMetricsCard extends StatelessWidget {
   final int observationCount;
   final int observerCount;
-  final VoidCallback onDelete;
-  final ValueChanged<ProjectStatus> onStatusChange;
-  final bool isStatusUpdating;
 
-  const _ProjectInfoCard({
-    required this.project,
+  const _ProjectMetricsCard({
     required this.observationCount,
     required this.observerCount,
-    required this.onDelete,
-    required this.onStatusChange,
-    required this.isStatusUpdating,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       decoration: BoxDecoration(
         color: AppTheme.white,
         borderRadius: BorderRadius.circular(AppTheme.borderRadiusLarge),
         border: Border.all(color: AppTheme.gray200),
       ),
-      child: Column(
+      child: Wrap(
+        spacing: 24,
+        runSpacing: 12,
         children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppTheme.primaryOrange.withValues(alpha: 0.05),
-                  AppTheme.primaryOrange.withValues(alpha: 0.1),
-                ],
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.storage_outlined,
+                color: AppTheme.primaryOrange,
+                size: 18,
               ),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(AppTheme.borderRadiusLarge),
+              const SizedBox(width: 8),
+              Text(
+                '$observationCount observation${observationCount == 1 ? '' : 's'} recorded',
+                style: const TextStyle(
+                  color: AppTheme.gray700,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-              border: const Border(bottom: BorderSide(color: AppTheme.gray200)),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        project.name,
-                        style: const TextStyle(
-                          fontFamily: AppTheme.fontFamilyHeading,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        project.description,
-                        style: const TextStyle(color: AppTheme.gray600),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(
-                            Icons.location_on_outlined,
-                            size: 18,
-                            color: AppTheme.primaryOrange,
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              project.mainLocation.isEmpty
-                                  ? 'Main location not set'
-                                  : project.mainLocation,
-                              style: const TextStyle(
-                                color: AppTheme.gray700,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      _ProjectStatusControl(
-                        status: project.status,
-                        isUpdating: isStatusUpdating,
-                        onStatusChange: onStatusChange,
-                      ),
-                    ],
-                  ),
-                ),
-                OutlinedButton.icon(
-                  onPressed: onDelete,
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppTheme.red200),
-                    foregroundColor: AppTheme.red600,
-                  ),
-                  icon: const Icon(Icons.delete_outline, size: 18),
-                  label: const Text('Delete'),
-                ),
-              ],
-            ),
+            ],
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            decoration: const BoxDecoration(
-              color: AppTheme.gray50,
-              borderRadius: BorderRadius.vertical(
-                bottom: Radius.circular(AppTheme.borderRadiusLarge),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.group_outlined,
+                color: AppTheme.primaryOrange,
+                size: 18,
               ),
-            ),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Wrap(
-                spacing: 24, // horizontal spacing between items
-                runSpacing: 8, // vertical spacing if wrapped
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.storage_outlined,
-                        color: AppTheme.primaryOrange,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '$observationCount observation${observationCount == 1 ? '' : 's'} recorded',
-                        style: const TextStyle(
-                          color: AppTheme.gray700,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.group_outlined,
-                        color: AppTheme.primaryOrange,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '$observerCount observer${observerCount == 1 ? '' : 's'} assigned',
-                        style: const TextStyle(
-                          color: AppTheme.gray700,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+              const SizedBox(width: 8),
+              Text(
+                '$observerCount observer${observerCount == 1 ? '' : 's'} assigned',
+                style: const TextStyle(
+                  color: AppTheme.gray700,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
+            ],
           ),
         ],
       ),
-    );
-  }
-}
-
-class _ProjectStatusControl extends StatelessWidget {
-  final ProjectStatus status;
-  final bool isUpdating;
-  final ValueChanged<ProjectStatus> onStatusChange;
-
-  const _ProjectStatusControl({
-    required this.status,
-    required this.isUpdating,
-    required this.onStatusChange,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Project Status',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: AppTheme.gray600,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 12,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            _StatusMenuButton(
-              current: status,
-              disabled: isUpdating,
-              onSelected: onStatusChange,
-            ),
-            ProjectStatusBadge(
-              status: status,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              fontSize: 13,
-            ),
-          ],
-        ),
-      ],
     );
   }
 }

@@ -2,6 +2,8 @@ import 'package:my_app/models/observation_field.dart';
 
 enum ProjectStatus { active, finished, archived }
 
+enum ProjectDetailSection { general, observers, fields, data }
+
 ProjectStatus projectStatusFromString(String? rawValue) {
   switch (rawValue?.toLowerCase()) {
     case 'finished':
@@ -34,6 +36,21 @@ extension ProjectStatusX on ProjectStatus {
         return 'finished';
       case ProjectStatus.archived:
         return 'archived';
+    }
+  }
+}
+
+extension ProjectDetailSectionX on ProjectDetailSection {
+  String get label {
+    switch (this) {
+      case ProjectDetailSection.general:
+        return 'General';
+      case ProjectDetailSection.observers:
+        return 'Observers';
+      case ProjectDetailSection.fields:
+        return 'Fields';
+      case ProjectDetailSection.data:
+        return 'Data';
     }
   }
 }

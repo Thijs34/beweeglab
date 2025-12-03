@@ -100,6 +100,7 @@ class _AdminPageState extends State<AdminPage> {
       TextEditingController();
   bool _isSavingMainLocation = false;
   String? _projectMainLocationError;
+  ProjectDetailSection _projectDetailSection = ProjectDetailSection.general;
   Map<String, String> _filters = {
     'gender': 'all',
     'ageGroup': 'all',
@@ -160,7 +161,9 @@ class _AdminPageState extends State<AdminPage> {
   }
 
   void _hydrateFieldDrafts(AdminProject project, {bool force = false}) {
-    if (!force && _fieldDraftProjectId == project.id && _fieldDrafts.isNotEmpty) {
+    if (!force &&
+        _fieldDraftProjectId == project.id &&
+        _fieldDrafts.isNotEmpty) {
       return;
     }
     final sourceFields = project.fields.isEmpty
@@ -645,6 +648,7 @@ class _AdminPageState extends State<AdminPage> {
       _hydrateFieldDrafts(project, force: true);
       _projectMainLocationError = null;
       _isSavingMainLocation = false;
+      _projectDetailSection = ProjectDetailSection.general;
       _filters = {
         'gender': 'all',
         'ageGroup': 'all',
@@ -671,11 +675,19 @@ class _AdminPageState extends State<AdminPage> {
       _fieldDrafts = const [];
       _fieldEditsDirty = false;
       _fieldDraftProjectId = null;
+      _projectDetailSection = ProjectDetailSection.general;
     });
     _observationsProjectId = null;
     _observationPageSize = _defaultObservationPageSize;
     _isLoadingMoreObservations = false;
     _canLoadMoreObservations = true;
+  }
+
+  void _handleProjectSectionChanged(ProjectDetailSection section) {
+    if (_projectDetailSection == section) {
+      return;
+    }
+    setState(() => _projectDetailSection = section);
   }
 
   String _generateFieldId() {
@@ -711,9 +723,11 @@ class _AdminPageState extends State<AdminPage> {
   void _handleFieldEnabledChange(String fieldId, bool isEnabled) {
     setState(() {
       _fieldDrafts = _fieldDrafts
-          .map((field) => field.id == fieldId
-              ? field.copyWith(isEnabled: isEnabled)
-              : field)
+          .map(
+            (field) => field.id == fieldId
+                ? field.copyWith(isEnabled: isEnabled)
+                : field,
+          )
           .toList(growable: false);
       _fieldEditsDirty = true;
     });
@@ -772,11 +786,13 @@ class _AdminPageState extends State<AdminPage> {
 
   List<ObservationField> _normalizedFieldDraftsForSaving() {
     int order = 0;
-    return _fieldDrafts.map((field) {
-      final normalized = field.copyWith(displayOrder: order);
-      order += 10;
-      return normalized;
-    }).toList(growable: false);
+    return _fieldDrafts
+        .map((field) {
+          final normalized = field.copyWith(displayOrder: order);
+          order += 10;
+          return normalized;
+        })
+        .toList(growable: false);
   }
 
   Future<void> _handleSaveFieldEdits() async {
@@ -1364,6 +1380,8 @@ class _AdminPageState extends State<AdminPage> {
                                   observers: _observers,
                                   locationOptions:
                                       AdminDataRepository.locationOptions,
+                                  activeSection: _projectDetailSection,
+                                  onSectionChange: _handleProjectSectionChanged,
                                   mainLocationController:
                                       _projectMainLocationController,
                                   mainLocationError: _projectMainLocationError,
