@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:my_app/services/user_service.dart';
 
 class AuthException implements Exception {
@@ -15,6 +16,17 @@ class AuthService {
 
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final UserService _userService = UserService.instance;
+
+  Future<void> ensurePersistence() async {
+    if (!kIsWeb) {
+      return;
+    }
+    try {
+      await _firebaseAuth.setPersistence(Persistence.LOCAL);
+    } catch (error) {
+      debugPrint('Failed to enable auth persistence: $error');
+    }
+  }
 
   Future<UserCredential> signInWithEmail({
     required String email,

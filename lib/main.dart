@@ -3,16 +3,18 @@ import 'package:flutter/material.dart';
 import 'package:my_app/firebase_options.dart';
 import 'package:my_app/models/navigation_arguments.dart';
 import 'package:my_app/screens/admin_page/admin_page.dart';
-import 'package:my_app/theme/app_theme.dart';
-import 'package:my_app/screens/auth/login_screen.dart';
-import 'package:my_app/screens/auth/signup_screen.dart';
-import 'package:my_app/screens/project_list/project_list_screen.dart';
-import 'package:my_app/screens/observer_page/observer_page.dart';
 import 'package:my_app/screens/admin_notifications/admin_notifications_page.dart';
+import 'package:my_app/screens/auth/auth_gate.dart';
+import 'package:my_app/screens/auth/signup_screen.dart';
+import 'package:my_app/screens/observer_page/observer_page.dart';
+import 'package:my_app/screens/project_list/project_list_screen.dart';
+import 'package:my_app/services/auth_service.dart';
+import 'package:my_app/theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await AuthService.instance.ensurePersistence();
   runApp(const MyApp());
 }
 
@@ -29,7 +31,7 @@ class MyApp extends StatelessWidget {
       onGenerateRoute: (settings) {
         switch (settings.name) {
           case '/':
-            return MaterialPageRoute(builder: (_) => const LoginScreen());
+            return MaterialPageRoute(builder: (_) => const AuthGate());
           case '/signup':
             return MaterialPageRoute(builder: (_) => const SignUpScreen());
           case '/projects':
@@ -79,7 +81,7 @@ class MyApp extends StatelessWidget {
               );
             }
           default:
-            return MaterialPageRoute(builder: (_) => const LoginScreen());
+            return MaterialPageRoute(builder: (_) => const AuthGate());
         }
       },
     );
