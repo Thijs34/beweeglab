@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:my_app/models/navigation_arguments.dart';
+import 'package:my_app/models/observation_field.dart';
+import 'package:my_app/models/observation_field_registry.dart';
 import 'package:my_app/models/project.dart';
 import 'package:my_app/theme/app_theme.dart';
 import 'package:my_app/widgets/profile_menu.dart';
@@ -45,18 +47,13 @@ class ObserverPage extends StatefulWidget {
 
 class _ObserverPageState extends State<ObserverPage> {
   static const Color _pageBackground = Color(0xFFF8FAFC);
+  static const String _kOtherOptionValue = '__other__';
 
   final GlobalKey _profileButtonKey = GlobalKey();
 
   final TextEditingController _personIdController = TextEditingController(
     text: '1',
   );
-  final TextEditingController _customLocationController =
-      TextEditingController();
-  final TextEditingController _activityNotesController =
-      TextEditingController();
-  final TextEditingController _additionalRemarksController =
-      TextEditingController();
 
   ObservationMode _mode = ObservationMode.individual;
   bool _showProfileMenu = false;
@@ -66,15 +63,13 @@ class _ObserverPageState extends State<ObserverPage> {
   bool _isEditingPersonId = false;
   final AdminNotificationService _notificationService =
       AdminNotificationService.instance;
-    final ObservationService _observationService =
-      ObservationService.instance;
-    final PersonIdService _personIdService = PersonIdService.instance;
-    final SessionDraftService _sessionDraftService =
-      SessionDraftService.instance;
-    final ProjectSelectionService _projectSelectionService =
+  final ObservationService _observationService = ObservationService.instance;
+  final PersonIdService _personIdService = PersonIdService.instance;
+  final SessionDraftService _sessionDraftService = SessionDraftService.instance;
+  final ProjectSelectionService _projectSelectionService =
       ProjectSelectionService.instance;
   StreamSubscription<int>? _notificationCountSubscription;
-    VoidCallback? _projectSelectionListener;
+  VoidCallback? _projectSelectionListener;
   int _unreadNotificationCount = 0;
 
   String _personId = '1';
@@ -84,19 +79,11 @@ class _ObserverPageState extends State<ObserverPage> {
   String? _sessionProjectKey;
   bool _sessionDraftRestored = false;
 
-  String? _gender;
-  String? _ageGroup;
-  String? _socialContext;
-  String? _locationType;
-  String? _activityLevel;
-  String? _activityType;
-
-  int _groupSize = 4;
-  String? _genderMix;
-  String? _ageMix;
-
   final List<ObserverEntry> _sessionEntries = [];
-  Map<String, String> _errors = {};
+  final Map<String, dynamic> _fieldValues = {};
+  final Map<String, String> _fieldErrors = {};
+  final Map<String, TextEditingController> _textControllers = {};
+  final Map<String, TextEditingController> _otherOptionControllers = {};
 
   late final String _currentDate;
   late final String _currentTime;
@@ -127,8 +114,9 @@ class _ObserverPageState extends State<ObserverPage> {
       _restorePersonCounter();
       _restoreSessionDrafts();
     };
-    _projectSelectionService.selectedProjectListenable
-        .addListener(_projectSelectionListener!);
+    _projectSelectionService.selectedProjectListenable.addListener(
+      _projectSelectionListener!,
+    );
     _restorePersonCounter();
     _restoreSessionDrafts();
   }
@@ -136,13 +124,12 @@ class _ObserverPageState extends State<ObserverPage> {
   @override
   void dispose() {
     _personIdController.dispose();
-    _customLocationController.dispose();
-    _activityNotesController.dispose();
-    _additionalRemarksController.dispose();
+    _disposeFieldControllers();
     _notificationCountSubscription?.cancel();
     if (_projectSelectionListener != null) {
-      _projectSelectionService.selectedProjectListenable
-          .removeListener(_projectSelectionListener!);
+      _projectSelectionService.selectedProjectListenable.removeListener(
+        _projectSelectionListener!,
+      );
     }
     super.dispose();
   }
@@ -186,7 +173,7 @@ class _ObserverPageState extends State<ObserverPage> {
             ObserverSuccessOverlay(
               mode: _mode,
               personId: _personIdController.text,
-              groupSize: _groupSize,
+              groupSize: _currentGroupSize,
             ),
           if (_showSummary)
             SessionSummaryModal(
@@ -472,128 +459,59 @@ class _ObserverPageState extends State<ObserverPage> {
   }
 
   Widget _buildFormCard() {
+    final children = <Widget>[];
+    if (_mode == ObservationMode.individual) {
+      children
+        ..add(_buildPersonIdField())
+        ..add(const SizedBox(height: 16));
+    }
+    children.add(_buildDynamicFields());
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: children,
+    );
+  }
+
+  Widget _buildDynamicFields() {
+    final fields = _visibleFields;
+    if (fields.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppTheme.gray50,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.gray200, width: 1),
+        ),
+        child: const Text(
+          'No observation fields are configured for this project.',
+          style: TextStyle(color: AppTheme.gray600),
+        ),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (_mode == ObservationMode.individual)
-          _buildIndividualFields()
-        else
-          _buildGroupFields(),
-        const SizedBox(height: 12),
-        _buildSharedFields(),
+        for (final field in fields) ...[
+          _buildFieldHeader(field),
+          const SizedBox(height: 6),
+          _buildFieldInput(field),
+          if (_fieldErrors[field.id] != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                _fieldErrors[field.id]!,
+                style: const TextStyle(fontSize: 13, color: Colors.red),
+              ),
+            ),
+          const SizedBox(height: 16),
+        ],
       ],
     );
   }
 
-  Widget _buildIndividualFields() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildPersonIdField(),
-        const SizedBox(height: 16),
-        _buildSectionLabel('Gender', required: true, isSmall: true),
-        const SizedBox(height: 4),
-        _buildOptionsGrid(
-          options: const [
-            _SelectionOption(
-              label: 'Male',
-              value: 'male',
-              icon: Icons.male_outlined,
-              iconSize: 18,
-            ),
-            _SelectionOption(
-              label: 'Female',
-              value: 'female',
-              icon: Icons.female_outlined,
-              iconSize: 18,
-            ),
-          ],
-          value: _gender,
-          onChanged: (value) => setState(() {
-            _gender = value;
-            _errors.remove('gender');
-          }),
-        ),
-        _buildErrorText('gender'),
-        const SizedBox(height: 16),
-        _buildSectionLabel('Age Group', required: true, isSmall: true),
-        const SizedBox(height: 4),
-        _buildOptionsGrid(
-          options: const [
-            _SelectionOption(
-              label: '11 en jonger',
-              value: '11-and-younger',
-              icon: Icons.child_care,
-              iconSize: 18,
-            ),
-            _SelectionOption(
-              label: '12 t/m 17',
-              value: '12-17',
-              icon: Icons.school,
-              iconSize: 18,
-            ),
-            _SelectionOption(
-              label: '18 t/m 24',
-              value: '18-24',
-              icon: Icons.directions_run,
-              iconSize: 18,
-            ),
-            _SelectionOption(
-              label: '25 t/m 44',
-              value: '25-44',
-              icon: Icons.work_outline,
-              iconSize: 18,
-            ),
-            _SelectionOption(
-              label: '45 t/m 64',
-              value: '45-64',
-              icon: Icons.psychology_alt,
-              iconSize: 18,
-            ),
-            _SelectionOption(
-              label: '65 +',
-              value: '65-plus',
-              icon: Icons.elderly,
-              iconSize: 20,
-            ),
-          ],
-          value: _ageGroup,
-          onChanged: (value) => setState(() {
-            _ageGroup = value;
-            _errors.remove('ageGroup');
-          }),
-        ),
-        _buildErrorText('ageGroup'),
-        const SizedBox(height: 16),
-        _buildSectionLabel('Social Context', required: true, isSmall: true),
-        const SizedBox(height: 4),
-        _buildOptionsGrid(
-          options: const [
-            _SelectionOption(
-              label: 'Alone',
-              value: 'alone',
-              icon: Icons.person_outline,
-              iconSize: 18,
-            ),
-            _SelectionOption(
-              label: 'Together',
-              value: 'together',
-              icon: Icons.groups_outlined,
-              iconSize: 18,
-            ),
-          ],
-          value: _socialContext,
-          onChanged: (value) => setState(() {
-            _socialContext = value;
-            _errors.remove('socialContext');
-          }),
-        ),
-        _buildErrorText('socialContext'),
-      ],
-    );
-  }
-
-  Widget _buildGroupFields() {
+  Widget _buildFieldHeader(ObservationField field) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -601,285 +519,262 @@ class _ObserverPageState extends State<ObserverPage> {
           children: [
             Expanded(
               child: Text(
-                'Group Info',
+                field.label,
                 style: const TextStyle(
-                  fontFamily: AppTheme.fontFamilyHeading,
-                  fontSize: 17,
+                  fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: AppTheme.gray900,
                 ),
               ),
             ),
-            IconButton(
-              tooltip: 'Reset form',
-              onPressed: () => _resetInputs(preservePersonId: true),
-              icon: const Icon(
-                Icons.refresh,
-                size: 18,
-                color: AppTheme.gray400,
+            if (field.isRequired)
+              const Text(
+                '*',
+                style: TextStyle(color: AppTheme.gray400, fontSize: 14),
               ),
-            ),
           ],
         ),
-        const SizedBox(height: 8),
-        _buildSectionLabel('Group Size', required: true, isSmall: true),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildStepperButton(icon: Icons.remove, onTap: _decrementGroupSize),
-            const SizedBox(width: 12),
-            Container(
-              width: 64,
-              height: 56,
-              decoration: BoxDecoration(
-                color: AppTheme.gray50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.gray300, width: 2),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                '$_groupSize',
-                style: const TextStyle(
-                  fontFamily: AppTheme.fontFamilyHeading,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.gray900,
-                ),
-              ),
+        if (field.helperText != null && field.helperText!.trim().isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              field.helperText!,
+              style: const TextStyle(fontSize: 12, color: AppTheme.gray500),
             ),
-            const SizedBox(width: 12),
-            _buildStepperButton(icon: Icons.add, onTap: _incrementGroupSize),
-          ],
-        ),
-        const SizedBox(height: 16),
-        _buildSectionLabel('Gender Mix', required: true, isSmall: true),
-        const SizedBox(height: 4),
-        _buildOptionsGrid(
-          options: const [
-            _SelectionOption(
-              label: 'Male',
-              value: 'male',
-              icon: Icons.male,
-              iconSize: 18,
-            ),
-            _SelectionOption(
-              label: 'Female',
-              value: 'female',
-              icon: Icons.female,
-              iconSize: 18,
-            ),
-            _SelectionOption(
-              label: 'Mixed',
-              value: 'mixed',
-              icon: Icons.groups,
-              iconSize: 20,
-            ),
-          ],
-          columns: 3,
-          value: _genderMix,
-          onChanged: (value) => setState(() {
-            _genderMix = value;
-            _errors.remove('genderMix');
-          }),
-        ),
-        _buildErrorText('genderMix'),
-        const SizedBox(height: 16),
-        _buildSectionLabel('Age Mix', required: true, isSmall: true),
-        const SizedBox(height: 4),
-        _buildOptionsGrid(
-          options: const [
-            _SelectionOption(
-              label: 'Child',
-              value: 'child',
-              icon: Icons.child_care,
-              iconSize: 18,
-            ),
-            _SelectionOption(
-              label: 'Teen',
-              value: 'teen',
-              icon: Icons.school,
-              iconSize: 18,
-            ),
-            _SelectionOption(
-              label: 'Adult',
-              value: 'adult',
-              icon: Icons.work_outline,
-              iconSize: 18,
-            ),
-            _SelectionOption(
-              label: 'Mixed',
-              value: 'mixed',
-              icon: Icons.groups_outlined,
-              iconSize: 20,
-            ),
-          ],
-          value: _ageMix,
-          onChanged: (value) => setState(() {
-            _ageMix = value;
-            _errors.remove('ageMix');
-          }),
-        ),
-        _buildErrorText('ageMix'),
-        const SizedBox(height: 16),
-        const Text(
-          'Activity Info',
-          style: TextStyle(
-            fontFamily: AppTheme.fontFamilyHeading,
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            color: AppTheme.gray900,
           ),
+      ],
+    );
+  }
+
+  Widget _buildFieldInput(ObservationField field) {
+    if (field.id == ObservationFieldRegistry.groupSizeFieldId) {
+      return _buildGroupSizeField(field);
+    }
+
+    switch (field.type) {
+      case ObservationFieldType.text:
+        return _buildTextField(field);
+      case ObservationFieldType.dropdown:
+      case ObservationFieldType.multiSelect:
+        final config = field.config as OptionObservationFieldConfig?;
+        final allowMultiple = _fieldAllowsMultipleSelections(field, config);
+        return _buildOptionField(field, config, isMultiSelect: allowMultiple);
+      default:
+        return _buildTextField(field);
+    }
+  }
+
+  Widget _buildTextField(ObservationField field) {
+    final config = field.config as TextObservationFieldConfig?;
+    final rawValue = _fieldValues[field.id];
+    final textValue = rawValue is String ? rawValue : '';
+    final controller = _ensureTextController(field.id, textValue);
+    final isMultiline = config?.multiline ?? false;
+    final maxLines = isMultiline ? null : 1;
+    final minLines = isMultiline ? 3 : 1;
+    return TextField(
+      controller: controller,
+      maxLines: maxLines,
+      minLines: minLines,
+      maxLength: config?.maxLength,
+      decoration: _inputDecoration().copyWith(
+        hintText: config?.placeholder,
+        counterText: config?.maxLength != null ? '' : null,
+      ),
+      onChanged: (value) => setState(() {
+        _fieldValues[field.id] = value;
+        _fieldErrors.remove(field.id);
+      }),
+    );
+  }
+
+  Widget _buildGroupSizeField(ObservationField field) {
+    final config = field.config as NumberObservationFieldConfig?;
+    final minValue = (config?.minValue ?? 1).round();
+    final maxValue = (config?.maxValue ?? 60).round();
+    int current = _currentGroupSize;
+    if (current < minValue) current = minValue;
+    if (current > maxValue) current = maxValue;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _buildStepperButton(
+          icon: Icons.remove,
+          onTap: () =>
+              _adjustStepperField(field.id, current - 1, minValue, maxValue),
+        ),
+        const SizedBox(width: 12),
+        Container(
+          width: 64,
+          height: 56,
+          decoration: BoxDecoration(
+            color: AppTheme.gray50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppTheme.gray300, width: 2),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            '$current',
+            style: const TextStyle(
+              fontFamily: AppTheme.fontFamilyHeading,
+              fontSize: 24,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.gray900,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        _buildStepperButton(
+          icon: Icons.add,
+          onTap: () =>
+              _adjustStepperField(field.id, current + 1, minValue, maxValue),
         ),
       ],
     );
   }
 
-  Widget _buildSharedFields() {
+  void _adjustStepperField(
+    String fieldId,
+    int nextValue,
+    int minValue,
+    int maxValue,
+  ) {
+    final clamped = nextValue.clamp(minValue, maxValue);
+    setState(() {
+      _fieldValues[fieldId] = clamped.toString();
+      _fieldErrors.remove(fieldId);
+    });
+  }
+
+  void _validateOtherOptionText(
+    ObservationField field,
+    dynamic value,
+    Map<String, String> errors,
+  ) {
+    final config = field.config as OptionObservationFieldConfig?;
+    if (config?.allowOtherOption != true) {
+      return;
+    }
+    final controller = _otherOptionControllers[field.id];
+    final otherText = controller?.text.trim() ?? '';
+    bool requiresText = false;
+    if (value is String) {
+      requiresText = value == _kOtherOptionValue;
+    } else if (value is List) {
+      requiresText = value.whereType<String>().contains(_kOtherOptionValue);
+    }
+    if (requiresText && otherText.isEmpty) {
+      errors[field.id] = 'Please describe the other option';
+    }
+  }
+
+  bool _fieldAllowsMultipleSelections(
+    ObservationField field,
+    OptionObservationFieldConfig? config,
+  ) {
+    if (config != null) {
+      return config.allowMultiple;
+    }
+    return field.type == ObservationFieldType.multiSelect;
+  }
+
+  Widget _buildOptionField(
+    ObservationField field,
+    OptionObservationFieldConfig? config, {
+    required bool isMultiSelect,
+  }) {
+    final options = config?.options ?? const <ObservationFieldOption>[];
+    final allowOther = config?.allowOtherOption ?? false;
+    if (options.isEmpty && !allowOther) {
+      return const Text('No options configured');
+    }
+
+    final selectionOptions = options
+        .map(
+          (option) => _SelectionOption(label: option.label, value: option.id),
+        )
+        .toList(growable: true);
+    if (allowOther) {
+      selectionOptions.add(
+        const _SelectionOption(
+          label: 'Other',
+          value: _kOtherOptionValue,
+          icon: Icons.edit_outlined,
+        ),
+      );
+    }
+
+    final rawValue = _fieldValues[field.id];
+    final selectedValues = <String>{};
+    if (isMultiSelect) {
+      if (rawValue is List) {
+        selectedValues.addAll(rawValue.whereType<String>());
+      }
+    } else if (rawValue is String && rawValue.isNotEmpty) {
+      selectedValues.add(rawValue);
+    }
+
+    final columns = selectionOptions.length >= 4 ? 3 : 2;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionLabel('Location Type', required: true, isSmall: true),
-        const SizedBox(height: 4),
-        SizedBox(
-          height: 40,
-          child: DropdownButtonFormField<String>(
-            key: ValueKey(_locationType ?? 'location-null'),
-            initialValue: _locationType,
-            isDense: true,
-            decoration: _inputDecoration().copyWith(
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 4,
-              ),
-            ),
-            icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
-            items: const [
-              DropdownMenuItem(
-                value: 'cruyff-court',
-                child: Text('C - Cruyff Court'),
-              ),
-              DropdownMenuItem(
-                value: 'basketball-field',
-                child: Text('B - Basketball Field'),
-              ),
-              DropdownMenuItem(
-                value: 'grass-field',
-                child: Text('G - Grass Field'),
-              ),
-              DropdownMenuItem(value: 'custom', child: Text('Custom')),
-            ],
-            onChanged: (value) => setState(() {
-              _locationType = value;
-              _errors.remove('locationType');
-              if (value != 'custom') {
-                _customLocationController.clear();
-                _errors.remove('customLocation');
-              }
-            }),
-            hint: const Text('Select location type'),
+        _buildOptionsGrid(
+          options: selectionOptions,
+          selectedValues: selectedValues,
+          onChanged: (value) => _handleOptionSelection(
+            field.id,
+            value,
+            selectedValues,
+            isMultiSelect,
           ),
+          columns: columns,
         ),
-        _buildErrorText('locationType'),
-        if (_locationType == 'custom') ...[
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 44,
+        if (allowOther && selectedValues.contains(_kOtherOptionValue))
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
             child: TextField(
-              controller: _customLocationController,
-              onChanged: (_) =>
-                  setState(() => _errors.remove('customLocation')),
+              controller: _ensureOtherOptionController(field.id),
               decoration: _inputDecoration().copyWith(
-                hintText: 'Enter custom location',
+                hintText: 'Describe other value',
               ),
+              onChanged: (_) => setState(() {
+                _fieldErrors.remove(field.id);
+              }),
             ),
           ),
-          _buildErrorText('customLocation'),
-        ],
-        const SizedBox(height: 16),
-        _buildSectionLabel('Activity Level', required: true, isSmall: true),
-        const SizedBox(height: 4),
-        _buildOptionsGrid(
-          options: const [
-            _SelectionOption(
-              label: 'Sedentary',
-              value: 'sedentary',
-              icon: Icons.self_improvement,
-              iconSize: 18,
-            ),
-            _SelectionOption(
-              label: 'Moving',
-              value: 'moving',
-              icon: Icons.directions_walk,
-              iconSize: 18,
-            ),
-            _SelectionOption(
-              label: 'Intense',
-              value: 'intense',
-              icon: Icons.whatshot,
-              iconSize: 20,
-            ),
-          ],
-          columns: 3,
-          value: _activityLevel,
-          onChanged: (value) => setState(() {
-            _activityLevel = value;
-            _errors.remove('activityLevel');
-          }),
-        ),
-        _buildErrorText('activityLevel'),
-        const SizedBox(height: 16),
-        _buildSectionLabel('Activity Type', required: true),
-        const SizedBox(height: 4),
-        _buildOptionsGrid(
-          options: const [
-            _SelectionOption(
-              label: 'Organized',
-              value: 'organized',
-              icon: Icons.event_available,
-              iconSize: 18,
-            ),
-            _SelectionOption(
-              label: 'Unorganized',
-              value: 'unorganized',
-              icon: Icons.sports_handball,
-              iconSize: 18,
-            ),
-          ],
-          value: _activityType,
-          onChanged: (value) => setState(() {
-            _activityType = value;
-            _errors.remove('activityType');
-          }),
-        ),
-        _buildErrorText('activityType'),
-        const SizedBox(height: 16),
-        _buildSectionLabel('Activity Notes', required: true),
-        const SizedBox(height: 4),
-        SizedBox(
-          height: 44,
-          child: TextField(
-            controller: _activityNotesController,
-            onChanged: (_) => setState(() => _errors.remove('activityNotes')),
-            decoration: _inputDecoration().copyWith(
-              hintText: 'e.g., Playing basketball, Running, Walking...',
-            ),
-          ),
-        ),
-        _buildErrorText('activityNotes'),
-        const SizedBox(height: 16),
-        _buildSectionLabel('Additional Remarks (optional)'),
-        const SizedBox(height: 4),
-        TextField(
-          controller: _additionalRemarksController,
-          maxLines: 4,
-          minLines: 3,
-          decoration: _inputDecoration().copyWith(
-            hintText: 'Any unusual observations or additional notes...',
-          ),
-        ),
       ],
     );
+  }
+
+  void _handleOptionSelection(
+    String fieldId,
+    String optionValue,
+    Set<String> selectedValues,
+    bool isMultiSelect,
+  ) {
+    setState(() {
+      if (isMultiSelect) {
+        final updated = selectedValues.toSet();
+        if (updated.contains(optionValue)) {
+          updated.remove(optionValue);
+        } else {
+          updated.add(optionValue);
+        }
+        _fieldValues[fieldId] = updated.toList();
+      } else {
+        if (selectedValues.contains(optionValue)) {
+          _fieldValues.remove(fieldId);
+        } else {
+          _fieldValues[fieldId] = optionValue;
+        }
+      }
+
+      if (optionValue != _kOtherOptionValue) {
+        _otherOptionControllers[fieldId]?.text = '';
+      }
+      _fieldErrors.remove(fieldId);
+    });
   }
 
   Widget _buildPersonIdField() {
@@ -965,7 +860,7 @@ class _ObserverPageState extends State<ObserverPage> {
 
   Widget _buildOptionsGrid({
     required List<_SelectionOption> options,
-    required String? value,
+    required Set<String> selectedValues,
     required ValueChanged<String> onChanged,
     int columns = 2,
     double gap = 8,
@@ -983,11 +878,11 @@ class _ObserverPageState extends State<ObserverPage> {
               width: itemWidth,
               child: ObserverOptionButton(
                 label: option.label,
-                selected: value == option.value,
+                selected: selectedValues.contains(option.value),
                 onTap: () => onChanged(option.value),
                 height: height,
                 icon: option.icon,
-                iconSize: option.iconSize ?? 16,
+                iconSize: 16,
               ),
             );
           }).toList(),
@@ -1015,42 +910,6 @@ class _ObserverPageState extends State<ObserverPage> {
           side: const BorderSide(color: AppTheme.gray300, width: 2),
         ),
         child: Icon(icon, size: 22, color: AppTheme.gray700),
-      ),
-    );
-  }
-
-  Widget _buildSectionLabel(
-    String text, {
-    bool required = false,
-    bool isSmall = false,
-  }) {
-    return Row(
-      children: [
-        Text(
-          text,
-          style: TextStyle(
-            fontSize: isSmall ? 12 : 14,
-            fontWeight: FontWeight.w500,
-            color: AppTheme.gray700,
-          ),
-        ),
-        if (required)
-          const Text(
-            ' *',
-            style: TextStyle(fontSize: 12, color: AppTheme.gray400),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildErrorText(String key) {
-    final message = _errors[key];
-    if (message == null) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(top: 4),
-      child: Text(
-        message,
-        style: const TextStyle(fontSize: 13, color: Colors.red),
       ),
     );
   }
@@ -1095,7 +954,11 @@ class _ObserverPageState extends State<ObserverPage> {
 
     final validation = _validateCurrent();
     if (validation.isNotEmpty) {
-      setState(() => _errors = validation);
+      setState(() {
+        _fieldErrors
+          ..clear()
+          ..addAll(validation);
+      });
       return;
     }
 
@@ -1124,7 +987,11 @@ class _ObserverPageState extends State<ObserverPage> {
     if (!_isFormEmpty()) {
       final validation = _validateCurrent();
       if (validation.isNotEmpty) {
-        setState(() => _errors = validation);
+        setState(() {
+          _fieldErrors
+            ..clear()
+            ..addAll(validation);
+        });
         return;
       }
       final project = _activeProject;
@@ -1172,53 +1039,111 @@ class _ObserverPageState extends State<ObserverPage> {
   }
 
   Map<String, String> _validateCurrent() {
-    final validationErrors = <String, String>{};
-    if (_mode == ObservationMode.individual) {
-      if (_gender == null) {
-        validationErrors['gender'] = 'Please select a gender';
+    final errors = <String, String>{};
+    for (final field in _visibleFields) {
+      final value = _fieldValues[field.id];
+      if (field.id == ObservationFieldRegistry.groupSizeFieldId) {
+        final raw = (value as String?) ?? '${_currentGroupSize}';
+        if (raw.isEmpty) {
+          if (field.isRequired) {
+            errors[field.id] = 'Please enter a number';
+          }
+        } else {
+          final parsed = int.tryParse(raw);
+          final config = field.config as NumberObservationFieldConfig?;
+          final minValue = (config?.minValue ?? 1).round();
+          final maxValue = (config?.maxValue ?? 60).round();
+          if (parsed == null) {
+            errors[field.id] = 'Please enter a valid number';
+          } else {
+            if (parsed < minValue) {
+              errors[field.id] = 'Must be at least $minValue';
+            }
+            if (parsed > maxValue) {
+              errors[field.id] = 'Must be at most $maxValue';
+            }
+          }
+        }
+        continue;
       }
-      if (_ageGroup == null) {
-        validationErrors['ageGroup'] = 'Please select an age group';
-      }
-      if (_socialContext == null) {
-        validationErrors['socialContext'] = 'Please select social context';
-      }
-    } else {
-      if (_genderMix == null) {
-        validationErrors['genderMix'] = 'Please select gender mix';
-      }
-      if (_ageMix == null) {
-        validationErrors['ageMix'] = 'Please select age mix';
+
+      switch (field.type) {
+        case ObservationFieldType.text:
+          final text = (value as String?)?.trim() ?? '';
+          if (field.isRequired && text.isEmpty) {
+            errors[field.id] = 'Please enter a value';
+          }
+          break;
+        case ObservationFieldType.dropdown:
+        case ObservationFieldType.multiSelect:
+          final config = field.config as OptionObservationFieldConfig?;
+          final allowMultiple = _fieldAllowsMultipleSelections(field, config);
+          if (allowMultiple) {
+            final selections = value is List
+                ? value.whereType<String>().toList()
+                : const <String>[];
+            if (field.isRequired && selections.isEmpty) {
+              errors[field.id] = 'Select at least one option';
+            } else {
+              _validateOtherOptionText(field, selections, errors);
+            }
+          } else {
+            final selected = value as String?;
+            if (field.isRequired && (selected == null || selected.isEmpty)) {
+              errors[field.id] = 'Please select an option';
+            } else {
+              _validateOtherOptionText(field, selected, errors);
+            }
+          }
+          break;
+        default:
+          final text = (value == null ? '' : value.toString()).trim();
+          if (field.isRequired && text.isEmpty) {
+            errors[field.id] = 'Please enter a value';
+          }
+          break;
       }
     }
-    if (_locationType == null) {
-      validationErrors['locationType'] = 'Please select a location type';
-    } else if (_locationType == 'custom' &&
-        _customLocationController.text.trim().isEmpty) {
-      validationErrors['customLocation'] = 'Please enter a custom location';
+
+    final locationType =
+        _fieldValues[ObservationFieldRegistry.locationTypeFieldId] as String?;
+    if (locationType == 'custom') {
+      final customLabel =
+          (_fieldValues[ObservationFieldRegistry.customLocationFieldId]
+                  as String?)
+              ?.trim();
+      if (customLabel == null || customLabel.isEmpty) {
+        errors[ObservationFieldRegistry.customLocationFieldId] =
+            'Please enter a custom location';
+      }
     }
-    if (_activityLevel == null) {
-      validationErrors['activityLevel'] = 'Please select an activity level';
-    }
-    if (_activityType == null) {
-      validationErrors['activityType'] = 'Please select an activity type';
-    }
-    if (_activityNotesController.text.trim().isEmpty) {
-      validationErrors['activityNotes'] = 'Please enter activity notes';
-    }
-    return validationErrors;
+
+    return errors;
   }
 
   ObserverEntry _buildSnapshot() {
+    final locationType = _stringFieldValue(
+      ObservationFieldRegistry.locationTypeFieldId,
+    );
     final shared = SharedSnapshot(
-      locationType: _locationType ?? '',
-      customLocation: _locationType == 'custom'
-          ? _customLocationController.text.trim()
+      locationType: locationType,
+      customLocation: locationType == 'custom'
+          ? _stringFieldValueOrNull(
+              ObservationFieldRegistry.customLocationFieldId,
+            )
           : null,
-      activityLevel: _activityLevel ?? '',
-      activityType: _activityType ?? '',
-      activityNotes: _activityNotesController.text.trim(),
-      additionalRemarks: _additionalRemarksController.text.trim(),
+      activityLevel: _stringFieldValue(
+        ObservationFieldRegistry.activityLevelFieldId,
+      ),
+      activityType: _stringFieldValue(
+        ObservationFieldRegistry.activityTypeFieldId,
+      ),
+      activityNotes: _stringFieldValue(
+        ObservationFieldRegistry.activityNotesFieldId,
+      ),
+      additionalRemarks: _stringFieldValue(
+        ObservationFieldRegistry.remarksFieldId,
+      ),
     );
 
     final timestamp = DateTime.now();
@@ -1229,9 +1154,11 @@ class _ObserverPageState extends State<ObserverPage> {
         timestamp: timestamp,
         individual: IndividualSnapshot(
           personId: _personIdController.text.trim(),
-          gender: _gender ?? '',
-          ageGroup: _ageGroup ?? '',
-          socialContext: _socialContext ?? '',
+          gender: _stringFieldValue(ObservationFieldRegistry.genderFieldId),
+          ageGroup: _stringFieldValue(ObservationFieldRegistry.ageGroupFieldId),
+          socialContext: _stringFieldValue(
+            ObservationFieldRegistry.socialContextFieldId,
+          ),
         ),
       );
     }
@@ -1241,32 +1168,51 @@ class _ObserverPageState extends State<ObserverPage> {
       shared: shared,
       timestamp: timestamp,
       group: GroupSnapshot(
-        groupSize: _groupSize,
-        genderMix: _genderMix ?? '',
-        ageMix: _ageMix ?? '',
+        groupSize: _currentGroupSize,
+        genderMix: _stringFieldValue(
+          ObservationFieldRegistry.groupGenderMixFieldId,
+        ),
+        ageMix: _stringFieldValue(ObservationFieldRegistry.groupAgeMixFieldId),
       ),
     );
   }
 
   bool _isFormEmpty() {
-    if (_mode == ObservationMode.individual) {
-      return _gender == null &&
-          _ageGroup == null &&
-          _socialContext == null &&
-          _locationType == null &&
-          _activityLevel == null &&
-          _activityType == null &&
-          _activityNotesController.text.trim().isEmpty &&
-          _additionalRemarksController.text.trim().isEmpty;
+    for (final field in _visibleFields) {
+      if (_hasValue(field, _fieldValues[field.id])) {
+        if (field.id == ObservationFieldRegistry.groupSizeFieldId &&
+            _fieldValues[field.id] == null) {
+          continue;
+        }
+        return false;
+      }
     }
-    return _genderMix == null &&
-        _ageMix == null &&
-        _locationType == null &&
-        _activityLevel == null &&
-        _activityType == null &&
-        _activityNotesController.text.trim().isEmpty &&
-        _additionalRemarksController.text.trim().isEmpty &&
-        _groupSize == 4;
+    return true;
+  }
+
+  bool _hasValue(ObservationField field, dynamic value) {
+    if (field.id == ObservationFieldRegistry.groupSizeFieldId) {
+      if (value is String) {
+        return value.trim().isNotEmpty;
+      }
+      return value != null;
+    }
+
+    switch (field.type) {
+      case ObservationFieldType.dropdown:
+      case ObservationFieldType.multiSelect:
+        final config = field.config as OptionObservationFieldConfig?;
+        final allowMultiple = _fieldAllowsMultipleSelections(field, config);
+        if (allowMultiple) {
+          return value is List && value.whereType<String>().isNotEmpty;
+        }
+        return value is String && value.isNotEmpty;
+      default:
+        if (value is String) {
+          return value.trim().isNotEmpty;
+        }
+        return value != null;
+    }
   }
 
   void _resetInputs({required bool preservePersonId}) {
@@ -1275,29 +1221,88 @@ class _ObserverPageState extends State<ObserverPage> {
         ? (_personCounter + 1).toString()
         : _personIdController.text;
     setState(() {
-      _gender = null;
-      _ageGroup = null;
-      _socialContext = null;
-      _locationType = null;
-      _activityLevel = null;
-      _activityType = null;
-      _genderMix = null;
-      _ageMix = null;
-      _groupSize = 4;
+      _fieldValues.clear();
+      _fieldErrors.clear();
+      _disposeFieldControllers();
       if (shouldIncrement) {
         _personCounter += 1;
         _personIdController.text = nextId;
       }
       _personId = _personIdController.text;
-      _errors = {};
       _isEditingPersonId = false;
     });
-    _customLocationController.clear();
-    _activityNotesController.clear();
-    _additionalRemarksController.clear();
     if (shouldIncrement) {
       _persistPersonCounter();
     }
+  }
+
+  TextEditingController _ensureTextController(
+    String fieldId,
+    String initialValue,
+  ) {
+    final existing = _textControllers[fieldId];
+    if (existing != null) {
+      if (existing.text != initialValue) {
+        existing
+          ..text = initialValue
+          ..selection = TextSelection.collapsed(offset: initialValue.length);
+      }
+      return existing;
+    }
+    final controller = TextEditingController(text: initialValue);
+    _textControllers[fieldId] = controller;
+    return controller;
+  }
+
+  TextEditingController _ensureOtherOptionController(String fieldId) {
+    final existing = _otherOptionControllers[fieldId];
+    if (existing != null) {
+      return existing;
+    }
+    final controller = TextEditingController();
+    _otherOptionControllers[fieldId] = controller;
+    return controller;
+  }
+
+  void _disposeFieldControllers() {
+    for (final controller in _textControllers.values) {
+      controller.dispose();
+    }
+    for (final controller in _otherOptionControllers.values) {
+      controller.dispose();
+    }
+    _textControllers.clear();
+    _otherOptionControllers.clear();
+  }
+
+  int get _currentGroupSize {
+    final value = _fieldValues[ObservationFieldRegistry.groupSizeFieldId];
+    if (value is String && value.isNotEmpty) {
+      return int.tryParse(value) ?? 4;
+    }
+    if (value is num) {
+      return value.toInt();
+    }
+    return 4;
+  }
+
+  String _stringFieldValue(String fieldId) {
+    final value = _fieldValues[fieldId];
+    if (value is String) {
+      return value.trim();
+    }
+    if (value is num) {
+      return value.toString();
+    }
+    if (value is List) {
+      return value.whereType<String>().join(', ');
+    }
+    return value?.toString().trim() ?? '';
+  }
+
+  String? _stringFieldValueOrNull(String fieldId) {
+    final value = _stringFieldValue(fieldId);
+    return value.isEmpty ? null : value;
   }
 
   Future<void> _restorePersonCounter() async {
@@ -1425,22 +1430,6 @@ class _ObserverPageState extends State<ObserverPage> {
     });
   }
 
-  void _incrementGroupSize() {
-    setState(() {
-      if (_groupSize < 99) {
-        _groupSize += 1;
-      }
-    });
-  }
-
-  void _decrementGroupSize() {
-    setState(() {
-      if (_groupSize > 2) {
-        _groupSize -= 1;
-      }
-    });
-  }
-
   void _handleLogout() {
     Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
   }
@@ -1481,8 +1470,7 @@ class _ObserverPageState extends State<ObserverPage> {
     );
   }
 
-  String get _headerLocation =>
-      _activeProject?.name ?? 'No project selected';
+  String get _headerLocation => _activeProject?.name ?? 'No project selected';
 
   Project? get _activeProject =>
       widget.arguments?.project ?? _projectSelectionService.currentProject;
@@ -1589,6 +1577,58 @@ class _ObserverPageState extends State<ObserverPage> {
     );
   }
 
+  List<ObservationField> get _orderedFields {
+    final project = _activeProject;
+    if (project == null) {
+      return const [];
+    }
+    final fields = project.fields.where((field) => field.isEnabled).toList();
+    fields.sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+    return fields;
+  }
+
+  List<ObservationField> get _visibleFields {
+    return _orderedFields.where(_shouldDisplayField).toList(growable: false);
+  }
+
+  bool _shouldDisplayField(ObservationField field) {
+    final audience = _audienceForField(field);
+    if (audience == _FieldAudience.individualOnly &&
+        _mode != ObservationMode.individual) {
+      return false;
+    }
+    if (audience == _FieldAudience.groupOnly &&
+        _mode != ObservationMode.group) {
+      return false;
+    }
+    if (field.id == ObservationFieldRegistry.customLocationFieldId) {
+      final locationValue =
+          _fieldValues[ObservationFieldRegistry.locationTypeFieldId];
+      if (locationValue != 'custom') {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  _FieldAudience _audienceForField(ObservationField field) {
+    if (!field.isStandard) {
+      return _FieldAudience.all;
+    }
+    if (field.id.startsWith('group.')) {
+      return _FieldAudience.groupOnly;
+    }
+    const individualOnly = {
+      ObservationFieldRegistry.genderFieldId,
+      ObservationFieldRegistry.ageGroupFieldId,
+      ObservationFieldRegistry.socialContextFieldId,
+    };
+    if (individualOnly.contains(field.id)) {
+      return _FieldAudience.individualOnly;
+    }
+    return _FieldAudience.all;
+  }
+
   String _formatDate(DateTime date) {
     final day = date.day.toString().padLeft(2, '0');
     final month = date.month.toString().padLeft(2, '0');
@@ -1666,12 +1706,8 @@ class _SelectionOption {
   final String label;
   final String value;
   final IconData? icon;
-  final double? iconSize;
 
-  const _SelectionOption({
-    required this.label,
-    required this.value,
-    this.icon,
-    this.iconSize,
-  });
+  const _SelectionOption({required this.label, required this.value, this.icon});
 }
+
+enum _FieldAudience { all, individualOnly, groupOnly }

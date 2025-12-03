@@ -3,15 +3,18 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:my_app/models/navigation_arguments.dart';
+import 'package:my_app/models/observation_field.dart';
 import 'package:my_app/screens/admin_page/admin_models.dart';
 import 'package:my_app/screens/admin_page/widgets/admin_header.dart';
 import 'package:my_app/screens/admin_page/widgets/observation_edit_dialog.dart';
+import 'package:my_app/screens/admin_page/widgets/observation_field_editor_sheet.dart';
 import 'package:my_app/screens/admin_page/widgets/project_detail_view.dart';
 import 'package:my_app/screens/admin_page/widgets/project_list_view.dart';
 import 'package:my_app/screens/observer_page/observer_page.dart';
 import 'package:my_app/services/admin_notification_service.dart';
 import 'package:my_app/services/observation_service.dart';
 import 'package:my_app/services/observation_export_service.dart';
+import 'package:my_app/models/observation_field_registry.dart';
 import 'package:my_app/services/project_service.dart';
 import 'package:my_app/services/user_service.dart';
 import 'package:my_app/theme/app_theme.dart';
@@ -60,7 +63,7 @@ class _AdminPageState extends State<AdminPage> {
   bool _canLoadMoreObservations = true;
   String? _observationsProjectId;
   final Map<String, DocumentSnapshot<Map<String, dynamic>>?>
-      _observationCursors = {};
+  _observationCursors = {};
   final Set<String> _observationExhausted = <String>{};
   final Set<String> _countBackfillInFlight = <String>{};
   final Map<String, int> _lastSyncedCounts = <String, int>{};
@@ -104,6 +107,12 @@ class _AdminPageState extends State<AdminPage> {
     'locationType': 'all',
     'activityLevel': 'all',
   };
+
+  // Observation field editor state
+  List<ObservationField> _fieldDrafts = const [];
+  String? _fieldDraftProjectId;
+  bool _fieldEditsDirty = false;
+  bool _isSavingFieldEdits = false;
 
   @override
   void initState() {
@@ -150,6 +159,18 @@ class _AdminPageState extends State<AdminPage> {
     }
   }
 
+  void _hydrateFieldDrafts(AdminProject project, {bool force = false}) {
+    if (!force && _fieldDraftProjectId == project.id && _fieldDrafts.isNotEmpty) {
+      return;
+    }
+    final sourceFields = project.fields.isEmpty
+        ? ObservationFieldRegistry.defaultFields()
+        : project.fields;
+    _fieldDraftProjectId = project.id;
+    _fieldDrafts = sourceFields.map((field) => field.copyWith()).toList();
+    _fieldEditsDirty = false;
+  }
+
   Future<void> _loadProjects() async {
     setState(() => _projectsLoading = true);
     try {
@@ -157,17 +178,27 @@ class _AdminPageState extends State<AdminPage> {
         status: _statusFilter,
         limit: _projectFetchLimit,
       );
-      final hydratedProjects = projects.map((project) {
-        final cached = _observationCache[project.id];
-        if (cached == null) {
-          return project;
-        }
-        return project.copyWith(observations: cached);
-      }).toList(growable: false);
+      final hydratedProjects = projects
+          .map((project) {
+            final cached = _observationCache[project.id];
+            if (cached == null) {
+              return project;
+            }
+            return project.copyWith(observations: cached);
+          })
+          .toList(growable: false);
       if (!mounted) return;
       setState(() {
         _projects = hydratedProjects;
         _projectsLoading = false;
+        if (_selectedProjectId != null && !_fieldEditsDirty) {
+          for (final project in hydratedProjects) {
+            if (project.id == _selectedProjectId) {
+              _hydrateFieldDrafts(project, force: true);
+              break;
+            }
+          }
+        }
       });
       if (_selectedProjectId != null) {
         final selected = hydratedProjects
@@ -233,14 +264,12 @@ class _AdminPageState extends State<AdminPage> {
             observationCount,
           );
         })
-        .catchError(
-          (error, stackTrace) {
-            debugPrint(
-              'Failed to refresh observation count for $projectId: $error',
-            );
-            return null;
-          },
-        )
+        .catchError((error, stackTrace) {
+          debugPrint(
+            'Failed to refresh observation count for $projectId: $error',
+          );
+          return null;
+        })
         .whenComplete(() {
           _countBackfillInFlight.remove(projectId);
         });
@@ -508,6 +537,7 @@ class _AdminPageState extends State<AdminPage> {
       status: ProjectStatus.active,
       locationTypeIds: List<String>.from(_newProjectLocationTypeIds),
       assignedObserverIds: List<String>.from(_newProjectObserverIds),
+      fields: ObservationFieldRegistry.defaultFields(),
       observations: const [],
       totalObservationCount: 0,
     );
@@ -520,6 +550,7 @@ class _AdminPageState extends State<AdminPage> {
         description: project.description,
         locationTypeIds: project.locationTypeIds,
         assignedObserverIds: project.assignedObserverIds,
+        fields: project.fields,
         status: project.status,
       );
       if (_statusFilter != ProjectStatus.active) {
@@ -611,6 +642,7 @@ class _AdminPageState extends State<AdminPage> {
       _showAddLocationField = false;
       _addLocationController.clear();
       _syncMainLocationController(project);
+      _hydrateFieldDrafts(project, force: true);
       _projectMainLocationError = null;
       _isSavingMainLocation = false;
       _filters = {
@@ -636,11 +668,143 @@ class _AdminPageState extends State<AdminPage> {
       _projectMainLocationController.clear();
       _projectMainLocationError = null;
       _isSavingMainLocation = false;
+      _fieldDrafts = const [];
+      _fieldEditsDirty = false;
+      _fieldDraftProjectId = null;
     });
     _observationsProjectId = null;
     _observationPageSize = _defaultObservationPageSize;
     _isLoadingMoreObservations = false;
     _canLoadMoreObservations = true;
+  }
+
+  String _generateFieldId() {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    return 'custom-field-$timestamp';
+  }
+
+  ObservationField _createNewFieldTemplate() {
+    return ObservationField(
+      id: _generateFieldId(),
+      label: 'New Field',
+      type: ObservationFieldType.text,
+      isStandard: false,
+      isRequired: false,
+      isEnabled: true,
+      displayOrder: (_fieldDrafts.length + 1) * 10,
+      config: const TextObservationFieldConfig(multiline: false),
+    );
+  }
+
+  void _handleFieldReorder(int oldIndex, int newIndex) {
+    if (oldIndex == newIndex) return;
+    setState(() {
+      final drafts = List<ObservationField>.from(_fieldDrafts);
+      if (newIndex > oldIndex) newIndex -= 1;
+      final item = drafts.removeAt(oldIndex);
+      drafts.insert(newIndex, item);
+      _fieldDrafts = drafts;
+      _fieldEditsDirty = true;
+    });
+  }
+
+  void _handleFieldEnabledChange(String fieldId, bool isEnabled) {
+    setState(() {
+      _fieldDrafts = _fieldDrafts
+          .map((field) => field.id == fieldId
+              ? field.copyWith(isEnabled: isEnabled)
+              : field)
+          .toList(growable: false);
+      _fieldEditsDirty = true;
+    });
+  }
+
+  void _handleDeleteField(String fieldId) {
+    setState(() {
+      _fieldDrafts = _fieldDrafts
+          .where((field) => field.id != fieldId)
+          .toList(growable: false);
+      _fieldEditsDirty = true;
+    });
+  }
+
+  void _handleResetFieldsToDefaults() {
+    setState(() {
+      _fieldDrafts = ObservationFieldRegistry.defaultFields();
+      _fieldEditsDirty = true;
+    });
+  }
+
+  Future<void> _handleAddField(BuildContext context) async {
+    final template = _createNewFieldTemplate();
+    final updated = await showObservationFieldEditorSheet(
+      context,
+      field: template,
+      canEditType: true,
+    );
+    if (updated == null) return;
+    setState(() {
+      _fieldDrafts = [..._fieldDrafts, updated];
+      _fieldEditsDirty = true;
+    });
+  }
+
+  Future<void> _handleEditField(
+    BuildContext context,
+    ObservationField field,
+  ) async {
+    final updated = await showObservationFieldEditorSheet(
+      context,
+      field: field,
+      canEditType: !field.isStandard,
+    );
+    if (updated == null) return;
+    setState(() {
+      final drafts = [..._fieldDrafts];
+      final index = drafts.indexWhere((item) => item.id == field.id);
+      if (index != -1) {
+        drafts[index] = updated;
+        _fieldDrafts = drafts;
+        _fieldEditsDirty = true;
+      }
+    });
+  }
+
+  List<ObservationField> _normalizedFieldDraftsForSaving() {
+    int order = 0;
+    return _fieldDrafts.map((field) {
+      final normalized = field.copyWith(displayOrder: order);
+      order += 10;
+      return normalized;
+    }).toList(growable: false);
+  }
+
+  Future<void> _handleSaveFieldEdits() async {
+    final project = _selectedProject;
+    if (project == null || _fieldDraftProjectId != project.id) {
+      return;
+    }
+    final payload = _normalizedFieldDraftsForSaving();
+    setState(() => _isSavingFieldEdits = true);
+    try {
+      await ProjectService.instance.updateProjectFields(project.id, payload);
+      _updateProject(project.copyWith(fields: payload));
+      setState(() {
+        _fieldDrafts = payload;
+        _fieldEditsDirty = false;
+      });
+      _showSnackMessage('Observation fields updated');
+    } catch (error) {
+      debugPrint('Failed to update observation fields: $error');
+      _showSnackMessage(
+        'Unable to save observation fields right now.',
+        isError: true,
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSavingFieldEdits = false);
+      }
+    }
   }
 
   void _requestProjectDeletion(String projectId) {
@@ -665,8 +829,9 @@ class _AdminPageState extends State<AdminPage> {
       await ProjectService.instance.deleteProject(projectId);
       if (!mounted) return;
       setState(() {
-        _projects =
-            _projects.where((project) => project.id != projectId).toList();
+        _projects = _projects
+            .where((project) => project.id != projectId)
+            .toList();
         if (_selectedProjectId == projectId) {
           _selectedProjectId = null;
         }
@@ -786,6 +951,7 @@ class _AdminPageState extends State<AdminPage> {
             status: updated.status,
             locationTypeIds: List<String>.from(updated.locationTypeIds),
             assignedObserverIds: List<String>.from(updated.assignedObserverIds),
+            fields: List<ObservationField>.from(updated.fields),
             observations: List<ObservationRecord>.from(updated.observations),
             totalObservationCount: updated.totalObservationCount,
           );
@@ -1060,7 +1226,9 @@ class _AdminPageState extends State<AdminPage> {
           final existing = _observationCache[targetProjectId];
           if (existing != null) {
             final updatedList = existing
-                .map((item) => item.id == updatedRecord.id ? updatedRecord : item)
+                .map(
+                  (item) => item.id == updatedRecord.id ? updatedRecord : item,
+                )
                 .toList();
             _observationCache[targetProjectId] = updatedList;
             _projects = _projects.map((project) {
@@ -1089,13 +1257,13 @@ class _AdminPageState extends State<AdminPage> {
       observations: _projectObservations(selectedProject),
     );
     final List<ObservationRecord> filteredObservationList =
-      hydratedProject == null
+        hydratedProject == null
         ? const []
         : _filteredObservations(hydratedProject.observations);
     final bool mainLocationHasChanges =
-      selectedProject != null &&
-      _projectMainLocationController.text.trim() !=
-        selectedProject.mainLocation;
+        selectedProject != null &&
+        _projectMainLocationController.text.trim() !=
+            selectedProject.mainLocation;
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -1125,17 +1293,17 @@ class _AdminPageState extends State<AdminPage> {
                               ? (_projectsLoading && _projects.isEmpty
                                     ? const _AdminLoadingState()
                                     : AdminProjectListView(
-                                    projects: _filteredProjectsByStatus,
+                                        projects: _filteredProjectsByStatus,
                                         locationOptions:
                                             AdminDataRepository.locationOptions,
                                         showNewProjectForm: _showNewProjectForm,
                                         showProjectSuccess: _showProjectSuccess,
                                         lastCreatedProjectName:
                                             _lastCreatedProjectName,
-                                    statusFilter: _statusFilter,
-                                    statusCounts: _statusCounts,
-                                    onStatusFilterChanged:
-                                      _handleStatusFilterChanged,
+                                        statusFilter: _statusFilter,
+                                        statusCounts: _statusCounts,
+                                        onStatusFilterChanged:
+                                            _handleStatusFilterChanged,
                                         newProjectNameController:
                                             _newProjectNameController,
                                         newProjectMainLocationController:
@@ -1191,7 +1359,7 @@ class _AdminPageState extends State<AdminPage> {
                                         onCancelForm: _resetNewProjectForm,
                                         onProjectTap: _handleProjectTap,
                                       ))
-                                : ProjectDetailView(
+                              : ProjectDetailView(
                                   project: hydratedProject,
                                   observers: _observers,
                                   locationOptions:
@@ -1212,9 +1380,9 @@ class _AdminPageState extends State<AdminPage> {
                                   addLocationController: _addLocationController,
                                   availableObservers:
                                       _availableObserversForProject,
-                                    entriesPageSize: _observationPageSize,
-                                    pageSizeOptions: _observationPageSizeOptions,
-                                    onPageSizeChange:
+                                  entriesPageSize: _observationPageSize,
+                                  pageSizeOptions: _observationPageSizeOptions,
+                                  onPageSizeChange:
                                       _handleObservationPageSizeChange,
                                   onBack: _handleBackToProjects,
                                   onDelete: () => _requestProjectDeletion(
@@ -1222,11 +1390,12 @@ class _AdminPageState extends State<AdminPage> {
                                   ),
                                   onStatusChange: (status) =>
                                       _handleProjectStatusChange(
-                                    hydratedProject,
-                                    status,
+                                        hydratedProject,
+                                        status,
+                                      ),
+                                  isStatusUpdating: _isStatusUpdating(
+                                    hydratedProject.id,
                                   ),
-                                  isStatusUpdating:
-                                      _isStatusUpdating(hydratedProject.id),
                                   onToggleAddLocation: _toggleAddLocationField,
                                   onAddLocation: _handleAddLocationToProject,
                                   onRemoveLocation: _removeLocationFromProject,
@@ -1237,21 +1406,31 @@ class _AdminPageState extends State<AdminPage> {
                                   ),
                                   onAddObserver: _addObserverToProject,
                                   onRemoveObserver: _removeObserverFromProject,
-                                  onDownload: () =>
-                                      _handleDownloadObservations(
+                                  onDownload: () => _handleDownloadObservations(
                                     hydratedProject,
                                   ),
+                                  fieldDrafts: _fieldDrafts,
+                                  fieldEditsDirty: _fieldEditsDirty,
+                                  isSavingFieldEdits: _isSavingFieldEdits,
+                                  onAddField: (context) =>
+                                      _handleAddField(context),
+                                  onEditField: (context, field) =>
+                                      _handleEditField(context, field),
+                                  onReorderField: _handleFieldReorder,
+                                  onToggleField: _handleFieldEnabledChange,
+                                  onDeleteField: _handleDeleteField,
+                                  onResetFields: _handleResetFieldsToDefaults,
+                                  onSaveFields: _handleSaveFieldEdits,
                                   onFilterChanged: _updateFilter,
                                   onClearFilters: _clearFilters,
-                                  filteredObservations:
-                                      filteredObservationList,
+                                  filteredObservations: filteredObservationList,
                                   isExportingObservations:
                                       _exportingProjectId == hydratedProject.id,
                                   onEditObservation: _openObservationEditor,
-                                    onRefreshObservations: () =>
+                                  onRefreshObservations: () =>
                                       _handleRefreshObservations(
-                                    hydratedProject,
-                                    ),
+                                        hydratedProject,
+                                      ),
                                   canLoadMoreObservations:
                                       _canLoadMoreObservations,
                                   isLoadingMoreObservations:

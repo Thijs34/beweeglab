@@ -1,3 +1,5 @@
+import 'package:my_app/models/observation_field.dart';
+
 enum ProjectStatus { active, finished, archived }
 
 ProjectStatus projectStatusFromString(String? rawValue) {
@@ -120,7 +122,6 @@ class ObservationRecord {
   bool get isGroup => mode == 'group';
 }
 
-/// Project entity matching the React Admin Panel mock
 class AdminProject {
   final String id;
   final String name;
@@ -129,6 +130,7 @@ class AdminProject {
   final ProjectStatus status;
   final List<String> locationTypeIds;
   final List<String> assignedObserverIds;
+  final List<ObservationField> fields;
   final List<ObservationRecord> observations;
   final int totalObservationCount;
 
@@ -140,6 +142,7 @@ class AdminProject {
     this.status = ProjectStatus.active,
     required this.locationTypeIds,
     required this.assignedObserverIds,
+    this.fields = const [],
     required this.observations,
     this.totalObservationCount = 0,
   });
@@ -151,6 +154,7 @@ class AdminProject {
     ProjectStatus? status,
     List<String>? locationTypeIds,
     List<String>? assignedObserverIds,
+    List<ObservationField>? fields,
     List<ObservationRecord>? observations,
     int? totalObservationCount,
   }) {
@@ -166,6 +170,7 @@ class AdminProject {
       assignedObserverIds: List<String>.from(
         assignedObserverIds ?? this.assignedObserverIds,
       ),
+      fields: List<ObservationField>.from(fields ?? this.fields),
       observations: List<ObservationRecord>.from(
         observations ?? this.observations,
       ),
@@ -252,5 +257,4 @@ class AdminDataRepository {
       abbreviation: 'S',
     ),
   ];
-
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:my_app/models/observation_field.dart';
 import 'package:my_app/screens/admin_page/admin_models.dart';
+import 'package:my_app/screens/admin_page/widgets/project_observation_fields_card.dart';
 import 'package:my_app/screens/admin_page/widgets/project_status_badge.dart';
 import 'package:my_app/theme/app_theme.dart';
 
@@ -43,6 +45,19 @@ class ProjectDetailView extends StatelessWidget {
   final bool canLoadMoreObservations;
   final bool isLoadingMoreObservations;
   final VoidCallback onLoadMoreObservations;
+  final List<ObservationField> fieldDrafts;
+  final bool fieldEditsDirty;
+  final bool isSavingFieldEdits;
+  final Future<void> Function(BuildContext context) onAddField;
+  final Future<void> Function(
+    BuildContext context,
+    ObservationField field,
+  ) onEditField;
+  final void Function(int oldIndex, int newIndex) onReorderField;
+  final void Function(String fieldId, bool isEnabled) onToggleField;
+  final void Function(String fieldId) onDeleteField;
+  final VoidCallback onResetFields;
+  final Future<void> Function() onSaveFields;
 
   const ProjectDetailView({
     super.key,
@@ -85,6 +100,16 @@ class ProjectDetailView extends StatelessWidget {
     required this.canLoadMoreObservations,
     required this.isLoadingMoreObservations,
     required this.onLoadMoreObservations,
+    required this.fieldDrafts,
+    required this.fieldEditsDirty,
+    required this.isSavingFieldEdits,
+    required this.onAddField,
+    required this.onEditField,
+    required this.onReorderField,
+    required this.onToggleField,
+    required this.onDeleteField,
+    required this.onResetFields,
+    required this.onSaveFields,
   });
 
   @override
@@ -150,6 +175,19 @@ class ProjectDetailView extends StatelessWidget {
             onObserverSearchChanged: onObserverSearchChanged,
             onAddObserver: onAddObserver,
             onRemoveObserver: onRemoveObserver,
+          ),
+          const SizedBox(height: 16),
+          ProjectObservationFieldsCard(
+            fields: fieldDrafts,
+            hasChanges: fieldEditsDirty,
+            isSaving: isSavingFieldEdits,
+            onAddField: onAddField,
+            onEditField: onEditField,
+            onReorderField: onReorderField,
+            onToggleField: onToggleField,
+            onDeleteField: onDeleteField,
+            onResetFields: onResetFields,
+            onSaveFields: onSaveFields,
           ),
           const SizedBox(height: 16),
           _ObservationDataCard(
