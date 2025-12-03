@@ -15,7 +15,10 @@ class UserInfoBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: AppTheme.white,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      padding: EdgeInsets.symmetric(
+        horizontal: AppTheme.pageGutter,
+        vertical: 14,
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [

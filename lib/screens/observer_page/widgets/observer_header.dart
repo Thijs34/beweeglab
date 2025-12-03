@@ -56,7 +56,7 @@ class ObserverHeader extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            padding: AppTheme.headerPadding,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -121,6 +121,7 @@ class ObserverHeader extends StatelessWidget {
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Row(
                   children: [
@@ -130,6 +131,7 @@ class ObserverHeader extends StatelessWidget {
                   ],
                 ),
                 Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(_iconForWeather(), size: 20, color: _iconColor()),
                     const SizedBox(width: 8),

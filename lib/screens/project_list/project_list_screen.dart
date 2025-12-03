@@ -293,63 +293,83 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
       body: Stack(
         children: [
           SafeArea(
-            child: Center(
+            child: Align(
+              alignment: Alignment.topCenter,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 672),
-                child: Column(
-                  children: [
-                    ProjectListHeader(
-                      profileButtonKey: _profileButtonKey,
-                      onProfileTap: _toggleProfileMenu,
-                      unreadNotificationCount: _isAdmin
-                          ? _unreadNotificationCount
-                          : 0,
-                    ),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          children: [
-                            UserInfoBar(
-                              userEmail: widget.userEmail,
-                              onLogout: _handleLogout,
+                child: SizedBox(
+                  width: double.infinity,
+                  child: Column(
+                    children: [
+                      ProjectListHeader(
+                        profileButtonKey: _profileButtonKey,
+                        onProfileTap: _toggleProfileMenu,
+                        unreadNotificationCount: _isAdmin
+                            ? _unreadNotificationCount
+                            : 0,
+                      ),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Padding(
+                            padding: EdgeInsets.fromLTRB(
+                              AppTheme.pageGutter,
+                              8,
+                              AppTheme.pageGutter,
+                              0,
                             ),
-                            Container(height: 1, color: AppTheme.gray200),
-                            WelcomeSection(firstName: _getFirstName()),
-                            ProjectsPanel(
-                              projects: _projects,
-                              filteredProjects: _filteredProjects,
-                              searchController: _searchController,
-                              onProjectTap: _handleProjectTap,
-                              onRefresh: _handleRefresh,
-                              isLoading: _isLoadingProjects,
-                              isRefreshing: _isRefreshingProjects,
-                              errorMessage: _projectsError,
-                              selectedProjectId:
-                                  _selectionService.currentProject?.id,
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                children: const [
-                                  Divider(color: AppTheme.gray200, height: 1),
-                                  SizedBox(height: 12),
-                                  Text(
-                                    'Need help? Contact your administrator for support',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: AppTheme.gray400,
-                                    ),
-                                    textAlign: TextAlign.center,
+                            child: Column(
+                              children: [
+                                UserInfoBar(
+                                  userEmail: widget.userEmail,
+                                  onLogout: _handleLogout,
+                                ),
+                                Container(height: 1, color: AppTheme.gray200),
+                                WelcomeSection(firstName: _getFirstName()),
+                                ProjectsPanel(
+                                  projects: _projects,
+                                  filteredProjects: _filteredProjects,
+                                  searchController: _searchController,
+                                  onProjectTap: _handleProjectTap,
+                                  onRefresh: _handleRefresh,
+                                  isLoading: _isLoadingProjects,
+                                  isRefreshing: _isRefreshingProjects,
+                                  errorMessage: _projectsError,
+                                  selectedProjectId:
+                                      _selectionService.currentProject?.id,
+                                ),
+                                Padding(
+                                  padding: EdgeInsets.fromLTRB(
+                                    AppTheme.pageGutter,
+                                    16,
+                                    AppTheme.pageGutter,
+                                    16,
                                   ),
-                                  SizedBox(height: 12),
-                                ],
-                              ),
+                                  child: Column(
+                                    children: const [
+                                      Divider(
+                                        color: AppTheme.gray200,
+                                        height: 1,
+                                      ),
+                                      SizedBox(height: 12),
+                                      Text(
+                                        'Need help? Contact your administrator for support',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: AppTheme.gray400,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      SizedBox(height: 12),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

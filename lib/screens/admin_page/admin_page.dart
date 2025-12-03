@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:my_app/models/navigation_arguments.dart';
 import 'package:my_app/models/observation_field.dart';
-import 'package:my_app/models/observation_field_audience.dart';
 import 'package:my_app/screens/admin_page/admin_models.dart';
 import 'package:my_app/screens/admin_page/widgets/admin_header.dart';
 import 'package:my_app/screens/admin_page/widgets/observation_edit_dialog.dart';
@@ -115,8 +114,6 @@ class _AdminPageState extends State<AdminPage> {
   String? _fieldDraftProjectId;
   bool _fieldEditsDirty = false;
   bool _isSavingFieldEdits = false;
-  ObservationFieldAudience _fieldAudienceFilter =
-      ObservationFieldAudience.individual;
 
   @override
   void initState() {
@@ -649,7 +646,6 @@ class _AdminPageState extends State<AdminPage> {
       _addLocationController.clear();
       _syncMainLocationController(project);
       _hydrateFieldDrafts(project, force: true);
-      _fieldAudienceFilter = ObservationFieldAudience.individual;
       _projectMainLocationError = null;
       _isSavingMainLocation = false;
       _projectDetailSection = ProjectDetailSection.general;
@@ -679,7 +675,6 @@ class _AdminPageState extends State<AdminPage> {
       _fieldDrafts = const [];
       _fieldEditsDirty = false;
       _fieldDraftProjectId = null;
-      _fieldAudienceFilter = ObservationFieldAudience.individual;
       _projectDetailSection = ProjectDetailSection.general;
     });
     _observationsProjectId = null;
@@ -700,12 +695,11 @@ class _AdminPageState extends State<AdminPage> {
     return 'custom-field-$timestamp';
   }
 
-  ObservationField _createNewFieldTemplate(ObservationFieldAudience audience) {
+  ObservationField _createNewFieldTemplate() {
     return ObservationField(
       id: _generateFieldId(),
       label: 'New Field',
       type: ObservationFieldType.text,
-      audience: audience,
       isStandard: false,
       isRequired: false,
       isEnabled: true,
@@ -717,29 +711,11 @@ class _AdminPageState extends State<AdminPage> {
   void _handleFieldReorder(int oldIndex, int newIndex) {
     if (oldIndex == newIndex) return;
     setState(() {
-      final filtered = _visibleFieldDraftsFor(_fieldAudienceFilter);
-      if (filtered.length <= 1) return;
+      final drafts = List<ObservationField>.from(_fieldDrafts);
       if (newIndex > oldIndex) newIndex -= 1;
-      if (oldIndex < 0 || oldIndex >= filtered.length) {
-        return;
-      }
-      final item = filtered.removeAt(oldIndex);
-      final clampedIndex = newIndex.clamp(0, filtered.length);
-      filtered.insert(clampedIndex, item);
-      final iterator = filtered.iterator;
-      final rebuilt = <ObservationField>[];
-      for (final field in _fieldDrafts) {
-        if (_fieldVisibleInAudience(field, _fieldAudienceFilter)) {
-          if (iterator.moveNext()) {
-            rebuilt.add(iterator.current);
-          } else {
-            rebuilt.add(field);
-          }
-        } else {
-          rebuilt.add(field);
-        }
-      }
-      _fieldDrafts = rebuilt;
+      final item = drafts.removeAt(oldIndex);
+      drafts.insert(newIndex, item);
+      _fieldDrafts = drafts;
       _fieldEditsDirty = true;
     });
   }
@@ -755,32 +731,6 @@ class _AdminPageState extends State<AdminPage> {
           .toList(growable: false);
       _fieldEditsDirty = true;
     });
-  }
-
-  List<ObservationField> get _visibleFieldDrafts {
-    return _visibleFieldDraftsFor(_fieldAudienceFilter);
-  }
-
-  List<ObservationField> _visibleFieldDraftsFor(
-    ObservationFieldAudience audience,
-  ) {
-    return _fieldDrafts
-        .where((field) => _fieldVisibleInAudience(field, audience))
-        .toList(growable: true);
-  }
-
-  bool _fieldVisibleInAudience(
-    ObservationField field,
-    ObservationFieldAudience audience,
-  ) {
-    final fieldAudience = resolveObservationFieldAudience(field);
-    if (audience == ObservationFieldAudience.all) {
-      return true;
-    }
-    if (fieldAudience == ObservationFieldAudience.all) {
-      return true;
-    }
-    return fieldAudience == audience;
   }
 
   void _handleDeleteField(String fieldId) {
@@ -799,18 +749,8 @@ class _AdminPageState extends State<AdminPage> {
     });
   }
 
-  void _handleFieldAudienceChange(ObservationFieldAudience audience) {
-    if (_fieldAudienceFilter == audience) {
-      return;
-    }
-    setState(() => _fieldAudienceFilter = audience);
-  }
-
   Future<void> _handleAddField(BuildContext context) async {
-    final defaultAudience = _fieldAudienceFilter == ObservationFieldAudience.all
-        ? ObservationFieldAudience.individual
-        : _fieldAudienceFilter;
-    final template = _createNewFieldTemplate(defaultAudience);
+    final template = _createNewFieldTemplate();
     final updated = await showObservationFieldEditorSheet(
       context,
       field: template,
@@ -1364,7 +1304,12 @@ class _AdminPageState extends State<AdminPage> {
                     Expanded(
                       child: SingleChildScrollView(
                         child: Padding(
-                          padding: const EdgeInsets.only(bottom: 32),
+                          padding: EdgeInsets.fromLTRB(
+                            AppTheme.pageGutter,
+                            0,
+                            AppTheme.pageGutter,
+                            32,
+                          ),
                           child: hydratedProject == null
                               ? (_projectsLoading && _projects.isEmpty
                                     ? const _AdminLoadingState()
@@ -1487,12 +1432,9 @@ class _AdminPageState extends State<AdminPage> {
                                   onDownload: () => _handleDownloadObservations(
                                     hydratedProject,
                                   ),
-                                  fieldDrafts: _visibleFieldDrafts,
+                                  fieldDrafts: _fieldDrafts,
                                   fieldEditsDirty: _fieldEditsDirty,
                                   isSavingFieldEdits: _isSavingFieldEdits,
-                                  fieldAudience: _fieldAudienceFilter,
-                                  onFieldAudienceChange:
-                                      _handleFieldAudienceChange,
                                   onAddField: (context) =>
                                       _handleAddField(context),
                                   onEditField: (context, field) =>

@@ -101,7 +101,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return AuthFormLayout(
-      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 8),
       child: Form(
         key: _formKey,
         child: Column(

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:my_app/models/observation_field.dart';
-import 'package:my_app/models/observation_field_audience.dart';
 import 'package:my_app/theme/app_theme.dart';
 
 class ProjectObservationFieldsCard extends StatelessWidget {
@@ -9,8 +8,6 @@ class ProjectObservationFieldsCard extends StatelessWidget {
     required this.fields,
     required this.hasChanges,
     required this.isSaving,
-    required this.activeAudience,
-    required this.onAudienceChange,
     required this.onAddField,
     required this.onEditField,
     required this.onReorderField,
@@ -23,11 +20,11 @@ class ProjectObservationFieldsCard extends StatelessWidget {
   final List<ObservationField> fields;
   final bool hasChanges;
   final bool isSaving;
-  final ObservationFieldAudience activeAudience;
-  final ValueChanged<ObservationFieldAudience> onAudienceChange;
   final Future<void> Function(BuildContext context) onAddField;
-  final Future<void> Function(BuildContext context, ObservationField field)
-  onEditField;
+  final Future<void> Function(
+    BuildContext context,
+    ObservationField field,
+  ) onEditField;
   final void Function(int oldIndex, int newIndex) onReorderField;
   final void Function(String fieldId, bool isEnabled) onToggleField;
   final void Function(String fieldId) onDeleteField;
@@ -54,37 +51,47 @@ class ProjectObservationFieldsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Text(
-                'Observation Fields',
-                style: TextStyle(
-                  fontFamily: AppTheme.fontFamilyHeading,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: AppTheme.gray100,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  '${fields.length} field${fields.length == 1 ? '' : 's'}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppTheme.gray600,
-                    fontWeight: FontWeight.w600,
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isCompact = constraints.maxWidth < 480;
+
+              final titleGroup = Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Flexible(
+                    child: Text(
+                      'Observation Fields',
+                      style: TextStyle(
+                        fontFamily: AppTheme.fontFamilyHeading,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-              ),
-              const Spacer(),
-              OutlinedButton.icon(
+                  const SizedBox(width: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.gray100,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '${fields.length} field${fields.length == 1 ? '' : 's'}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.gray600,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+
+              final addButton = OutlinedButton.icon(
                 onPressed: () => onAddField(context),
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text('Add Field'),
@@ -94,13 +101,26 @@ class ProjectObservationFieldsCard extends StatelessWidget {
                     vertical: 12,
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _AudienceToggle(
-            activeAudience: activeAudience,
-            onAudienceChange: onAudienceChange,
+              );
+
+              if (isCompact) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    titleGroup,
+                    const SizedBox(height: 12),
+                    SizedBox(width: double.infinity, child: addButton),
+                  ],
+                );
+              }
+
+              return Row(
+                children: [
+                  Expanded(child: titleGroup),
+                  addButton,
+                ],
+              );
+            },
           ),
           const SizedBox(height: 6),
           const Text(
@@ -109,7 +129,7 @@ class ProjectObservationFieldsCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           if (fields.isEmpty)
-            _EmptyState(onAddField: onAddField, audience: activeAudience)
+            _EmptyState(onAddField: onAddField)
           else
             ReorderableListView.builder(
               shrinkWrap: true,
@@ -134,19 +154,22 @@ class ProjectObservationFieldsCard extends StatelessWidget {
               },
             ),
           const SizedBox(height: 20),
-          Row(
-            children: [
-              TextButton.icon(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isCompact = constraints.maxWidth < 420;
+
+              final resetButton = TextButton.icon(
                 onPressed: onResetFields,
                 icon: const Icon(Icons.settings_backup_restore, size: 18),
                 label: const Text('Restore defaults'),
-                style: TextButton.styleFrom(foregroundColor: AppTheme.gray600),
-              ),
-              const Spacer(),
-              ElevatedButton.icon(
-                onPressed: !hasChanges || isSaving
-                    ? null
-                    : () => onSaveFields(),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppTheme.gray600,
+                ),
+              );
+
+              final saveButton = ElevatedButton.icon(
+                onPressed:
+                    !hasChanges || isSaving ? null : () => onSaveFields(),
                 icon: isSaving
                     ? SizedBox(
                         width: 16,
@@ -164,23 +187,41 @@ class ProjectObservationFieldsCard extends StatelessWidget {
                     vertical: 14,
                   ),
                 ),
-              ),
-            ],
+              );
+
+              if (isCompact) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: resetButton,
+                    ),
+                    const SizedBox(height: 12),
+                    saveButton,
+                  ],
+                );
+              }
+
+              return Row(
+                children: [
+                  resetButton,
+                  const Spacer(),
+                  saveButton,
+                ],
+              );
+            },
           ),
         ],
       ),
     );
   }
 
-  Future<void> _confirmDelete(
-    BuildContext context,
-    ObservationField field,
-  ) async {
+  Future<void> _confirmDelete(BuildContext context, ObservationField field) async {
     if (field.isStandard) {
       return;
     }
-    final confirmed =
-        await showDialog<bool>(
+    final confirmed = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
             title: const Text('Delete field'),
@@ -194,7 +235,9 @@ class ProjectObservationFieldsCard extends StatelessWidget {
               ),
               FilledButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                style: FilledButton.styleFrom(backgroundColor: AppTheme.red600),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.red600,
+                ),
                 child: const Text('Delete'),
               ),
             ],
@@ -207,69 +250,10 @@ class ProjectObservationFieldsCard extends StatelessWidget {
   }
 }
 
-class _AudienceToggle extends StatelessWidget {
-  const _AudienceToggle({
-    required this.activeAudience,
-    required this.onAudienceChange,
-  });
-
-  final ObservationFieldAudience activeAudience;
-  final ValueChanged<ObservationFieldAudience> onAudienceChange;
-
-  @override
-  Widget build(BuildContext context) {
-    final entries = [
-      _AudienceOption(
-        audience: ObservationFieldAudience.individual,
-        label: 'Individual form',
-        icon: Icons.person_outline,
-      ),
-      _AudienceOption(
-        audience: ObservationFieldAudience.group,
-        label: 'Group form',
-        icon: Icons.groups_outlined,
-      ),
-    ];
-    return Wrap(
-      spacing: 12,
-      runSpacing: 8,
-      children: entries
-          .map(
-            (entry) => ChoiceChip(
-              label: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(entry.icon, size: 16),
-                  const SizedBox(width: 6),
-                  Text(entry.label),
-                ],
-              ),
-              selected: activeAudience == entry.audience,
-              onSelected: (_) => onAudienceChange(entry.audience),
-            ),
-          )
-          .toList(growable: false),
-    );
-  }
-}
-
-class _AudienceOption {
-  const _AudienceOption({
-    required this.audience,
-    required this.label,
-    required this.icon,
-  });
-
-  final ObservationFieldAudience audience;
-  final String label;
-  final IconData icon;
-}
-
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.onAddField, required this.audience});
+  const _EmptyState({required this.onAddField});
 
   final Future<void> Function(BuildContext context) onAddField;
-  final ObservationFieldAudience audience;
 
   @override
   Widget build(BuildContext context) {
@@ -285,16 +269,16 @@ class _EmptyState extends StatelessWidget {
         children: [
           const Icon(Icons.ballot_outlined, size: 36, color: AppTheme.gray400),
           const SizedBox(height: 12),
-          Text(
-            'No fields configured for the ${_humanReadableAudience()} form.',
+          const Text(
+            'No fields configured yet.',
             style: TextStyle(
               fontWeight: FontWeight.w600,
               color: AppTheme.gray700,
             ),
           ),
           const SizedBox(height: 6),
-          Text(
-            'Add a custom field or restore defaults to populate this form.',
+          const Text(
+            'Add your first custom field or restore the default template.',
             textAlign: TextAlign.center,
             style: TextStyle(color: AppTheme.gray600),
           ),
@@ -306,17 +290,6 @@ class _EmptyState extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String _humanReadableAudience() {
-    switch (audience) {
-      case ObservationFieldAudience.group:
-        return 'group';
-      case ObservationFieldAudience.individual:
-        return 'individual';
-      case ObservationFieldAudience.all:
-        return 'shared';
-    }
   }
 }
 
@@ -339,7 +312,6 @@ class _FieldRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final resolvedAudience = resolveObservationFieldAudience(field);
     final chips = <Widget>[
       _buildChip(
         label: field.type.name,
@@ -364,11 +336,6 @@ class _FieldRow extends StatelessWidget {
           color: const Color(0xFFFFE5E5),
           textColor: const Color(0xFFB3261E),
         ),
-      _buildChip(
-        label: _audienceChipLabel(resolvedAudience),
-        color: _audienceChipColor(resolvedAudience),
-        textColor: _audienceChipTextColor(resolvedAudience),
-      ),
     ];
 
     return Column(
@@ -382,7 +349,10 @@ class _FieldRow extends StatelessWidget {
                 index: index,
                 child: Padding(
                   padding: const EdgeInsets.only(top: 6, right: 12),
-                  child: Icon(Icons.drag_indicator, color: AppTheme.gray400),
+                  child: Icon(
+                    Icons.drag_indicator,
+                    color: AppTheme.gray400,
+                  ),
                 ),
               ),
               Expanded(
@@ -398,7 +368,11 @@ class _FieldRow extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Wrap(spacing: 6, runSpacing: 6, children: chips),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: chips,
+                    ),
                     if (field.helperText != null &&
                         field.helperText!.trim().isNotEmpty)
                       Padding(
@@ -444,7 +418,11 @@ class _FieldRow extends StatelessWidget {
           ),
         ),
         if (!isLast)
-          const Divider(height: 1, thickness: 1, color: AppTheme.gray200),
+          const Divider(
+            height: 1,
+            thickness: 1,
+            color: AppTheme.gray200,
+          ),
       ],
     );
   }
@@ -469,38 +447,5 @@ class _FieldRow extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _audienceChipLabel(ObservationFieldAudience audience) {
-    switch (audience) {
-      case ObservationFieldAudience.individual:
-        return 'Individual';
-      case ObservationFieldAudience.group:
-        return 'Group';
-      case ObservationFieldAudience.all:
-        return 'Shared';
-    }
-  }
-
-  Color _audienceChipColor(ObservationFieldAudience audience) {
-    switch (audience) {
-      case ObservationFieldAudience.individual:
-        return const Color(0xFFE6F4FF);
-      case ObservationFieldAudience.group:
-        return const Color(0xFFFFF4E5);
-      case ObservationFieldAudience.all:
-        return const Color(0xFFEAF5EA);
-    }
-  }
-
-  Color _audienceChipTextColor(ObservationFieldAudience audience) {
-    switch (audience) {
-      case ObservationFieldAudience.individual:
-        return const Color(0xFF0F4C81);
-      case ObservationFieldAudience.group:
-        return const Color(0xFF8B4600);
-      case ObservationFieldAudience.all:
-        return const Color(0xFF1C5C1C);
-    }
   }
 }

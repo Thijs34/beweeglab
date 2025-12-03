@@ -114,9 +114,11 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage> {
                     ),
                     Expanded(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 24,
+                        padding: EdgeInsets.fromLTRB(
+                          AppTheme.pageGutter,
+                          24,
+                          AppTheme.pageGutter,
+                          24,
                         ),
                         child: _buildNotificationSection(),
                       ),

@@ -51,8 +51,6 @@ class ProjectDetailView extends StatelessWidget {
   final List<ObservationField> fieldDrafts;
   final bool fieldEditsDirty;
   final bool isSavingFieldEdits;
-  final ObservationFieldAudience fieldAudience;
-  final ValueChanged<ObservationFieldAudience> onFieldAudienceChange;
   final Future<void> Function(BuildContext context) onAddField;
   final Future<void> Function(BuildContext context, ObservationField field)
   onEditField;
@@ -108,8 +106,6 @@ class ProjectDetailView extends StatelessWidget {
     required this.fieldDrafts,
     required this.fieldEditsDirty,
     required this.isSavingFieldEdits,
-    required this.fieldAudience,
-    required this.onFieldAudienceChange,
     required this.onAddField,
     required this.onEditField,
     required this.onReorderField,
@@ -128,7 +124,10 @@ class ProjectDetailView extends StatelessWidget {
         .toList();
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.pageGutter,
+        vertical: 20,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -210,8 +209,6 @@ class ProjectDetailView extends StatelessWidget {
             fields: fieldDrafts,
             hasChanges: fieldEditsDirty,
             isSaving: isSavingFieldEdits,
-            activeAudience: fieldAudience,
-            onAudienceChange: onFieldAudienceChange,
             onAddField: onAddField,
             onEditField: onEditField,
             onReorderField: onReorderField,
@@ -265,98 +262,122 @@ class _ProjectHeaderBar extends StatelessWidget {
         ? 'Main location not set'
         : project.mainLocation;
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppTheme.white,
-        borderRadius: BorderRadius.circular(AppTheme.borderRadiusLarge),
-        border: Border.all(color: AppTheme.gray200),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x08000000),
-            blurRadius: 12,
-            offset: Offset(0, 4),
+    Widget buildActionBar() {
+      return Wrap(
+        spacing: 12,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          ProjectStatusBadge(
+            status: project.status,
+            padding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 6,
+            ),
+            fontSize: 13,
+          ),
+          _StatusMenuButton(
+            current: project.status,
+            disabled: isStatusUpdating,
+            onSelected: onStatusChange,
+          ),
+          OutlinedButton.icon(
+            onPressed: onDelete,
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: AppTheme.red200),
+              foregroundColor: AppTheme.red600,
+            ),
+            icon: const Icon(Icons.delete_outline, size: 18),
+            label: const Text('Delete'),
           ),
         ],
-      ),
-      child: Row(
+      );
+    }
+
+    Widget buildInfoColumn() {
+      return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  project.name,
+          Text(
+            project.name,
+            style: const TextStyle(
+              fontFamily: AppTheme.fontFamilyHeading,
+              fontSize: 26,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (project.description.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              project.description,
+              style: const TextStyle(color: AppTheme.gray600),
+            ),
+          ],
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.location_on_outlined,
+                size: 18,
+                color: AppTheme.primaryOrange,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  locationLabel,
                   style: const TextStyle(
-                    fontFamily: AppTheme.fontFamilyHeading,
-                    fontSize: 26,
+                    color: AppTheme.gray700,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                if (project.description.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    project.description,
-                    style: const TextStyle(color: AppTheme.gray600),
-                  ),
-                ],
-                const SizedBox(height: 10),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(
-                      Icons.location_on_outlined,
-                      size: 18,
-                      color: AppTheme.primaryOrange,
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        locationLabel,
-                        style: const TextStyle(
-                          color: AppTheme.gray700,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Wrap(
-            spacing: 12,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              ProjectStatusBadge(
-                status: project.status,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 6,
-                ),
-                fontSize: 13,
-              ),
-              _StatusMenuButton(
-                current: project.status,
-                disabled: isStatusUpdating,
-                onSelected: onStatusChange,
-              ),
-              OutlinedButton.icon(
-                onPressed: onDelete,
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: AppTheme.red200),
-                  foregroundColor: AppTheme.red600,
-                ),
-                icon: const Icon(Icons.delete_outline, size: 18),
-                label: const Text('Delete'),
               ),
             ],
           ),
         ],
-      ),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 520;
+        final content = buildInfoColumn();
+        final actionBar = buildActionBar();
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppTheme.white,
+            borderRadius: BorderRadius.circular(AppTheme.borderRadiusLarge),
+            border: Border.all(color: AppTheme.gray200),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x08000000),
+                blurRadius: 12,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: isNarrow
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    content,
+                    const SizedBox(height: 16),
+                    actionBar,
+                  ],
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: content),
+                    const SizedBox(width: 16),
+                    actionBar,
+                  ],
+                ),
+        );
+      },
     );
   }
 }
