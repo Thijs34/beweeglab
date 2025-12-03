@@ -525,24 +525,22 @@ class _ObserverPageState extends State<ObserverPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                field.label,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.gray900,
-                ),
-              ),
+        RichText(
+          text: TextSpan(
+            text: field.label,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.gray900,
             ),
-            if (field.isRequired)
-              const Text(
-                '*',
-                style: TextStyle(color: AppTheme.gray400, fontSize: 14),
-              ),
-          ],
+            children: [
+              if (field.isRequired)
+                const TextSpan(
+                  text: ' *',
+                  style: TextStyle(color: AppTheme.gray400),
+                ),
+            ],
+          ),
         ),
         if (field.helperText != null && field.helperText!.trim().isNotEmpty)
           Padding(
