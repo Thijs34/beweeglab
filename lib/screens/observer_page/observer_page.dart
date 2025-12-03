@@ -24,6 +24,14 @@ import 'package:my_app/screens/observer_page/widgets/observer_section_card.dart'
 import 'package:my_app/screens/observer_page/widgets/session_summary_modal.dart';
 import 'package:my_app/screens/observer_page/widgets/success_overlay.dart';
 
+const Map<String, String> _kDefaultLocationLabels = {
+  'cruyff-court': 'Cruyff Court (C)',
+  'basketball-field': 'Basketball Field (B)',
+  'grass-field': 'Grass Field (G)',
+  'playground': 'Playground (P)',
+  'skate-park': 'Skate Park (S)',
+};
+
 class ObserverPageArguments {
   final Project? project;
   final String? userEmail;
@@ -84,6 +92,7 @@ class _ObserverPageState extends State<ObserverPage> {
   final Map<String, String> _fieldErrors = {};
   final Map<String, TextEditingController> _textControllers = {};
   final Map<String, TextEditingController> _otherOptionControllers = {};
+  final Map<String, List<ObservationFieldOption>> _customFieldOptions = {};
 
   late final String _currentDate;
   late final String _currentTime;
@@ -110,7 +119,8 @@ class _ObserverPageState extends State<ObserverPage> {
     }
     _projectSelectionListener = () {
       if (!mounted) return;
-      setState(() {});
+      setState(() => _customFieldOptions.clear());
+      _resetInputs(preservePersonId: true);
       _restorePersonCounter();
       _restoreSessionDrafts();
     };
@@ -683,13 +693,15 @@ class _ObserverPageState extends State<ObserverPage> {
     OptionObservationFieldConfig? config, {
     required bool isMultiSelect,
   }) {
-    final options = config?.options ?? const <ObservationFieldOption>[];
+    final baseOptions = config?.options ?? const <ObservationFieldOption>[];
+    final customOptions = _customFieldOptions[field.id] ?? const <ObservationFieldOption>[];
+    final combinedOptions = <ObservationFieldOption>[...baseOptions, ...customOptions];
     final allowOther = config?.allowOtherOption ?? false;
-    if (options.isEmpty && !allowOther) {
+    if (combinedOptions.isEmpty && !allowOther) {
       return const Text('No options configured');
     }
 
-    final selectionOptions = options
+    final selectionOptions = combinedOptions
         .map(
           (option) => _SelectionOption(label: option.label, value: option.id),
         )
@@ -733,17 +745,44 @@ class _ObserverPageState extends State<ObserverPage> {
         if (allowOther && selectedValues.contains(_kOtherOptionValue))
           Padding(
             padding: const EdgeInsets.only(top: 8),
-            child: TextField(
-              controller: _ensureOtherOptionController(field.id),
-              decoration: _inputDecoration().copyWith(
-                hintText: 'Describe other value',
-              ),
-              onChanged: (_) => setState(() {
-                _fieldErrors.remove(field.id);
-              }),
+            child: _buildOtherOptionInput(
+              field: field,
+              isMultiSelect: isMultiSelect,
+              existingOptions: combinedOptions,
             ),
           ),
       ],
+    );
+  }
+
+  Widget _buildOtherOptionInput({
+    required ObservationField field,
+    required bool isMultiSelect,
+    required List<ObservationFieldOption> existingOptions,
+  }) {
+    final controller = _ensureOtherOptionController(field.id);
+    void submit() {
+      _handleAddCustomOption(
+        field: field,
+        isMultiSelect: isMultiSelect,
+        existingOptions: existingOptions,
+      );
+    }
+
+    return TextField(
+      controller: controller,
+      decoration: _inputDecoration().copyWith(
+        hintText: 'Describe other value',
+        suffixIcon: IconButton(
+          icon: const Icon(Icons.add_circle_outline),
+          tooltip: 'Add option',
+          onPressed: submit,
+        ),
+      ),
+      onSubmitted: (_) => submit(),
+      onChanged: (_) => setState(() {
+        _fieldErrors.remove(field.id);
+      }),
     );
   }
 
@@ -775,6 +814,86 @@ class _ObserverPageState extends State<ObserverPage> {
       }
       _fieldErrors.remove(fieldId);
     });
+  }
+
+  void _handleAddCustomOption({
+    required ObservationField field,
+    required bool isMultiSelect,
+    required List<ObservationFieldOption> existingOptions,
+  }) {
+    final controller = _ensureOtherOptionController(field.id);
+    final rawLabel = controller.text.trim();
+    if (rawLabel.isEmpty) {
+      setState(() {
+        _fieldErrors[field.id] = 'Please enter a label for the custom option';
+      });
+      return;
+    }
+
+    final normalizedLabel = rawLabel.toLowerCase();
+    final labelExists = existingOptions.any(
+      (option) => option.label.trim().toLowerCase() == normalizedLabel,
+    );
+    if (labelExists) {
+      setState(() {
+        _fieldErrors[field.id] = 'That option already exists';
+      });
+      return;
+    }
+
+    final slug = _slugifyCustomLabel(rawLabel);
+    final existingIds = existingOptions.map((option) => option.id).toSet();
+    var candidateId = 'custom:$slug';
+    var collisionIndex = 2;
+    while (existingIds.contains(candidateId)) {
+      candidateId = 'custom:$slug-$collisionIndex';
+      collisionIndex += 1;
+    }
+
+    final newOption = ObservationFieldOption(id: candidateId, label: rawLabel);
+
+    setState(() {
+      final bucket = _customFieldOptions.putIfAbsent(field.id, () => []);
+      bucket.add(newOption);
+      controller.clear();
+      _fieldErrors.remove(field.id);
+      _selectCustomOption(
+        fieldId: field.id,
+        optionId: newOption.id,
+        isMultiSelect: isMultiSelect,
+      );
+    });
+  }
+
+  void _selectCustomOption({
+    required String fieldId,
+    required String optionId,
+    required bool isMultiSelect,
+  }) {
+    if (isMultiSelect) {
+      final rawValue = _fieldValues[fieldId];
+      final updated = rawValue is List
+          ? rawValue.whereType<String>().toList()
+          : <String>[];
+      updated.remove(_kOtherOptionValue);
+      if (!updated.contains(optionId)) {
+        updated.add(optionId);
+      }
+      _fieldValues[fieldId] = updated;
+    } else {
+      _fieldValues[fieldId] = optionId;
+    }
+  }
+
+  String _slugifyCustomLabel(String input) {
+    final sanitized = input.trim().toLowerCase();
+    final collapsed = sanitized.replaceAll(RegExp(r'[^a-z0-9]+'), '-');
+    final deduped = collapsed.replaceAll(RegExp(r'-{2,}'), '-');
+    final trimmed = deduped.replaceAll(RegExp(r'^-+|-+$'), '');
+    if (trimmed.isEmpty) {
+      return 'custom-option-${DateTime.now().millisecondsSinceEpoch}';
+    }
+    return trimmed;
   }
 
   Widget _buildPersonIdField() {
@@ -1102,19 +1221,6 @@ class _ObserverPageState extends State<ObserverPage> {
             errors[field.id] = 'Please enter a value';
           }
           break;
-      }
-    }
-
-    final locationType =
-        _fieldValues[ObservationFieldRegistry.locationTypeFieldId] as String?;
-    if (locationType == 'custom') {
-      final customLabel =
-          (_fieldValues[ObservationFieldRegistry.customLocationFieldId]
-                  as String?)
-              ?.trim();
-      if (customLabel == null || customLabel.isEmpty) {
-        errors[ObservationFieldRegistry.customLocationFieldId] =
-            'Please enter a custom location';
       }
     }
 
@@ -1582,9 +1688,82 @@ class _ObserverPageState extends State<ObserverPage> {
     if (project == null) {
       return const [];
     }
-    final fields = project.fields.where((field) => field.isEnabled).toList();
+    final fields = project.fields.where((field) => field.isEnabled).map((
+      field,
+    ) {
+      if (field.id == ObservationFieldRegistry.locationTypeFieldId) {
+        return _applyProjectLocationOptions(field, project);
+      }
+      return field;
+    }).toList();
     fields.sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
     return fields;
+  }
+
+  ObservationField _applyProjectLocationOptions(
+    ObservationField field,
+    Project project,
+  ) {
+    final config = field.config as OptionObservationFieldConfig?;
+    final generated = _buildProjectLocationOptions(project.locationTypeIds);
+    if (config == null || generated == null) {
+      return field;
+    }
+    return field.copyWith(
+      config: OptionObservationFieldConfig(
+        options: generated,
+        allowMultiple: config.allowMultiple,
+        allowOtherOption: config.allowOtherOption,
+      ),
+    );
+  }
+
+  List<ObservationFieldOption>? _buildProjectLocationOptions(
+    List<String> locationTypeIds,
+  ) {
+    if (locationTypeIds.isEmpty) {
+      return null;
+    }
+    final seen = <String>{};
+    final options = <ObservationFieldOption>[];
+    for (final rawId in locationTypeIds) {
+      final id = rawId.trim();
+      if (id.isEmpty || !seen.add(id)) {
+        continue;
+      }
+      options.add(
+        ObservationFieldOption(id: id, label: _locationLabelForId(id)),
+      );
+    }
+    if (options.isEmpty) {
+      return null;
+    }
+    return options;
+  }
+
+  String _locationLabelForId(String id) {
+    if (id == 'custom') {
+      return 'Custom';
+    }
+    if (id.startsWith('custom:')) {
+      final trimmed = id.substring('custom:'.length).trim();
+      return trimmed.isEmpty ? 'Custom Location' : trimmed;
+    }
+    final mapped = _kDefaultLocationLabels[id];
+    if (mapped != null) {
+      return mapped;
+    }
+    if (id.isEmpty) {
+      return 'Unknown location';
+    }
+    return id
+        .split(RegExp(r'[-_]+'))
+        .where((segment) => segment.isNotEmpty)
+        .map(
+          (segment) =>
+              segment[0].toUpperCase() + segment.substring(1).toLowerCase(),
+        )
+        .join(' ');
   }
 
   List<ObservationField> get _visibleFields {
