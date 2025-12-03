@@ -51,6 +51,8 @@ class ProjectDetailView extends StatelessWidget {
   final List<ObservationField> fieldDrafts;
   final bool fieldEditsDirty;
   final bool isSavingFieldEdits;
+  final ObservationFieldAudience fieldAudience;
+  final ValueChanged<ObservationFieldAudience> onFieldAudienceChange;
   final Future<void> Function(BuildContext context) onAddField;
   final Future<void> Function(BuildContext context, ObservationField field)
   onEditField;
@@ -106,6 +108,8 @@ class ProjectDetailView extends StatelessWidget {
     required this.fieldDrafts,
     required this.fieldEditsDirty,
     required this.isSavingFieldEdits,
+    required this.fieldAudience,
+    required this.onFieldAudienceChange,
     required this.onAddField,
     required this.onEditField,
     required this.onReorderField,
@@ -206,6 +210,8 @@ class ProjectDetailView extends StatelessWidget {
             fields: fieldDrafts,
             hasChanges: fieldEditsDirty,
             isSaving: isSavingFieldEdits,
+            activeAudience: fieldAudience,
+            onAudienceChange: onFieldAudienceChange,
             onAddField: onAddField,
             onEditField: onEditField,
             onReorderField: onReorderField,

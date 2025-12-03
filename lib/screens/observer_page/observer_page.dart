@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:my_app/models/navigation_arguments.dart';
 import 'package:my_app/models/observation_field.dart';
+import 'package:my_app/models/observation_field_audience.dart';
 import 'package:my_app/models/observation_field_registry.dart';
 import 'package:my_app/models/project.dart';
 import 'package:my_app/theme/app_theme.dart';
@@ -692,8 +693,12 @@ class _ObserverPageState extends State<ObserverPage> {
     required bool isMultiSelect,
   }) {
     final baseOptions = config?.options ?? const <ObservationFieldOption>[];
-    final customOptions = _customFieldOptions[field.id] ?? const <ObservationFieldOption>[];
-    final combinedOptions = <ObservationFieldOption>[...baseOptions, ...customOptions];
+    final customOptions =
+        _customFieldOptions[field.id] ?? const <ObservationFieldOption>[];
+    final combinedOptions = <ObservationFieldOption>[
+      ...baseOptions,
+      ...customOptions,
+    ];
     final allowOther = config?.allowOtherOption ?? false;
     if (combinedOptions.isEmpty && !allowOther) {
       return const Text('No options configured');
@@ -1191,8 +1196,8 @@ class _ObserverPageState extends State<ObserverPage> {
             errors[field.id] = 'Please enter a value';
           }
           break;
-        case ObservationFieldType.dropdown:
         case ObservationFieldType.multiSelect:
+        case ObservationFieldType.dropdown:
           final config = field.config as OptionObservationFieldConfig?;
           final allowMultiple = _fieldAllowsMultipleSelections(field, config);
           if (allowMultiple) {
@@ -1769,12 +1774,12 @@ class _ObserverPageState extends State<ObserverPage> {
   }
 
   bool _shouldDisplayField(ObservationField field) {
-    final audience = _audienceForField(field);
-    if (audience == _FieldAudience.individualOnly &&
+    final audience = resolveObservationFieldAudience(field);
+    if (audience == ObservationFieldAudience.individual &&
         _mode != ObservationMode.individual) {
       return false;
     }
-    if (audience == _FieldAudience.groupOnly &&
+    if (audience == ObservationFieldAudience.group &&
         _mode != ObservationMode.group) {
       return false;
     }
@@ -1786,24 +1791,6 @@ class _ObserverPageState extends State<ObserverPage> {
       }
     }
     return true;
-  }
-
-  _FieldAudience _audienceForField(ObservationField field) {
-    if (!field.isStandard) {
-      return _FieldAudience.all;
-    }
-    if (field.id.startsWith('group.')) {
-      return _FieldAudience.groupOnly;
-    }
-    const individualOnly = {
-      ObservationFieldRegistry.genderFieldId,
-      ObservationFieldRegistry.ageGroupFieldId,
-      ObservationFieldRegistry.socialContextFieldId,
-    };
-    if (individualOnly.contains(field.id)) {
-      return _FieldAudience.individualOnly;
-    }
-    return _FieldAudience.all;
   }
 
   String _formatDate(DateTime date) {
@@ -1886,5 +1873,3 @@ class _SelectionOption {
 
   const _SelectionOption({required this.label, required this.value, this.icon});
 }
-
-enum _FieldAudience { all, individualOnly, groupOnly }

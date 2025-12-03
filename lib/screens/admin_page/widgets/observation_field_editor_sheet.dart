@@ -43,7 +43,6 @@ class _ObservationFieldEditorSheetState
   static const List<ObservationFieldType> _supportedTypes =
       <ObservationFieldType>[
         ObservationFieldType.text,
-        ObservationFieldType.dropdown,
         ObservationFieldType.multiSelect,
       ];
 
@@ -58,6 +57,7 @@ class _ObservationFieldEditorSheetState
 
   bool _optionAllowMultiple = false;
   List<_OptionDraft> _optionDrafts = [];
+  late ObservationFieldAudience _audience;
 
   String? _errorText;
 
@@ -66,9 +66,7 @@ class _ObservationFieldEditorSheetState
     super.initState();
     final config = widget.field.config;
     _type = widget.field.type;
-    if (_type == ObservationFieldType.dropdown &&
-        config is OptionObservationFieldConfig &&
-        config.allowMultiple) {
+    if (_type == ObservationFieldType.dropdown) {
       _type = ObservationFieldType.multiSelect;
     }
     if (widget.canEditType && !_supportedTypes.contains(_type)) {
@@ -83,6 +81,7 @@ class _ObservationFieldEditorSheetState
     _textPlaceholderController = TextEditingController();
     _textMaxLengthController = TextEditingController();
 
+    _audience = widget.field.audience;
     _hydrateConfigState(config);
   }
 
@@ -150,9 +149,21 @@ class _ObservationFieldEditorSheetState
   void _handleTypeChanged(ObservationFieldType? value) {
     if (value == null || (!_typeChangeAllowed && value != _type)) return;
     setState(() {
+      final previousType = _type;
       _type = value;
+      if (_type == ObservationFieldType.multiSelect &&
+          previousType != ObservationFieldType.multiSelect) {
+        _optionAllowMultiple = true;
+      }
       _errorText = null;
-      _hydrateConfigState(null);
+      final switchedBetweenTextAndOptions =
+          (previousType == ObservationFieldType.text &&
+              _type != ObservationFieldType.text) ||
+          (_type == ObservationFieldType.text &&
+              previousType != ObservationFieldType.text);
+      if (switchedBetweenTextAndOptions) {
+        _hydrateConfigState(null);
+      }
     });
   }
 
@@ -241,6 +252,8 @@ class _ObservationFieldEditorSheetState
                 'Observers must provide a value before saving.',
               ),
             ),
+            const SizedBox(height: 16),
+            _buildAudienceSelector(),
             const Divider(height: 32),
             _buildConfigSection(),
             if (_errorText != null) ...[
@@ -287,6 +300,36 @@ class _ObservationFieldEditorSheetState
       default:
         return const SizedBox.shrink();
     }
+  }
+
+  Widget _buildAudienceSelector() {
+    const options = [
+      ObservationFieldAudience.individual,
+      ObservationFieldAudience.group,
+      ObservationFieldAudience.all,
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Form visibility',
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          children: options
+              .map(
+                (option) => ChoiceChip(
+                  label: Text(_audienceLabel(option)),
+                  selected: _audience == option,
+                  onSelected: (_) => setState(() => _audience = option),
+                ),
+              )
+              .toList(growable: false),
+        ),
+      ],
+    );
   }
 
   Widget _buildTextConfig() {
@@ -399,6 +442,17 @@ class _ObservationFieldEditorSheetState
     });
   }
 
+  String _audienceLabel(ObservationFieldAudience value) {
+    switch (value) {
+      case ObservationFieldAudience.individual:
+        return 'Individual';
+      case ObservationFieldAudience.group:
+        return 'Group';
+      case ObservationFieldAudience.all:
+        return 'Both';
+    }
+  }
+
   String _humanizeType(ObservationFieldType type) {
     switch (type) {
       case ObservationFieldType.text:
@@ -406,7 +460,7 @@ class _ObservationFieldEditorSheetState
       case ObservationFieldType.number:
         return 'Number';
       case ObservationFieldType.dropdown:
-        return 'Dropdown';
+        return 'Dropdown (legacy)';
       case ObservationFieldType.multiSelect:
         return 'Multi-select';
       case ObservationFieldType.checkbox:
@@ -453,12 +507,17 @@ class _ObservationFieldEditorSheetState
           setState(() => _errorText = 'Please provide at least two options.');
           return;
         }
-        final existingOptionConfig =
-            widget.field.config as OptionObservationFieldConfig?;
+        final existingOptionConfig = widget.field.config;
+        final previousAllowOther =
+            existingOptionConfig is OptionObservationFieldConfig
+            ? existingOptionConfig.allowOtherOption
+            : false;
         config = OptionObservationFieldConfig(
           options: options,
-          allowMultiple: _optionAllowMultiple,
-          allowOtherOption: existingOptionConfig?.allowOtherOption ?? false,
+          allowMultiple: _type == ObservationFieldType.multiSelect
+              ? _optionAllowMultiple
+              : false,
+          allowOtherOption: previousAllowOther,
         );
         break;
       default:
@@ -470,6 +529,7 @@ class _ObservationFieldEditorSheetState
       label: label,
       helperText: helper,
       isRequired: _isRequired,
+      audience: _audience,
       type: widget.canEditType ? _type : widget.field.type,
       config: config,
     );

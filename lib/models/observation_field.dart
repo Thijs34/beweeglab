@@ -10,6 +10,8 @@ enum ObservationFieldType {
   rating,
 }
 
+enum ObservationFieldAudience { all, individual, group }
+
 ObservationFieldType _parseObservationFieldType(String? raw) {
   if (raw == null) {
     return ObservationFieldType.text;
@@ -17,6 +19,16 @@ ObservationFieldType _parseObservationFieldType(String? raw) {
   return ObservationFieldType.values.firstWhere(
     (value) => value.name.toLowerCase() == raw.toLowerCase(),
     orElse: () => ObservationFieldType.text,
+  );
+}
+
+ObservationFieldAudience _parseObservationFieldAudience(String? raw) {
+  if (raw == null) {
+    return ObservationFieldAudience.all;
+  }
+  return ObservationFieldAudience.values.firstWhere(
+    (value) => value.name.toLowerCase() == raw.toLowerCase(),
+    orElse: () => ObservationFieldAudience.all,
   );
 }
 
@@ -247,6 +259,7 @@ class ObservationField {
   final String id;
   final String label;
   final ObservationFieldType type;
+  final ObservationFieldAudience audience;
   final bool isRequired;
   final bool isStandard;
   final bool isEnabled;
@@ -258,6 +271,7 @@ class ObservationField {
     required this.id,
     required this.label,
     required this.type,
+    this.audience = ObservationFieldAudience.all,
     this.isRequired = false,
     this.isStandard = false,
     this.isEnabled = true,
@@ -270,6 +284,7 @@ class ObservationField {
     String? id,
     String? label,
     ObservationFieldType? type,
+    ObservationFieldAudience? audience,
     bool? isRequired,
     bool? isStandard,
     bool? isEnabled,
@@ -281,6 +296,7 @@ class ObservationField {
       id: id ?? this.id,
       label: label ?? this.label,
       type: type ?? this.type,
+      audience: audience ?? this.audience,
       isRequired: isRequired ?? this.isRequired,
       isStandard: isStandard ?? this.isStandard,
       isEnabled: isEnabled ?? this.isEnabled,
@@ -291,7 +307,10 @@ class ObservationField {
   }
 
   factory ObservationField.fromJson(Map<String, dynamic> json) {
-    final type = _parseObservationFieldType(json['type'] as String?);
+    final rawType = _parseObservationFieldType(json['type'] as String?);
+    final type = rawType == ObservationFieldType.dropdown
+        ? ObservationFieldType.multiSelect
+        : rawType;
     final rawConfig = json['config'] as Map<String, dynamic>?;
     return ObservationField(
       id: json['id'] as String? ?? '',
@@ -303,6 +322,7 @@ class ObservationField {
       helperText: json['helperText'] as String?,
       displayOrder: (json['displayOrder'] as num?)?.toInt() ?? 0,
       config: ObservationFieldConfig.fromJson(type, rawConfig),
+      audience: _parseObservationFieldAudience(json['audience'] as String?),
     );
   }
 
@@ -311,6 +331,7 @@ class ObservationField {
       'id': id,
       'label': label,
       'type': type.name,
+      'audience': audience.name,
       'isRequired': isRequired,
       'isStandard': isStandard,
       'isEnabled': isEnabled,

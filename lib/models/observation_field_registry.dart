@@ -17,6 +17,11 @@ class ObservationFieldRegistry {
   static const String groupSizeFieldId = 'group.size';
   static const String groupGenderMixFieldId = 'group.genderMix';
   static const String groupAgeMixFieldId = 'group.ageMix';
+  static const Set<String> _individualOnlyFieldIds = <String>{
+    genderFieldId,
+    ageGroupFieldId,
+    socialContextFieldId,
+  };
 
   /// Returns a defensive copy of the standard field definitions to seed new
   /// projects. Callers are free to append custom definitions to the list.
@@ -24,12 +29,13 @@ class ObservationFieldRegistry {
     return List<ObservationField>.from(_defaultFieldSet);
   }
 
-  static final List<ObservationField> _defaultFieldSet =
-      List.unmodifiable(<ObservationField>[
+  static final List<ObservationField>
+  _defaultFieldSet = List.unmodifiable(<ObservationField>[
     ObservationField(
       id: genderFieldId,
       label: 'Gender',
-      type: ObservationFieldType.dropdown,
+      type: ObservationFieldType.multiSelect,
+      audience: ObservationFieldAudience.individual,
       isRequired: true,
       isStandard: true,
       isEnabled: true,
@@ -39,12 +45,14 @@ class ObservationFieldRegistry {
           ObservationFieldOption(id: 'male', label: 'Male'),
           ObservationFieldOption(id: 'female', label: 'Female'),
         ],
+        allowMultiple: false,
       ),
     ),
     ObservationField(
       id: ageGroupFieldId,
       label: 'Age Group',
-      type: ObservationFieldType.dropdown,
+      type: ObservationFieldType.multiSelect,
+      audience: ObservationFieldAudience.individual,
       isRequired: true,
       isStandard: true,
       isEnabled: true,
@@ -58,12 +66,14 @@ class ObservationFieldRegistry {
           ObservationFieldOption(id: '45-64', label: '45 – 64'),
           ObservationFieldOption(id: '65-plus', label: '65+'),
         ],
+        allowMultiple: false,
       ),
     ),
     ObservationField(
       id: socialContextFieldId,
       label: 'Social Context',
-      type: ObservationFieldType.dropdown,
+      type: ObservationFieldType.multiSelect,
+      audience: ObservationFieldAudience.individual,
       isRequired: true,
       isStandard: true,
       isEnabled: true,
@@ -73,12 +83,14 @@ class ObservationFieldRegistry {
           ObservationFieldOption(id: 'alone', label: 'Alone'),
           ObservationFieldOption(id: 'together', label: 'Together'),
         ],
+        allowMultiple: false,
       ),
     ),
     ObservationField(
       id: groupSizeFieldId,
       label: 'Group Size',
       type: ObservationFieldType.number,
+      audience: ObservationFieldAudience.group,
       isRequired: true,
       isStandard: true,
       isEnabled: true,
@@ -93,7 +105,8 @@ class ObservationFieldRegistry {
     ObservationField(
       id: groupGenderMixFieldId,
       label: 'Gender Mix',
-      type: ObservationFieldType.dropdown,
+      type: ObservationFieldType.multiSelect,
+      audience: ObservationFieldAudience.group,
       isRequired: true,
       isStandard: true,
       isEnabled: true,
@@ -105,12 +118,14 @@ class ObservationFieldRegistry {
           ObservationFieldOption(id: 'female', label: 'Female'),
           ObservationFieldOption(id: 'mixed', label: 'Mixed'),
         ],
+        allowMultiple: false,
       ),
     ),
     ObservationField(
       id: groupAgeMixFieldId,
       label: 'Age Mix',
-      type: ObservationFieldType.dropdown,
+      type: ObservationFieldType.multiSelect,
+      audience: ObservationFieldAudience.group,
       isRequired: true,
       isStandard: true,
       isEnabled: true,
@@ -123,12 +138,14 @@ class ObservationFieldRegistry {
           ObservationFieldOption(id: 'adult', label: 'Adult'),
           ObservationFieldOption(id: 'mixed', label: 'Mixed'),
         ],
+        allowMultiple: false,
       ),
     ),
     ObservationField(
       id: locationTypeFieldId,
       label: 'Location Type',
-      type: ObservationFieldType.dropdown,
+      type: ObservationFieldType.multiSelect,
+      audience: ObservationFieldAudience.all,
       isRequired: true,
       isStandard: true,
       isEnabled: true,
@@ -153,6 +170,7 @@ class ObservationFieldRegistry {
       id: customLocationFieldId,
       label: 'Custom Location Label',
       type: ObservationFieldType.text,
+      audience: ObservationFieldAudience.all,
       isStandard: true,
       isEnabled: true,
       displayOrder: 80,
@@ -165,7 +183,8 @@ class ObservationFieldRegistry {
     ObservationField(
       id: activityLevelFieldId,
       label: 'Activity Level',
-      type: ObservationFieldType.dropdown,
+      type: ObservationFieldType.multiSelect,
+      audience: ObservationFieldAudience.all,
       isRequired: true,
       isStandard: true,
       isEnabled: true,
@@ -176,12 +195,14 @@ class ObservationFieldRegistry {
           ObservationFieldOption(id: 'moving', label: 'Moving'),
           ObservationFieldOption(id: 'intense', label: 'Intense'),
         ],
+        allowMultiple: false,
       ),
     ),
     ObservationField(
       id: activityTypeFieldId,
       label: 'Activity Type',
-      type: ObservationFieldType.dropdown,
+      type: ObservationFieldType.multiSelect,
+      audience: ObservationFieldAudience.all,
       isRequired: true,
       isStandard: true,
       isEnabled: true,
@@ -191,12 +212,14 @@ class ObservationFieldRegistry {
           ObservationFieldOption(id: 'organized', label: 'Organized'),
           ObservationFieldOption(id: 'unorganized', label: 'Unorganized'),
         ],
+        allowMultiple: false,
       ),
     ),
     ObservationField(
       id: activityNotesFieldId,
       label: 'Activity Notes',
       type: ObservationFieldType.text,
+      audience: ObservationFieldAudience.all,
       isRequired: true,
       isStandard: true,
       isEnabled: true,
@@ -210,6 +233,7 @@ class ObservationFieldRegistry {
       id: remarksFieldId,
       label: 'Additional Remarks',
       type: ObservationFieldType.text,
+      audience: ObservationFieldAudience.all,
       isStandard: true,
       isEnabled: true,
       displayOrder: 120,
@@ -220,4 +244,17 @@ class ObservationFieldRegistry {
       ),
     ),
   ]);
+
+  /// Derives the legacy audience for a standard field that predates
+  /// the explicit audience attribute. Returns null when the field should
+  /// remain visible for both audiences so the caller can preserve `all`.
+  static ObservationFieldAudience? legacyAudienceForFieldId(String fieldId) {
+    if (_individualOnlyFieldIds.contains(fieldId)) {
+      return ObservationFieldAudience.individual;
+    }
+    if (fieldId.startsWith('group.')) {
+      return ObservationFieldAudience.group;
+    }
+    return null;
+  }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:my_app/models/observation_field.dart';
+import 'package:my_app/models/observation_field_audience.dart';
 import 'package:my_app/theme/app_theme.dart';
 
 class ProjectObservationFieldsCard extends StatelessWidget {
@@ -8,6 +9,8 @@ class ProjectObservationFieldsCard extends StatelessWidget {
     required this.fields,
     required this.hasChanges,
     required this.isSaving,
+    required this.activeAudience,
+    required this.onAudienceChange,
     required this.onAddField,
     required this.onEditField,
     required this.onReorderField,
@@ -20,11 +23,11 @@ class ProjectObservationFieldsCard extends StatelessWidget {
   final List<ObservationField> fields;
   final bool hasChanges;
   final bool isSaving;
+  final ObservationFieldAudience activeAudience;
+  final ValueChanged<ObservationFieldAudience> onAudienceChange;
   final Future<void> Function(BuildContext context) onAddField;
-  final Future<void> Function(
-    BuildContext context,
-    ObservationField field,
-  ) onEditField;
+  final Future<void> Function(BuildContext context, ObservationField field)
+  onEditField;
   final void Function(int oldIndex, int newIndex) onReorderField;
   final void Function(String fieldId, bool isEnabled) onToggleField;
   final void Function(String fieldId) onDeleteField;
@@ -63,8 +66,10 @@ class ProjectObservationFieldsCard extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: AppTheme.gray100,
                   borderRadius: BorderRadius.circular(999),
@@ -84,11 +89,18 @@ class ProjectObservationFieldsCard extends StatelessWidget {
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text('Add Field'),
                 style: OutlinedButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 16),
+          _AudienceToggle(
+            activeAudience: activeAudience,
+            onAudienceChange: onAudienceChange,
           ),
           const SizedBox(height: 6),
           const Text(
@@ -97,7 +109,7 @@ class ProjectObservationFieldsCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           if (fields.isEmpty)
-            _EmptyState(onAddField: onAddField)
+            _EmptyState(onAddField: onAddField, audience: activeAudience)
           else
             ReorderableListView.builder(
               shrinkWrap: true,
@@ -128,14 +140,13 @@ class ProjectObservationFieldsCard extends StatelessWidget {
                 onPressed: onResetFields,
                 icon: const Icon(Icons.settings_backup_restore, size: 18),
                 label: const Text('Restore defaults'),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppTheme.gray600,
-                ),
+                style: TextButton.styleFrom(foregroundColor: AppTheme.gray600),
               ),
               const Spacer(),
               ElevatedButton.icon(
-                onPressed:
-                    !hasChanges || isSaving ? null : () => onSaveFields(),
+                onPressed: !hasChanges || isSaving
+                    ? null
+                    : () => onSaveFields(),
                 icon: isSaving
                     ? SizedBox(
                         width: 16,
@@ -148,8 +159,10 @@ class ProjectObservationFieldsCard extends StatelessWidget {
                     : const Icon(Icons.save_outlined, size: 18),
                 label: Text(isSaving ? 'Saving…' : 'Save Changes'),
                 style: ElevatedButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 14,
+                  ),
                 ),
               ),
             ],
@@ -159,11 +172,15 @@ class ProjectObservationFieldsCard extends StatelessWidget {
     );
   }
 
-  Future<void> _confirmDelete(BuildContext context, ObservationField field) async {
+  Future<void> _confirmDelete(
+    BuildContext context,
+    ObservationField field,
+  ) async {
     if (field.isStandard) {
       return;
     }
-    final confirmed = await showDialog<bool>(
+    final confirmed =
+        await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
             title: const Text('Delete field'),
@@ -177,9 +194,7 @@ class ProjectObservationFieldsCard extends StatelessWidget {
               ),
               FilledButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppTheme.red600,
-                ),
+                style: FilledButton.styleFrom(backgroundColor: AppTheme.red600),
                 child: const Text('Delete'),
               ),
             ],
@@ -192,10 +207,69 @@ class ProjectObservationFieldsCard extends StatelessWidget {
   }
 }
 
+class _AudienceToggle extends StatelessWidget {
+  const _AudienceToggle({
+    required this.activeAudience,
+    required this.onAudienceChange,
+  });
+
+  final ObservationFieldAudience activeAudience;
+  final ValueChanged<ObservationFieldAudience> onAudienceChange;
+
+  @override
+  Widget build(BuildContext context) {
+    final entries = [
+      _AudienceOption(
+        audience: ObservationFieldAudience.individual,
+        label: 'Individual form',
+        icon: Icons.person_outline,
+      ),
+      _AudienceOption(
+        audience: ObservationFieldAudience.group,
+        label: 'Group form',
+        icon: Icons.groups_outlined,
+      ),
+    ];
+    return Wrap(
+      spacing: 12,
+      runSpacing: 8,
+      children: entries
+          .map(
+            (entry) => ChoiceChip(
+              label: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(entry.icon, size: 16),
+                  const SizedBox(width: 6),
+                  Text(entry.label),
+                ],
+              ),
+              selected: activeAudience == entry.audience,
+              onSelected: (_) => onAudienceChange(entry.audience),
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+}
+
+class _AudienceOption {
+  const _AudienceOption({
+    required this.audience,
+    required this.label,
+    required this.icon,
+  });
+
+  final ObservationFieldAudience audience;
+  final String label;
+  final IconData icon;
+}
+
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.onAddField});
+  const _EmptyState({required this.onAddField, required this.audience});
 
   final Future<void> Function(BuildContext context) onAddField;
+  final ObservationFieldAudience audience;
 
   @override
   Widget build(BuildContext context) {
@@ -211,16 +285,16 @@ class _EmptyState extends StatelessWidget {
         children: [
           const Icon(Icons.ballot_outlined, size: 36, color: AppTheme.gray400),
           const SizedBox(height: 12),
-          const Text(
-            'No fields configured yet.',
+          Text(
+            'No fields configured for the ${_humanReadableAudience()} form.',
             style: TextStyle(
               fontWeight: FontWeight.w600,
               color: AppTheme.gray700,
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Add your first custom field or restore the default template.',
+          Text(
+            'Add a custom field or restore defaults to populate this form.',
             textAlign: TextAlign.center,
             style: TextStyle(color: AppTheme.gray600),
           ),
@@ -232,6 +306,17 @@ class _EmptyState extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _humanReadableAudience() {
+    switch (audience) {
+      case ObservationFieldAudience.group:
+        return 'group';
+      case ObservationFieldAudience.individual:
+        return 'individual';
+      case ObservationFieldAudience.all:
+        return 'shared';
+    }
   }
 }
 
@@ -254,6 +339,7 @@ class _FieldRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final resolvedAudience = resolveObservationFieldAudience(field);
     final chips = <Widget>[
       _buildChip(
         label: field.type.name,
@@ -278,6 +364,11 @@ class _FieldRow extends StatelessWidget {
           color: const Color(0xFFFFE5E5),
           textColor: const Color(0xFFB3261E),
         ),
+      _buildChip(
+        label: _audienceChipLabel(resolvedAudience),
+        color: _audienceChipColor(resolvedAudience),
+        textColor: _audienceChipTextColor(resolvedAudience),
+      ),
     ];
 
     return Column(
@@ -291,10 +382,7 @@ class _FieldRow extends StatelessWidget {
                 index: index,
                 child: Padding(
                   padding: const EdgeInsets.only(top: 6, right: 12),
-                  child: Icon(
-                    Icons.drag_indicator,
-                    color: AppTheme.gray400,
-                  ),
+                  child: Icon(Icons.drag_indicator, color: AppTheme.gray400),
                 ),
               ),
               Expanded(
@@ -310,11 +398,7 @@ class _FieldRow extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: chips,
-                    ),
+                    Wrap(spacing: 6, runSpacing: 6, children: chips),
                     if (field.helperText != null &&
                         field.helperText!.trim().isNotEmpty)
                       Padding(
@@ -360,11 +444,7 @@ class _FieldRow extends StatelessWidget {
           ),
         ),
         if (!isLast)
-          const Divider(
-            height: 1,
-            thickness: 1,
-            color: AppTheme.gray200,
-          ),
+          const Divider(height: 1, thickness: 1, color: AppTheme.gray200),
       ],
     );
   }
@@ -389,5 +469,38 @@ class _FieldRow extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _audienceChipLabel(ObservationFieldAudience audience) {
+    switch (audience) {
+      case ObservationFieldAudience.individual:
+        return 'Individual';
+      case ObservationFieldAudience.group:
+        return 'Group';
+      case ObservationFieldAudience.all:
+        return 'Shared';
+    }
+  }
+
+  Color _audienceChipColor(ObservationFieldAudience audience) {
+    switch (audience) {
+      case ObservationFieldAudience.individual:
+        return const Color(0xFFE6F4FF);
+      case ObservationFieldAudience.group:
+        return const Color(0xFFFFF4E5);
+      case ObservationFieldAudience.all:
+        return const Color(0xFFEAF5EA);
+    }
+  }
+
+  Color _audienceChipTextColor(ObservationFieldAudience audience) {
+    switch (audience) {
+      case ObservationFieldAudience.individual:
+        return const Color(0xFF0F4C81);
+      case ObservationFieldAudience.group:
+        return const Color(0xFF8B4600);
+      case ObservationFieldAudience.all:
+        return const Color(0xFF1C5C1C);
+    }
   }
 }
