@@ -119,8 +119,8 @@ class SessionSummaryModal extends StatelessWidget {
                   children: [
                     Expanded(
                       child: _StatPill(
-                        background: const Color(0xFFF5F3FF),
-                        valueColor: const Color(0xFF7C3AED),
+                        background: const Color(0xFFFFF3E0),
+                        valueColor: Color(0xFFFE5C01),
                         label: 'Individuals',
                         value: stats.individuals.toString(),
                       ),
@@ -128,8 +128,8 @@ class SessionSummaryModal extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: _StatPill(
-                        background: const Color(0xFFFDF4FF),
-                        valueColor: const Color(0xFFA855F7),
+                        background: const Color(0xFFFFE0B2),
+                        valueColor: const Color(0xFFFE5C01),
                         label: 'Groups',
                         value: stats.groups.toString(),
                       ),
@@ -159,7 +159,7 @@ class SessionSummaryModal extends StatelessWidget {
                   child: _CenteredStat(
                     label: 'Males',
                     value: stats.males.toString(),
-                    color: const Color(0xFF3B82F6),
+                    color: const Color(0xFFBF360C),
                   ),
                 ),
                 Container(width: 1, height: 60, color: AppTheme.gray100),

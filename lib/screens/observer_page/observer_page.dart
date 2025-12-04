@@ -66,15 +66,13 @@ class _ObserverPageState extends State<ObserverPage> {
   bool _isEditingPersonId = false;
   final AdminNotificationService _notificationService =
       AdminNotificationService.instance;
-    final ObservationService _observationService =
-      ObservationService.instance;
-    final PersonIdService _personIdService = PersonIdService.instance;
-    final SessionDraftService _sessionDraftService =
-      SessionDraftService.instance;
-    final ProjectSelectionService _projectSelectionService =
+  final ObservationService _observationService = ObservationService.instance;
+  final PersonIdService _personIdService = PersonIdService.instance;
+  final SessionDraftService _sessionDraftService = SessionDraftService.instance;
+  final ProjectSelectionService _projectSelectionService =
       ProjectSelectionService.instance;
   StreamSubscription<int>? _notificationCountSubscription;
-    VoidCallback? _projectSelectionListener;
+  VoidCallback? _projectSelectionListener;
   int _unreadNotificationCount = 0;
 
   String _personId = '1';
@@ -127,8 +125,9 @@ class _ObserverPageState extends State<ObserverPage> {
       _restorePersonCounter();
       _restoreSessionDrafts();
     };
-    _projectSelectionService.selectedProjectListenable
-        .addListener(_projectSelectionListener!);
+    _projectSelectionService.selectedProjectListenable.addListener(
+      _projectSelectionListener!,
+    );
     _restorePersonCounter();
     _restoreSessionDrafts();
   }
@@ -141,8 +140,9 @@ class _ObserverPageState extends State<ObserverPage> {
     _additionalRemarksController.dispose();
     _notificationCountSubscription?.cancel();
     if (_projectSelectionListener != null) {
-      _projectSelectionService.selectedProjectListenable
-          .removeListener(_projectSelectionListener!);
+      _projectSelectionService.selectedProjectListenable.removeListener(
+        _projectSelectionListener!,
+      );
     }
     super.dispose();
   }
@@ -1481,8 +1481,7 @@ class _ObserverPageState extends State<ObserverPage> {
     );
   }
 
-  String get _headerLocation =>
-      _activeProject?.name ?? 'No project selected';
+  String get _headerLocation => _activeProject?.name ?? 'No project selected';
 
   Project? get _activeProject =>
       widget.arguments?.project ?? _projectSelectionService.currentProject;
