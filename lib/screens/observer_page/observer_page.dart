@@ -12,6 +12,7 @@ import 'package:my_app/models/project.dart';
 import 'package:my_app/theme/app_theme.dart';
 import 'package:my_app/widgets/profile_menu.dart';
 import 'package:my_app/services/admin_notification_service.dart';
+import 'package:my_app/services/auth_service.dart';
 import 'package:my_app/services/observation_service.dart';
 import 'package:my_app/services/person_id_service.dart';
 import 'package:my_app/services/session_draft_service.dart';
@@ -1603,7 +1604,22 @@ class _ObserverPageState extends State<ObserverPage> {
     });
   }
 
-  void _handleLogout() {
+  void _handleLogout() async {
+    try {
+      await AuthService.instance.signOut();
+    } on AuthException catch (error) {
+      _showSnackMessage(error.message, isError: true);
+      return;
+    } catch (error) {
+      debugPrint('Failed to sign out: $error');
+      _showSnackMessage(
+        'Unable to logout right now. Please try again.',
+        isError: true,
+      );
+      return;
+    }
+
+    if (!mounted) return;
     Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
   }
 

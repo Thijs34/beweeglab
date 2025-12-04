@@ -6,6 +6,7 @@ import 'package:my_app/models/navigation_arguments.dart';
 import 'package:my_app/screens/admin_page/widgets/admin_header.dart';
 import 'package:my_app/screens/observer_page/observer_page.dart';
 import 'package:my_app/services/admin_notification_service.dart';
+import 'package:my_app/services/auth_service.dart';
 import 'package:my_app/theme/app_theme.dart';
 import 'package:my_app/widgets/profile_menu.dart';
 
@@ -259,7 +260,19 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage> {
     setState(() => _showProfileMenu = !_showProfileMenu);
   }
 
-  void _handleLogout() {
+  void _handleLogout() async {
+    try {
+      await AuthService.instance.signOut();
+    } on AuthException catch (error) {
+      _showSnack(error.message, isError: true);
+      return;
+    } catch (error) {
+      debugPrint('Failed to sign out: $error');
+      _showSnack('Unable to logout right now. Please try again.', isError: true);
+      return;
+    }
+
+    if (!mounted) return;
     Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
   }
 

@@ -79,6 +79,15 @@ class AuthService {
     }
   }
 
+  Future<void> signOut() async {
+    try {
+      await _firebaseAuth.signOut();
+      _userService.clearCache();
+    } catch (_) {
+      throw const AuthException('Failed to sign out. Please try again.');
+    }
+  }
+
   Future<String> getUserRole(String uid) {
     return _userService.fetchUserRole(uid);
   }

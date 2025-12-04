@@ -10,6 +10,7 @@ import 'package:my_app/screens/project_list/widgets/projects_panel.dart';
 import 'package:my_app/screens/project_list/widgets/user_info_bar.dart';
 import 'package:my_app/screens/project_list/widgets/welcome_section.dart';
 import 'package:my_app/services/admin_notification_service.dart';
+import 'package:my_app/services/auth_service.dart';
 import 'package:my_app/services/project_selection_service.dart';
 import 'package:my_app/services/project_service.dart';
 import 'package:my_app/services/user_service.dart';
@@ -277,9 +278,31 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
     );
   }
 
-  void _handleLogout() {
+  void _handleLogout() async {
+    try {
+      await AuthService.instance.signOut();
+    } on AuthException catch (error) {
+      _showLogoutError(error.message);
+      return;
+    } catch (error) {
+      debugPrint('Failed to sign out: $error');
+      _showLogoutError('Unable to logout right now. Please try again.');
+      return;
+    }
+
     _selectionService.clearSelection();
+    if (!mounted) return;
     Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+  }
+
+  void _showLogoutError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
   void _toggleProfileMenu() {

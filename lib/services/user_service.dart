@@ -47,6 +47,8 @@ class UserService {
 
   AppUserRecord? getCachedUser(String uid) => _userCache[uid];
 
+  void clearCache() => _userCache.clear();
+
   Future<AppUserRecord?> getUserProfile(
     String uid, {
     bool forceRefresh = false,

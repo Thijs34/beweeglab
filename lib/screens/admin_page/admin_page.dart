@@ -12,6 +12,7 @@ import 'package:my_app/screens/admin_page/widgets/project_detail_view.dart';
 import 'package:my_app/screens/admin_page/widgets/project_list_view.dart';
 import 'package:my_app/screens/observer_page/observer_page.dart';
 import 'package:my_app/services/admin_notification_service.dart';
+import 'package:my_app/services/auth_service.dart';
 import 'package:my_app/services/observation_service.dart';
 import 'package:my_app/services/location_autocomplete_service.dart';
 import 'package:my_app/services/observation_export_service.dart';
@@ -350,7 +351,22 @@ class _AdminPageState extends State<AdminPage> {
     });
   }
 
-  void _handleLogout() {
+  void _handleLogout() async {
+    try {
+      await AuthService.instance.signOut();
+    } on AuthException catch (error) {
+      _showSnackMessage(error.message, isError: true);
+      return;
+    } catch (error) {
+      debugPrint('Failed to sign out: $error');
+      _showSnackMessage(
+        'Unable to logout right now. Please try again.',
+        isError: true,
+      );
+      return;
+    }
+
+    if (!mounted) return;
     Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
   }
 
