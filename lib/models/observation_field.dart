@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 /// Enumerates the supported observation field types.
 enum ObservationFieldType {
   text,
@@ -37,11 +39,15 @@ class ObservationFieldOption {
   final String id;
   final String label;
   final String? description;
+  final IconData? icon;
+
+  /// Optional icon to visually represent this option in the UI
 
   const ObservationFieldOption({
     required this.id,
     required this.label,
     this.description,
+    this.icon,
   });
 
   factory ObservationFieldOption.fromJson(Map<String, dynamic> json) {

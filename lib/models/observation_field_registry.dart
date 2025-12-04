@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:my_app/models/observation_field.dart';
 
 /// Provides the canonical list of standard observation fields shared by every
@@ -42,8 +43,12 @@ class ObservationFieldRegistry {
       displayOrder: 10,
       config: OptionObservationFieldConfig(
         options: <ObservationFieldOption>[
-          ObservationFieldOption(id: 'male', label: 'Male'),
-          ObservationFieldOption(id: 'female', label: 'Female'),
+          ObservationFieldOption(id: 'male', label: 'Male', icon: Icons.male),
+          ObservationFieldOption(
+            id: 'female',
+            label: 'Female',
+            icon: Icons.female,
+          ),
         ],
         allowMultiple: false,
       ),

@@ -706,7 +706,15 @@ class _ObserverPageState extends State<ObserverPage> {
 
     final selectionOptions = combinedOptions
         .map(
-          (option) => _SelectionOption(label: option.label, value: option.id),
+          (option) => _SelectionOption(
+            label: option.label,
+            value: option.id,
+            icon:
+                option.icon ??
+                _inferIconFromLabel(
+                  option.label,
+                ), //Function below to map icons to specific labels
+          ),
         )
         .toList(growable: true);
     if (allowOther) {
@@ -897,6 +905,62 @@ class _ObserverPageState extends State<ObserverPage> {
       return 'custom-option-${DateTime.now().millisecondsSinceEpoch}';
     }
     return trimmed;
+  }
+
+  //Might be changed if ambigous
+  IconData? _inferIconFromLabel(String label) {
+    final text = label.trim().toLowerCase();
+
+    // Gender
+    if (text.contains('male') || text.contains(' man') || text == 'man') {
+      return Icons.male;
+    }
+    if (text.contains('female') || text.contains(' woman') || text == 'woman') {
+      return Icons.female;
+    }
+
+    // Social context
+    if (text.contains('alone') || text.contains('single')) {
+      return Icons.person;
+    }
+    if (text.contains('together') ||
+        text.contains('group') ||
+        text.contains('with')) {
+      return Icons.groups;
+    }
+
+    // Location-specific icons
+    if (text.contains('basket') || text.contains('basketball')) {
+      return Icons.sports_basketball;
+    }
+    if (text.contains('cruyff') ||
+        text.contains('court') ||
+        text.contains('soccer') ||
+        text.contains('football')) {
+      return Icons.sports_soccer;
+    }
+    if (text.contains('grass') ||
+        text.contains('field') ||
+        text.contains('park')) {
+      return Icons.park;
+    }
+
+    // Activity-level icons
+    if (text.contains('sedentary') || text.contains('sedent')) {
+      return Icons.airline_seat_flat; // lying down / resting
+    }
+    if (text.contains('moving') ||
+        text.contains('yoga') ||
+        text.contains('walk')) {
+      return Icons.self_improvement; // yoga / mindful movement
+    }
+    if (text.contains('intense') ||
+        text.contains('run') ||
+        text.contains('running')) {
+      return Icons.directions_run;
+    }
+
+    return null;
   }
 
   Widget _buildPersonIdField() {
