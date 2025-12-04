@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:my_app/screens/admin_page/admin_models.dart';
 import 'package:my_app/screens/admin_page/widgets/project_status_badge.dart';
+import 'package:my_app/services/location_autocomplete_service.dart';
 import 'package:my_app/theme/app_theme.dart';
 
 class AdminProjectListView extends StatelessWidget {
   final List<AdminProject> projects;
   final List<AdminLocationOption> locationOptions;
+  final LocationAutocompleteService locationAutocompleteService;
   final bool showNewProjectForm;
   final bool showProjectSuccess;
   final String lastCreatedProjectName;
@@ -46,6 +49,7 @@ class AdminProjectListView extends StatelessWidget {
     super.key,
     required this.projects,
     required this.locationOptions,
+    required this.locationAutocompleteService,
     required this.showNewProjectForm,
     required this.showProjectSuccess,
     required this.lastCreatedProjectName,
@@ -145,6 +149,7 @@ class AdminProjectListView extends StatelessWidget {
             _NewProjectForm(
               onProjectNameChanged: onProjectNameChanged,
               locationOptions: locationOptions,
+              locationAutocompleteService: locationAutocompleteService,
               newProjectNameController: newProjectNameController,
               newProjectMainLocationController:
                   newProjectMainLocationController,
@@ -333,6 +338,7 @@ class _SuccessBanner extends StatelessWidget {
 class _NewProjectForm extends StatelessWidget {
   final VoidCallback onProjectNameChanged;
   final List<AdminLocationOption> locationOptions;
+  final LocationAutocompleteService locationAutocompleteService;
   final TextEditingController newProjectNameController;
   final TextEditingController newProjectMainLocationController;
   final TextEditingController newProjectDescriptionController;
@@ -363,6 +369,7 @@ class _NewProjectForm extends StatelessWidget {
   const _NewProjectForm({
     required this.onProjectNameChanged,
     required this.locationOptions,
+    required this.locationAutocompleteService,
     required this.newProjectNameController,
     required this.newProjectMainLocationController,
     required this.newProjectDescriptionController,
@@ -436,13 +443,70 @@ class _NewProjectForm extends StatelessWidget {
           _LabeledField(
             label: 'Main Location',
             isRequired: true,
-            child: TextField(
+            child: TypeAheadField<LocationPrediction>(
               controller: newProjectMainLocationController,
-              decoration: InputDecoration(
-                hintText: 'e.g., Parkstraat, Amsterdam',
-                errorText: errors['mainLocation'],
+              hideOnEmpty: true,
+              debounceDuration: const Duration(milliseconds: 350),
+              suggestionsCallback: (pattern) async {
+                if (pattern.trim().length < 3) {
+                  return const <LocationPrediction>[];
+                }
+                try {
+                  return await locationAutocompleteService
+                      .fetchSuggestions(pattern);
+                } catch (error) {
+                  debugPrint('Location autocomplete failed: $error');
+                  return const <LocationPrediction>[];
+                }
+              },
+              builder: (context, controller, focusNode) => TextField(
+                controller: controller,
+                focusNode: focusNode,
+                decoration: InputDecoration(
+                  hintText: 'e.g., Parkstraat, Amsterdam',
+                  errorText: errors['mainLocation'],
+                ),
+                onChanged: (_) => onMainLocationChanged(),
               ),
-              onChanged: (_) => onMainLocationChanged(),
+              itemBuilder: (context, suggestion) => ListTile(
+                leading: const Icon(
+                  Icons.location_on_outlined,
+                  color: AppTheme.primaryOrange,
+                  size: 20,
+                ),
+                title: Text(
+                  suggestion.primaryText,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                subtitle: suggestion.secondaryText == null
+                    ? null
+                    : Text(
+                        suggestion.secondaryText!,
+                        style: const TextStyle(color: AppTheme.gray600),
+                      ),
+              ),
+              onSelected: (suggestion) {
+                newProjectMainLocationController.text =
+                    suggestion.description;
+                onMainLocationChanged();
+              },
+              emptyBuilder: (context) => const Padding(
+                padding: EdgeInsets.all(12),
+                child: Text(
+                  'No suggestions found',
+                  style: TextStyle(color: AppTheme.gray500),
+                ),
+              ),
+              loadingBuilder: (context) => const Padding(
+                padding: EdgeInsets.all(12),
+                child: Center(
+                  child: SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 20),

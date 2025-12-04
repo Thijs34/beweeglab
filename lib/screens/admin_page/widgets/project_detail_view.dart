@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:my_app/models/observation_field.dart';
 import 'package:my_app/screens/admin_page/admin_models.dart';
 import 'package:my_app/screens/admin_page/widgets/project_detail_section_selector.dart';
 import 'package:my_app/screens/admin_page/widgets/project_observation_fields_card.dart';
 import 'package:my_app/screens/admin_page/widgets/project_status_badge.dart';
+import 'package:my_app/services/location_autocomplete_service.dart';
 import 'package:my_app/theme/app_theme.dart';
 
 class ProjectDetailView extends StatelessWidget {
@@ -18,6 +20,7 @@ class ProjectDetailView extends StatelessWidget {
   final VoidCallback onSaveMainLocation;
   final bool isSavingMainLocation;
   final bool hasMainLocationChanges;
+  final LocationAutocompleteService locationAutocompleteService;
   final Map<String, String> filters;
   final bool showObserverSelector;
   final String observerSearchQuery;
@@ -73,6 +76,7 @@ class ProjectDetailView extends StatelessWidget {
     required this.onSaveMainLocation,
     required this.isSavingMainLocation,
     required this.hasMainLocationChanges,
+    required this.locationAutocompleteService,
     required this.filters,
     required this.showObserverSelector,
     required this.observerSearchQuery,
@@ -178,6 +182,7 @@ class ProjectDetailView extends StatelessWidget {
             onSave: onSaveMainLocation,
             isSaving: isSavingMainLocation,
             hasChanges: hasMainLocationChanges,
+            locationAutocompleteService: locationAutocompleteService,
           ),
           const SizedBox(height: 16),
           _LocationTypesCard(
@@ -601,6 +606,7 @@ class _MainLocationCard extends StatelessWidget {
   final VoidCallback onSave;
   final bool isSaving;
   final bool hasChanges;
+  final LocationAutocompleteService locationAutocompleteService;
 
   const _MainLocationCard({
     required this.controller,
@@ -609,6 +615,7 @@ class _MainLocationCard extends StatelessWidget {
     required this.onSave,
     required this.isSaving,
     required this.hasChanges,
+    required this.locationAutocompleteService,
   });
 
   @override
@@ -641,13 +648,70 @@ class _MainLocationCard extends StatelessWidget {
             style: TextStyle(color: AppTheme.gray600, fontSize: 13),
           ),
           const SizedBox(height: 12),
-          TextField(
+          TypeAheadField<LocationPrediction>(
             controller: controller,
-            decoration: InputDecoration(
-              hintText: 'e.g., Parkstraat, Amsterdam Noord',
-              errorText: errorText,
+            hideOnEmpty: true,
+            debounceDuration: const Duration(milliseconds: 350),
+            suggestionsCallback: (pattern) async {
+              final query = pattern.trim();
+              if (query.length < 3) {
+                return const <LocationPrediction>[];
+              }
+              try {
+                return await locationAutocompleteService
+                    .fetchSuggestions(query);
+              } catch (error) {
+                debugPrint('Location autocomplete failed: $error');
+                return const <LocationPrediction>[];
+              }
+            },
+            builder: (context, fieldController, focusNode) => TextField(
+              controller: fieldController,
+              focusNode: focusNode,
+              decoration: InputDecoration(
+                hintText: 'e.g., Parkstraat, Amsterdam Noord',
+                errorText: errorText,
+              ),
+              onChanged: onChanged,
             ),
-            onChanged: onChanged,
+            itemBuilder: (context, suggestion) => ListTile(
+              leading: const Icon(
+                Icons.location_on_outlined,
+                color: AppTheme.primaryOrange,
+                size: 20,
+              ),
+              title: Text(
+                suggestion.primaryText,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              subtitle: suggestion.secondaryText == null
+                  ? null
+                  : Text(
+                      suggestion.secondaryText!,
+                      style: const TextStyle(color: AppTheme.gray600),
+                    ),
+            ),
+            onSelected: (suggestion) {
+              controller.text = suggestion.description;
+              onChanged(controller.text);
+            },
+            emptyBuilder: (context) => const Padding(
+              padding: EdgeInsets.all(12),
+              child: Text(
+                'No suggestions found',
+                style: TextStyle(color: AppTheme.gray500),
+              ),
+            ),
+            loadingBuilder: (context) => const Padding(
+              padding: EdgeInsets.all(12),
+              child: Center(
+                child: SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            ),
           ),
         ],
       ),

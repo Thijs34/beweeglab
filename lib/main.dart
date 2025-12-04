@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:my_app/firebase_options.dart';
 import 'package:my_app/models/navigation_arguments.dart';
 import 'package:my_app/screens/admin_page/admin_page.dart';
@@ -13,9 +14,18 @@ import 'package:my_app/theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await _bootstrapEnv();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await AuthService.instance.ensurePersistence();
   runApp(const MyApp());
+}
+
+Future<void> _bootstrapEnv() async {
+  try {
+    await dotenv.load(fileName: '.env');
+  } catch (error) {
+    debugPrint('dotenv: $error');
+  }
 }
 
 class MyApp extends StatelessWidget {

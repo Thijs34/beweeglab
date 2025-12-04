@@ -64,8 +64,16 @@ All screens are in `lib/screens/`:
 ## Getting Started
 
 1. Make sure Flutter is installed
-2. Run `flutter pub get` to install dependencies
-3. Run `flutter run` to start the app
+2. Copy `.env.example` to `.env` and paste your Google Places API key
+3. Run `flutter pub get` to install dependencies
+4. Run `flutter run` to start the app
+
+### Google Places Autocomplete
+
+- Enable the Places API (Legacy) and Places API (New) in Google Cloud and create a restricted API key.
+- Store the key in `.env` as `GOOGLE_PLACES_API_KEY=your_key` (never commit the real key).
+- The admin “Main Location” field uses this key to fetch autocomplete suggestions; without it the field still works as a plain text box.
+- On Flutter web builds the Google Places JavaScript SDK loads automatically (using the same key) to avoid CORS errors.
 
 ## For the Team
 

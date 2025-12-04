@@ -13,6 +13,7 @@ import 'package:my_app/screens/admin_page/widgets/project_list_view.dart';
 import 'package:my_app/screens/observer_page/observer_page.dart';
 import 'package:my_app/services/admin_notification_service.dart';
 import 'package:my_app/services/observation_service.dart';
+import 'package:my_app/services/location_autocomplete_service.dart';
 import 'package:my_app/services/observation_export_service.dart';
 import 'package:my_app/models/observation_field_registry.dart';
 import 'package:my_app/services/project_service.dart';
@@ -55,6 +56,8 @@ class _AdminPageState extends State<AdminPage> {
   final Map<String, List<ObservationRecord>> _observationCache = {};
   final ObservationExportService _observationExportService =
       ObservationExportService.instance;
+    final LocationAutocompleteService _locationAutocompleteService =
+      LocationAutocompleteService();
   static const int _projectFetchLimit = 40;
   static const int _defaultObservationPageSize = 5;
   static const List<int> _observationPageSizeOptions = [5, 10, 20, 50];
@@ -134,6 +137,7 @@ class _AdminPageState extends State<AdminPage> {
     _customLocationController.dispose();
     _addLocationController.dispose();
     _projectMainLocationController.dispose();
+    _locationAutocompleteService.dispose();
     super.dispose();
   }
 
@@ -1317,6 +1321,8 @@ class _AdminPageState extends State<AdminPage> {
                                         projects: _filteredProjectsByStatus,
                                         locationOptions:
                                             AdminDataRepository.locationOptions,
+                                      locationAutocompleteService:
+                                        _locationAutocompleteService,
                                         showNewProjectForm: _showNewProjectForm,
                                         showProjectSuccess: _showProjectSuccess,
                                         lastCreatedProjectName:
@@ -1385,6 +1391,8 @@ class _AdminPageState extends State<AdminPage> {
                                   observers: _observers,
                                   locationOptions:
                                       AdminDataRepository.locationOptions,
+                                  locationAutocompleteService:
+                                    _locationAutocompleteService,
                                   activeSection: _projectDetailSection,
                                   onSectionChange: _handleProjectSectionChanged,
                                   mainLocationController:
