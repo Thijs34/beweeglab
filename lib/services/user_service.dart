@@ -139,7 +139,7 @@ class UserService {
   }
 
   Future<String> fetchUserRole(String uid) async {
-    final record = await getUserProfile(uid);
+    final record = await getUserProfile(uid, forceRefresh: true);
     if (record == null) {
       await ensureUserDocument(uid: uid);
       return 'observer';

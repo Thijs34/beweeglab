@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:my_app/models/observation_field.dart';
+import 'package:my_app/models/observation_field_registry.dart';
 
 /// Project model representing a field observation project.
 class Project {
@@ -8,6 +10,7 @@ class Project {
   final String? description;
   final List<String> assignedObserverIds;
   final List<String> locationTypeIds;
+  final List<ObservationField> fields;
   final String status;
   final DateTime? updatedAt;
   final DateTime? createdAt;
@@ -19,6 +22,7 @@ class Project {
     this.description,
     this.assignedObserverIds = const [],
     this.locationTypeIds = const [],
+    this.fields = const [],
     this.status = 'active',
     this.updatedAt,
     this.createdAt,
@@ -33,6 +37,7 @@ class Project {
     String? description,
     List<String>? assignedObserverIds,
     List<String>? locationTypeIds,
+    List<ObservationField>? fields,
     String? status,
     DateTime? updatedAt,
     DateTime? createdAt,
@@ -44,6 +49,7 @@ class Project {
       description: description ?? this.description,
       assignedObserverIds: assignedObserverIds ?? this.assignedObserverIds,
       locationTypeIds: locationTypeIds ?? this.locationTypeIds,
+      fields: fields ?? this.fields,
       status: status ?? this.status,
       updatedAt: updatedAt ?? this.updatedAt,
       createdAt: createdAt ?? this.createdAt,
@@ -61,6 +67,7 @@ class Project {
       description: _trimOrNull(data['description'] as String?),
       assignedObserverIds: _toStringList(data['assignedObserverIds']),
       locationTypeIds: _toStringList(data['locationTypeIds']),
+      fields: _resolveFields(data['fields']),
       status: (data['status'] as String?)?.toLowerCase() ?? 'active',
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
@@ -74,6 +81,7 @@ class Project {
       if (description != null) 'description': description,
       'assignedObserverIds': assignedObserverIds,
       'locationTypeIds': locationTypeIds,
+      'fields': ObservationField.listToJson(fields),
       'status': status,
       'updatedAt': updatedAt?.toIso8601String(),
       'createdAt': createdAt?.toIso8601String(),
@@ -109,5 +117,13 @@ class Project {
       return value.map((item) => item.toString()).toList(growable: false);
     }
     return const [];
+  }
+
+  static List<ObservationField> _resolveFields(dynamic rawFields) {
+    final parsed = ObservationField.listFromJson(rawFields);
+    if (parsed.isEmpty) {
+      return ObservationFieldRegistry.defaultFields();
+    }
+    return parsed;
   }
 }

@@ -32,74 +32,71 @@ class ProjectsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppTheme.white,
-          borderRadius: BorderRadius.circular(AppTheme.borderRadiusLarge),
-          border: Border.all(color: AppTheme.gray200, width: 1),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 3,
-              offset: const Offset(0, 1),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            _ProjectsPanelHeader(
-              projectCount: projects.length,
-              onRefresh: onRefresh,
-              isRefreshing: isRefreshing,
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  _buildSearchField(),
-                  const SizedBox(height: 16),
-                  if (isLoading)
-                    const _ProjectsLoadingState()
-                  else if (errorMessage != null)
-                    _ProjectsErrorState(
-                      message: errorMessage!,
-                      onRetry: onRefresh,
-                    )
-                  else if (filteredProjects.isNotEmpty)
-                    ...List.generate(
-                      filteredProjects.length,
-                      (index) => Padding(
-                        padding: EdgeInsets.only(
-                          bottom: index < filteredProjects.length - 1 ? 10 : 0,
-                        ),
-                        child: ProjectCard(
-                          project: filteredProjects[index],
-                          onTap: () => onProjectTap(filteredProjects[index]),
-                          isSelected: selectedProjectId ==
-                              filteredProjects[index].id,
-                        ),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.white,
+        borderRadius: BorderRadius.circular(AppTheme.borderRadiusLarge),
+        border: Border.all(color: AppTheme.gray200, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 3,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _ProjectsPanelHeader(
+            projectCount: projects.length,
+            onRefresh: onRefresh,
+            isRefreshing: isRefreshing,
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                _buildSearchField(),
+                const SizedBox(height: 16),
+                if (isLoading)
+                  const _ProjectsLoadingState()
+                else if (errorMessage != null)
+                  _ProjectsErrorState(
+                    message: errorMessage!,
+                    onRetry: onRefresh,
+                  )
+                else if (filteredProjects.isNotEmpty)
+                  ...List.generate(
+                    filteredProjects.length,
+                    (index) => Padding(
+                      padding: EdgeInsets.only(
+                        bottom: index < filteredProjects.length - 1 ? 10 : 0,
                       ),
-                    )
-                  else if (_hasSearchQuery)
-                    const EmptyStateMessage(
-                      icon: Icons.search,
-                      title: 'No projects found',
-                      subtitle: 'Try adjusting your search terms',
-                    )
-                  else
-                    const EmptyStateMessage(
-                      icon: Icons.assignment_outlined,
-                      title: 'No Projects Assigned',
-                      subtitle:
-                          "You don't have any observation projects assigned yet.\nPlease contact your administrator to get access to projects.",
+                      child: ProjectCard(
+                        project: filteredProjects[index],
+                        onTap: () => onProjectTap(filteredProjects[index]),
+                        isSelected:
+                            selectedProjectId == filteredProjects[index].id,
+                      ),
                     ),
-                ],
-              ),
+                  )
+                else if (_hasSearchQuery)
+                  const EmptyStateMessage(
+                    icon: Icons.search,
+                    title: 'No projects found',
+                    subtitle: 'Try adjusting your search terms',
+                  )
+                else
+                  const EmptyStateMessage(
+                    icon: Icons.assignment_outlined,
+                    title: 'No Projects Assigned',
+                    subtitle:
+                        "You don't have any observation projects assigned yet.\nPlease contact your administrator to get access to projects.",
+                  ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

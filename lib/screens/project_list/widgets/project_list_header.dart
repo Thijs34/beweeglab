@@ -30,7 +30,7 @@ class ProjectListHeader extends StatelessWidget {
           ),
         ],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: AppTheme.headerPadding,
       child: Row(
         children: [
           Expanded(

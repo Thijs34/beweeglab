@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:my_app/models/observation_field.dart';
+import 'package:my_app/models/observation_field_registry.dart';
 import 'package:my_app/models/project.dart';
 import 'package:my_app/screens/admin_page/admin_models.dart';
 
@@ -20,11 +22,11 @@ class ProjectService {
         .where('assignedObserverIds', arrayContains: observerId)
         .snapshots()
         .map(
-      (snapshot) => snapshot.docs
-          .map((doc) => Project.fromFirestore(doc))
-          .where(_isVisibleToObservers)
-          .toList(growable: false),
-    );
+          (snapshot) => snapshot.docs
+              .map((doc) => Project.fromFirestore(doc))
+              .where(_isVisibleToObservers)
+              .toList(growable: false),
+        );
   }
 
   Future<List<Project>> fetchObserverProjects(String observerId) async {
@@ -80,6 +82,7 @@ class ProjectService {
     required String description,
     required List<String> locationTypeIds,
     required List<String> assignedObserverIds,
+    List<ObservationField> fields = const [],
     ProjectStatus status = ProjectStatus.active,
   }) async {
     await _projectsCollection.doc(projectId).set({
@@ -88,10 +91,21 @@ class ProjectService {
       'description': description,
       'locationTypeIds': locationTypeIds,
       'assignedObserverIds': assignedObserverIds,
+      'fields': ObservationField.listToJson(fields),
       'status': status.firestoreValue,
       'observationCount': FieldValue.increment(0),
       'updatedAt': FieldValue.serverTimestamp(),
       'createdAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> updateProjectFields(
+    String projectId,
+    List<ObservationField> fields,
+  ) async {
+    await _projectsCollection.doc(projectId).set({
+      'fields': ObservationField.listToJson(fields),
+      'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
 
@@ -145,6 +159,10 @@ class ProjectService {
     final rawMainLocation = (data['mainLocation'] as String?)?.trim();
     final totalObservationCount =
         (data['observationCount'] as num?)?.toInt() ?? 0;
+    final parsedFields = ObservationField.listFromJson(data['fields']);
+    final fieldDefinitions = parsedFields.isEmpty
+      ? ObservationFieldRegistry.defaultFields()
+      : parsedFields;
 
     return AdminProject(
       id: doc.id,
@@ -158,6 +176,7 @@ class ProjectService {
       assignedObserverIds: rawObservers
           .map((value) => value.toString())
           .toList(growable: false),
+      fields: fieldDefinitions,
       observations: const [],
       totalObservationCount: totalObservationCount,
     );

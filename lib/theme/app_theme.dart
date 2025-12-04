@@ -92,6 +92,11 @@ class AppTheme {
 
   // Layout constraints
   static const double maxContentWidth = 672.0;
+  static const double pageGutter = 8.0;
+  static const EdgeInsets headerPadding = EdgeInsets.symmetric(
+    horizontal: 20,
+    vertical: 16,
+  );
 
   // Input field styling
   static InputDecorationTheme get inputDecorationTheme => InputDecorationTheme(
