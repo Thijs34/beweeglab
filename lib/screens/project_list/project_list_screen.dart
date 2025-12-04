@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:my_app/models/navigation_arguments.dart';
 import 'package:my_app/models/project.dart';
 import 'package:my_app/screens/observer_page/observer_page.dart';
-import 'package:my_app/screens/project_list/widgets/project_list_header.dart';
 import 'package:my_app/screens/project_list/widgets/projects_panel.dart';
 import 'package:my_app/screens/project_list/widgets/user_info_bar.dart';
 import 'package:my_app/screens/project_list/widgets/welcome_section.dart';
@@ -15,7 +14,8 @@ import 'package:my_app/services/project_selection_service.dart';
 import 'package:my_app/services/project_service.dart';
 import 'package:my_app/services/user_service.dart';
 import 'package:my_app/theme/app_theme.dart';
-import 'package:my_app/widgets/profile_menu.dart';
+import 'package:my_app/widgets/app_page_header.dart';
+import 'package:my_app/widgets/profile_menu_shell.dart';
 
 /// Project List screen matching the React UI design.
 class ProjectListScreen extends StatefulWidget {
@@ -34,8 +34,6 @@ class ProjectListScreen extends StatefulWidget {
 
 class _ProjectListScreenState extends State<ProjectListScreen> {
   final TextEditingController _searchController = TextEditingController();
-  final GlobalKey _profileButtonKey = GlobalKey();
-  bool _showProfileMenu = false;
   List<Project> _projects = const [];
   List<Project> _filteredProjects = const [];
   final AdminNotificationService _notificationService =
@@ -305,17 +303,23 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
     );
   }
 
-  void _toggleProfileMenu() {
-    setState(() => _showProfileMenu = !_showProfileMenu);
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      body: Stack(
-        children: [
-          SafeArea(
+    return ProfileMenuShell(
+      userEmail: widget.userEmail,
+      activeDestination: ProfileMenuDestination.projects,
+      onLogout: _handleLogout,
+      onObserverTap: _openObserverFromMenu,
+      onAdminTap: _isAdmin ? _openAdminPage : null,
+      onProjectsTap: () {},
+      onNotificationsTap: _isAdmin ? _openNotificationsPage : null,
+      showAdminOption: _isAdmin,
+      showNotificationsOption: _isAdmin,
+      unreadNotificationCount: _isAdmin ? _unreadNotificationCount : 0,
+      builder: (context, controller) {
+        return Scaffold(
+          backgroundColor: const Color(0xFFF8FAFC),
+          body: SafeArea(
             child: Align(
               alignment: Alignment.topCenter,
               child: ConstrainedBox(
@@ -324,9 +328,10 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
                   width: double.infinity,
                   child: Column(
                     children: [
-                      ProjectListHeader(
-                        profileButtonKey: _profileButtonKey,
-                        onProfileTap: _toggleProfileMenu,
+                      AppPageHeader(
+                        profileButtonKey: controller.profileButtonKey,
+                        onProfileTap: controller.toggleMenu,
+                        subtitle: 'Field Observation System',
                         unreadNotificationCount: _isAdmin
                             ? _unreadNotificationCount
                             : 0,
@@ -397,23 +402,8 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
               ),
             ),
           ),
-          if (_showProfileMenu)
-            ProfileMenu(
-              profileButtonKey: _profileButtonKey,
-              userEmail: widget.userEmail,
-              onClose: () => setState(() => _showProfileMenu = false),
-              onLogout: _handleLogout,
-              onObserverTap: _openObserverFromMenu,
-              onAdminTap: _isAdmin ? _openAdminPage : null,
-              onProjectsTap: () {},
-              onNotificationsTap: _isAdmin ? _openNotificationsPage : null,
-              activeDestination: ProfileMenuDestination.projects,
-              showAdminOption: _isAdmin,
-              showNotificationsOption: _isAdmin,
-              unreadNotificationCount: _isAdmin ? _unreadNotificationCount : 0,
-            ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

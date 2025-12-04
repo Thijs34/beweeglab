@@ -3,12 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:my_app/models/admin_notification.dart';
 import 'package:my_app/models/navigation_arguments.dart';
-import 'package:my_app/screens/admin_page/widgets/admin_header.dart';
 import 'package:my_app/screens/observer_page/observer_page.dart';
 import 'package:my_app/services/admin_notification_service.dart';
 import 'package:my_app/services/auth_service.dart';
 import 'package:my_app/theme/app_theme.dart';
-import 'package:my_app/widgets/profile_menu.dart';
+import 'package:my_app/widgets/app_page_header.dart';
+import 'package:my_app/widgets/profile_menu_shell.dart';
 
 class AdminNotificationsPage extends StatefulWidget {
   final AdminNotificationsArguments? arguments;
@@ -22,12 +22,10 @@ class AdminNotificationsPage extends StatefulWidget {
 class _AdminNotificationsPageState extends State<AdminNotificationsPage> {
   final AdminNotificationService _notificationService =
       AdminNotificationService.instance;
-  final GlobalKey _profileButtonKey = GlobalKey();
   StreamSubscription<List<AdminNotification>>? _subscription;
   List<AdminNotification> _notifications = const [];
   bool _isLoading = true;
   bool _isMarkingAllRead = false;
-  bool _showProfileMenu = false;
 
   // Listen to the notification stream and update UI whenever records change.
   // Errors are caught to avoid stream failures crashing the widget
@@ -101,22 +99,33 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.background,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Center(
+    return ProfileMenuShell(
+      userEmail: widget.arguments?.userEmail,
+      activeDestination: ProfileMenuDestination.notifications,
+      onLogout: _handleLogout,
+      onObserverTap: _openObserverPage,
+      onAdminTap: _isAdmin ? _openAdminPage : null,
+      onProjectsTap: _openProjectsPage,
+      onNotificationsTap: () {},
+      showAdminOption: _isAdmin,
+      showNotificationsOption: _isAdmin,
+      unreadNotificationCount: _unreadNotificationCount,
+      builder: (context, controller) {
+        return Scaffold(
+          backgroundColor: AppTheme.background,
+          body: SafeArea(
+            child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(
                   maxWidth: AppTheme.maxContentWidth,
                 ),
                 child: Column(
                   children: [
-                    AdminHeader(
-                      profileButtonKey: _profileButtonKey,
-                      onProfileTap: _toggleProfileMenu,
-                      title: 'Notifications',
+                    AppPageHeader(
+                      profileButtonKey: controller.profileButtonKey,
+                      onProfileTap: controller.toggleMenu,
+                      subtitle: 'Notifications',
+                      subtitleIcon: Icons.notifications_none,
                       unreadNotificationCount: _unreadNotificationCount,
                     ),
                     Expanded(
@@ -134,24 +143,9 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage> {
                 ),
               ),
             ),
-            if (_showProfileMenu)
-              ProfileMenu(
-                profileButtonKey: _profileButtonKey,
-                userEmail: widget.arguments?.userEmail,
-                onClose: () => setState(() => _showProfileMenu = false),
-                onLogout: _handleLogout,
-                onObserverTap: _openObserverPage,
-                onAdminTap: _isAdmin ? _openAdminPage : null,
-                onProjectsTap: _openProjectsPage,
-                onNotificationsTap: () {},
-                activeDestination: ProfileMenuDestination.notifications,
-                showAdminOption: _isAdmin,
-                showNotificationsOption: _isAdmin,
-                unreadNotificationCount: _unreadNotificationCount,
-              ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -254,10 +248,6 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage> {
       _notifications = records;
       _isLoading = false;
     });
-  }
-
-  void _toggleProfileMenu() {
-    setState(() => _showProfileMenu = !_showProfileMenu);
   }
 
   void _handleLogout() async {

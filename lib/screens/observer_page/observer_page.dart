@@ -10,7 +10,7 @@ import 'package:my_app/models/observation_field_audience.dart';
 import 'package:my_app/models/observation_field_registry.dart';
 import 'package:my_app/models/project.dart';
 import 'package:my_app/theme/app_theme.dart';
-import 'package:my_app/widgets/profile_menu.dart';
+import 'package:my_app/widgets/profile_menu_shell.dart';
 import 'package:my_app/services/admin_notification_service.dart';
 import 'package:my_app/services/auth_service.dart';
 import 'package:my_app/services/observation_service.dart';
@@ -59,14 +59,11 @@ class _ObserverPageState extends State<ObserverPage> {
   static const Color _pageBackground = Color(0xFFF8FAFC);
   static const String _kOtherOptionValue = '__other__';
 
-  final GlobalKey _profileButtonKey = GlobalKey();
-
   final TextEditingController _personIdController = TextEditingController(
     text: '1',
   );
 
   ObservationMode _mode = ObservationMode.individual;
-  bool _showProfileMenu = false;
   bool _showSuccessOverlay = false;
   bool _showSummary = false;
   bool _isSubmitting = false;
@@ -161,59 +158,58 @@ class _ObserverPageState extends State<ObserverPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _pageBackground,
-      body: Stack(
-        children: [
-          SafeArea(child: _buildBaseContent()),
-          if (_showProfileMenu)
-            ProfileMenu(
-              profileButtonKey: _profileButtonKey,
-              userEmail: widget.arguments?.userEmail,
-              onClose: () => setState(() => _showProfileMenu = false),
-              onLogout: _handleLogout,
-              onObserverTap: () {},
-              onAdminTap: _isAdmin ? _openAdminPage : null,
-              onProjectsTap: _navigateToProjects,
-              onNotificationsTap: _isAdmin ? _openNotificationsPage : null,
-              activeDestination: ProfileMenuDestination.observer,
-              showAdminOption: _isAdmin,
-              showNotificationsOption: _isAdmin,
-              unreadNotificationCount: _isAdmin ? _unreadNotificationCount : 0,
-            ),
-          if (_showSuccessOverlay)
-            ObserverSuccessOverlay(
-              mode: _mode,
-              personId: _personIdController.text,
-              groupSize: _currentGroupSize,
-            ),
-          if (_showSummary)
-            SessionSummaryModal(
-              entries: _sessionEntries,
-              currentDate: _currentDate,
-              locationLabel: _headerLocation,
-              temperatureLabel: _temperatureLabel,
-              weatherCondition: _weatherCondition,
-              onSubmitSession: _handleSubmitSession,
-              onCancel: _handleCancelSummary,
-            ),
-        ],
-      ),
+    return ProfileMenuShell(
+      userEmail: widget.arguments?.userEmail,
+      activeDestination: ProfileMenuDestination.observer,
+      onLogout: _handleLogout,
+      onObserverTap: () {},
+      onAdminTap: _isAdmin ? _openAdminPage : null,
+      onProjectsTap: _navigateToProjects,
+      onNotificationsTap: _isAdmin ? _openNotificationsPage : null,
+      showAdminOption: _isAdmin,
+      showNotificationsOption: _isAdmin,
+      unreadNotificationCount: _isAdmin ? _unreadNotificationCount : 0,
+      builder: (context, controller) {
+        return Scaffold(
+          backgroundColor: _pageBackground,
+          body: Stack(
+            children: [
+              SafeArea(child: _buildBaseContent(controller)),
+              if (_showSuccessOverlay)
+                ObserverSuccessOverlay(
+                  mode: _mode,
+                  personId: _personIdController.text,
+                  groupSize: _currentGroupSize,
+                ),
+              if (_showSummary)
+                SessionSummaryModal(
+                  entries: _sessionEntries,
+                  currentDate: _currentDate,
+                  locationLabel: _headerLocation,
+                  temperatureLabel: _temperatureLabel,
+                  weatherCondition: _weatherCondition,
+                  onSubmitSession: _handleSubmitSession,
+                  onCancel: _handleCancelSummary,
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildBaseContent() {
+  Widget _buildBaseContent(ProfileMenuController menuController) {
     final hasProject = _activeProject != null;
     return Stack(
       children: [
-        _buildScrollArea(),
+        _buildScrollArea(menuController),
         _buildBottomBar(),
         if (!hasProject) Positioned.fill(child: _buildNoProjectOverlay()),
       ],
     );
   }
 
-  Widget _buildScrollArea() {
+  Widget _buildScrollArea(ProfileMenuController menuController) {
     return Align(
       alignment: Alignment.topCenter,
       child: LayoutBuilder(
@@ -236,10 +232,8 @@ class _ObserverPageState extends State<ObserverPage> {
                               ? 'Loading...'
                               : _temperatureLabel,
                           weatherCondition: _weatherCondition,
-                          profileButtonKey: _profileButtonKey,
-                          onProfileTap: () => setState(
-                            () => _showProfileMenu = !_showProfileMenu,
-                          ),
+                          profileButtonKey: menuController.profileButtonKey,
+                          onProfileTap: menuController.toggleMenu,
                           unreadNotificationCount: _isAdmin
                               ? _unreadNotificationCount
                               : 0,
