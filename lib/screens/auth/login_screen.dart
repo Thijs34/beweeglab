@@ -33,7 +33,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleLogin() async {
     if (_isSubmitting) return;
     final isValid = _formKey.currentState?.validate() ?? false;
-    if (!isValid) return;
+    if (!isValid) return; // all fields must be valid
 
     FocusScope.of(context).unfocus();
     final email = _emailController.text.trim();

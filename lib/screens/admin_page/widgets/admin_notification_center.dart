@@ -27,6 +27,7 @@ class AdminNotificationCenter extends StatelessWidget {
     final Offset? buttonPosition = renderBox?.localToGlobal(Offset.zero);
     final Size? buttonSize = renderBox?.size;
 
+    //Calculate where the popup should appear
     final double top =
         (buttonPosition?.dy ?? 64) + (buttonSize?.height ?? 44) + 8;
     final double right =
@@ -110,6 +111,7 @@ class AdminNotificationCenter extends StatelessWidget {
       );
     }
 
+    // Actual list of notifsications
     return ListView.separated(
       shrinkWrap: true,
       physics: const BouncingScrollPhysics(),
@@ -186,6 +188,7 @@ class _NotificationTile extends StatelessWidget {
     );
   }
 
+  // Turning timestapms into normal hours
   String _formatRelativeTime(DateTime timestamp) {
     final now = DateTime.now();
     final difference = now.difference(timestamp);

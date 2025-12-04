@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:my_app/theme/app_theme.dart';
 import 'package:my_app/widgets/profile_avatar_button.dart';
 
+// UI header for the Project title, subtitle and profile button
 class ProjectListHeader extends StatelessWidget {
   final GlobalKey profileButtonKey;
   final VoidCallback onProfileTap;

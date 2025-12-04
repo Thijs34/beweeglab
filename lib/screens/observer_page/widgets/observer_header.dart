@@ -3,6 +3,7 @@ import 'package:my_app/theme/app_theme.dart';
 import 'package:my_app/screens/observer_page/models/weather_condition.dart';
 import 'package:my_app/widgets/profile_avatar_button.dart';
 
+// A reusable header widget for the Observer dashboard with the prefetched data. Takes less space
 class ObserverHeader extends StatelessWidget {
   final String siteLabel;
   final String locationLabel;

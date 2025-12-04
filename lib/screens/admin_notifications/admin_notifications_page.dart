@@ -28,6 +28,9 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage> {
   bool _isMarkingAllRead = false;
   bool _showProfileMenu = false;
 
+  // Listen to the notification stream and update UI whenever records change.
+  // Errors are caught to avoid stream failures crashing the widget
+
   @override
   void initState() {
     super.initState();
@@ -56,6 +59,9 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage> {
     _subscription?.cancel();
     super.dispose();
   }
+
+  // Determines whether there are any unread notifications.
+  // Used to conditionally show the "Mark all read" button.
 
   bool get _hasUnread =>
       _notifications.any((notification) => !notification.isRead);
@@ -368,6 +374,7 @@ class _NotificationTile extends StatelessWidget {
     );
   }
 
+  // Converts timestamps into normal hours
   String _formatRelativeTime(DateTime timestamp) {
     final now = DateTime.now();
     final difference = now.difference(timestamp);
@@ -386,6 +393,8 @@ class _NotificationTile extends StatelessWidget {
   String _pad(int value) => value.toString().padLeft(2, '0');
 }
 
+/// Shown when there are no notifications to display.
+/// Includes a manual refresh button for convenience.
 class _EmptyNotificationsState extends StatelessWidget {
   final Future<void> Function() onRefresh;
 

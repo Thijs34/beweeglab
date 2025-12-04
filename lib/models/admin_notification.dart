@@ -22,6 +22,8 @@ class AdminNotification {
     DocumentSnapshot<Map<String, dynamic>> snapshot,
   ) {
     final data = snapshot.data() ?? const <String, dynamic>{};
+
+    // get timestamp safely because Firestore might send Timestamp or DateTime
     final timestamp = data['createdAt'];
     DateTime createdAt;
     if (timestamp is Timestamp) {

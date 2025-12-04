@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:my_app/models/observation_field.dart';
 import 'package:my_app/theme/app_theme.dart';
 
+// this lets you edit a custom observation field in a clean and kinda flexible way
+
 Future<ObservationField?> showObservationFieldEditorSheet(
   BuildContext context, {
   required ObservationField field,
