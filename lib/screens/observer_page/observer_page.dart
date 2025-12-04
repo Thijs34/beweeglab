@@ -166,8 +166,10 @@ class _ObserverPageState extends State<ObserverPage> {
       onAdminTap: _isAdmin ? _openAdminPage : null,
       onProjectsTap: _navigateToProjects,
       onNotificationsTap: _isAdmin ? _openNotificationsPage : null,
+      onProjectMapTap: _isAdmin ? _openProjectMap : null,
       showAdminOption: _isAdmin,
       showNotificationsOption: _isAdmin,
+      showProjectMapOption: _isAdmin,
       unreadNotificationCount: _isAdmin ? _unreadNotificationCount : 0,
       builder: (context, controller) {
         return Scaffold(
@@ -1224,7 +1226,7 @@ class _ObserverPageState extends State<ObserverPage> {
     for (final field in _visibleFields) {
       final value = _fieldValues[field.id];
       if (field.id == ObservationFieldRegistry.groupSizeFieldId) {
-        final raw = (value as String?) ?? '${_currentGroupSize}';
+        final raw = (value as String?) ?? '$_currentGroupSize';
         if (raw.isEmpty) {
           if (field.isRequired) {
             errors[field.id] = 'Please enter a number';
@@ -1625,6 +1627,18 @@ class _ObserverPageState extends State<ObserverPage> {
       arguments: AdminPageArguments(
         userEmail: widget.arguments?.userEmail,
         userRole: widget.arguments?.userRole ?? 'observer',
+      ),
+    );
+  }
+
+  void _openProjectMap() {
+    if (!_isAdmin) return;
+    Navigator.pushNamed(
+      context,
+      '/admin-project-map',
+      arguments: AdminProjectMapArguments(
+        userEmail: widget.arguments?.userEmail,
+        userRole: widget.arguments?.userRole ?? 'admin',
       ),
     );
   }

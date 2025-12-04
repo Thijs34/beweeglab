@@ -1,8 +1,7 @@
-// ignore_for_file: avoid_web_libraries_in_flutter
-
 import 'dart:async';
-import 'dart:html' as html;
-import 'dart:js_util' as js_util;
+import 'dart:js_interop';
+
+import 'package:web/web.dart' as web;
 
 import 'package:my_app/config/app_config.dart';
 
@@ -19,8 +18,8 @@ class _WebLocationAutocompleteDelegate
   static bool _scriptInjected = false;
 
   Completer<void>? _initCompleter;
-  Object? _autocompleteSuggestionClass;
-  Object? _sessionTokenConstructor;
+  JSObject? _autocompleteSuggestionClass;
+  JSFunction? _sessionTokenConstructor;
 
   @override
   Future<List<LocationPrediction>> fetchSuggestions(String input) async {
@@ -31,39 +30,39 @@ class _WebLocationAutocompleteDelegate
 
     await _ensureInitialized();
 
-    final request = js_util.newObject();
-    js_util.setProperty(request, 'input', trimmed);
-    js_util.setProperty(request, 'language', _language);
-    js_util.setProperty(
-      request,
-      'sessionToken',
-      js_util.callConstructor(_sessionTokenConstructor!, const []),
+    final request = JSObject();
+    _setProperty(request, 'input', trimmed.toJS);
+    _setProperty(request, 'language', _language.toJS);
+    final JSAny? sessionToken =
+      _construct(_sessionTokenConstructor!);
+    _setProperty(request, 'sessionToken', sessionToken);
+
+    final JSFunction fetchFunction = _getFunction(
+      _autocompleteSuggestionClass,
+      'fetchAutocompleteSuggestions',
     );
 
-    final result = await js_util.promiseToFuture<Object?>(
-      js_util.callMethod(
-        _autocompleteSuggestionClass!,
-        'fetchAutocompleteSuggestions',
-        [request],
-      ),
-    );
+    final JSAny? promiseAny =
+        fetchFunction.callAsFunction(_autocompleteSuggestionClass, request);
+    final JSAny? result = await (promiseAny as JSPromise<JSAny?>).toDart;
 
     return _mapResult(result);
   }
 
-  List<LocationPrediction> _mapResult(Object? result) {
-    if (result == null) {
+  List<LocationPrediction> _mapResult(JSAny? result) {
+    if (result == null || result.isUndefinedOrNull) {
       return const <LocationPrediction>[];
     }
-    final suggestions = js_util.getProperty(result, 'suggestions');
-    if (suggestions == null) {
+    final JSAny? suggestions = _getProperty(result, 'suggestions');
+    if (suggestions == null || suggestions.isUndefinedOrNull) {
       return const <LocationPrediction>[];
     }
 
-    final length = js_util.getProperty(suggestions, 'length') as int? ?? 0;
+    final lengthValue = _getProperty(suggestions, 'length');
+    final length = (lengthValue as JSNumber?)?.toDartInt ?? 0;
     final predictions = <LocationPrediction>[];
     for (var index = 0; index < length; index++) {
-      final suggestion = js_util.getProperty(suggestions, index);
+      final JSAny? suggestion = _getIndexedProperty(suggestions, index);
       final prediction = _mapPrediction(suggestion);
       if (prediction != null) {
         predictions.add(prediction);
@@ -72,45 +71,43 @@ class _WebLocationAutocompleteDelegate
     return predictions;
   }
 
-  LocationPrediction? _mapPrediction(Object? suggestion) {
-    if (suggestion == null) {
+  LocationPrediction? _mapPrediction(JSAny? suggestion) {
+    if (suggestion == null || suggestion.isUndefinedOrNull) {
       return null;
     }
-    final placePrediction =
-        js_util.getProperty(suggestion, 'placePrediction');
-    if (placePrediction == null) {
+    final JSAny? placePrediction =
+        _getProperty(suggestion, 'placePrediction');
+    if (placePrediction == null || placePrediction.isUndefinedOrNull) {
       return null;
     }
 
     final description =
-        _readLocalizedText(js_util.getProperty(placePrediction, 'text'));
+        _readLocalizedText(_getProperty(placePrediction, 'text'));
     if (description.isEmpty) {
       return null;
     }
 
     var primary = description;
     String? secondary;
-    final structuredFormat = js_util.getProperty(
-          placePrediction,
-          'structuredFormat',
-        ) ??
-        js_util.getProperty(placePrediction, 'structuredFormatting');
-    if (structuredFormat != null) {
+    JSAny? structuredFormat =
+        _getProperty(placePrediction, 'structuredFormat');
+    structuredFormat ??=
+        _getProperty(placePrediction, 'structuredFormatting');
+    if (structuredFormat != null && !structuredFormat.isUndefinedOrNull) {
       final mainText =
-          _readLocalizedText(js_util.getProperty(structuredFormat, 'mainText'));
+          _readLocalizedText(_getProperty(structuredFormat, 'mainText'));
       if (mainText.isNotEmpty) {
         primary = mainText;
       }
       final secondaryText = _readLocalizedText(
-        js_util.getProperty(structuredFormat, 'secondaryText'),
+        _getProperty(structuredFormat, 'secondaryText'),
       );
       if (secondaryText.isNotEmpty) {
         secondary = secondaryText;
       }
     }
 
-    final placeId =
-        js_util.getProperty(placePrediction, 'placeId') as String? ?? '';
+    final placeId = _readLocalizedText(_getProperty(placePrediction, 'placeId'));
     if (placeId.isEmpty) {
       return null;
     }
@@ -123,16 +120,30 @@ class _WebLocationAutocompleteDelegate
     );
   }
 
-  String _readLocalizedText(Object? value) {
-    if (value == null) {
+  String _readLocalizedText(JSAny? value) {
+    if (value == null || value.isUndefinedOrNull) {
       return '';
     }
-    final converted = js_util.callMethod(value, 'toString', const []);
-    if (converted is String) {
-      return converted;
+    if (value is JSString) {
+      return value.toDart;
     }
-    if (value is String) {
-      return value;
+    final JSAny? toStringFn = _getProperty(value, 'toString');
+    if (toStringFn is JSFunction) {
+      final JSAny? converted = toStringFn.callAsFunction(value);
+      if (converted is JSString) {
+        return converted.toDart;
+      }
+      final Object? dartValue = converted?.dartify();
+      if (dartValue is String) {
+        return dartValue;
+      }
+      if (dartValue != null) {
+        return dartValue.toString();
+      }
+    }
+    final Object? dartFallback = value.dartify();
+    if (dartFallback is String) {
+      return dartFallback;
     }
     return value.toString();
   }
@@ -158,11 +169,15 @@ class _WebLocationAutocompleteDelegate
           await _waitForGoogleReady();
         }
 
-        final Object placesLibrary = await _loadPlacesLibrary();
-        _autocompleteSuggestionClass =
-            js_util.getProperty(placesLibrary, 'AutocompleteSuggestion');
-        _sessionTokenConstructor =
-            js_util.getProperty(placesLibrary, 'AutocompleteSessionToken');
+        final JSObject placesLibrary = await _loadPlacesLibrary();
+        _autocompleteSuggestionClass = _getProperty(
+          placesLibrary,
+          'AutocompleteSuggestion',
+        ) as JSObject?;
+        _sessionTokenConstructor = _getProperty(
+          placesLibrary,
+          'AutocompleteSessionToken',
+        ) as JSFunction?;
 
         if (_autocompleteSuggestionClass == null ||
             _sessionTokenConstructor == null) {
@@ -183,28 +198,31 @@ class _WebLocationAutocompleteDelegate
   }
 
   void _injectScript(String apiKey) {
-    if (_scriptInjected || html.document.getElementById(_scriptId) != null) {
+    if (_scriptInjected || web.document.getElementById(_scriptId) != null) {
       _scriptInjected = true;
       return;
     }
 
-    final script = html.ScriptElement()
+    final script = web.HTMLScriptElement()
       ..id = _scriptId
       ..type = 'text/javascript'
       ..async = true
       ..defer = true
-        ..src =
+      ..src =
           'https://maps.googleapis.com/maps/api/js?key=$apiKey&libraries=places&loading=async';
 
-    script.onError.listen((_) {
-      if (!(_initCompleter?.isCompleted ?? true)) {
-        _initCompleter!.completeError(
-          StateError('Failed to load Google Maps Places script.'),
-        );
-      }
-    });
+    script.addEventListener(
+      'error',
+      ((web.Event _) {
+        if (!(_initCompleter?.isCompleted ?? true)) {
+          _initCompleter!.completeError(
+            StateError('Failed to load Google Maps Places script.'),
+          );
+        }
+      }).toJS,
+    );
 
-    html.document.head?.append(script);
+    web.document.head?.append(script);
     _scriptInjected = true;
   }
 
@@ -220,34 +238,34 @@ class _WebLocationAutocompleteDelegate
   }
 
   bool _isGoogleReady() {
-    final google = js_util.getProperty(js_util.globalThis, 'google');
-    if (google == null) return false;
-    final Object googleObject = google;
-    final maps = js_util.getProperty(googleObject, 'maps');
-    if (maps == null) return false;
-    final Object mapsObject = maps;
-    return js_util.hasProperty(mapsObject, 'importLibrary');
+    final JSAny? google = _getProperty(globalContext, 'google');
+    if (google == null || google.isUndefinedOrNull) return false;
+    final JSAny? maps = _getProperty(google, 'maps');
+    if (maps == null || maps.isUndefinedOrNull) return false;
+    return _hasProperty(maps, 'importLibrary');
   }
 
-  Future<Object> _loadPlacesLibrary() async {
-    final google = js_util.getProperty(js_util.globalThis, 'google');
-    if (google == null) {
+  Future<JSObject> _loadPlacesLibrary() async {
+    final JSAny? google = _getProperty(globalContext, 'google');
+    if (google == null || google.isUndefinedOrNull) {
       throw StateError('Google Maps SDK is unavailable.');
     }
-    final Object googleObject = google;
-    final maps = js_util.getProperty(googleObject, 'maps');
-    if (maps == null) {
+    final JSAny? maps = _getProperty(google, 'maps');
+    if (maps == null || maps.isUndefinedOrNull) {
       throw StateError('google.maps is unavailable.');
     }
-    final Object mapsObject = maps;
-    final promise =
-        js_util.callMethod<Object?>(mapsObject, 'importLibrary', ['places']);
-    if (promise == null) {
+    final JSFunction importLibrary = _getFunction(maps, 'importLibrary');
+    final JSAny? promise =
+        importLibrary.callAsFunction(maps, 'places'.toJS);
+    if (promise == null || promise.isUndefinedOrNull) {
       throw StateError('google.maps.importLibrary returned null.');
     }
-    final result = await js_util.promiseToFuture<Object?>(promise);
-    if (result == null) {
+    final JSAny? result = await (promise as JSPromise<JSAny?>).toDart;
+    if (result == null || result.isUndefinedOrNull) {
       throw StateError('google.maps.importLibrary resolved with null.');
+    }
+    if (result is! JSObject) {
+      throw StateError('google.maps.importLibrary returned unexpected type.');
     }
     return result;
   }
@@ -259,3 +277,45 @@ class _WebLocationAutocompleteDelegate
     _initCompleter = null;
   }
 }
+
+JSAny? _getProperty(JSAny? target, String property) =>
+    _reflectGet(target, property.toJS);
+
+JSAny? _getIndexedProperty(JSAny? target, int index) =>
+    _reflectGet(target, index.toJS);
+
+void _setProperty(JSAny? target, String property, JSAny? value) {
+  _reflectSet(target, property.toJS, value);
+}
+
+JSAny? _construct(JSFunction constructor,
+    [List<JSAny?> args = const <JSAny?>[]]) {
+  final JSAny? argumentsList = args.isEmpty ? JSArray<JSAny?>() : args.toJS;
+  return _reflectConstruct(constructor, argumentsList);
+}
+
+JSFunction _getFunction(JSAny? target, String property) {
+  final JSAny? fn = _getProperty(target, property);
+  if (fn is! JSFunction) {
+    throw StateError('Expected $property to be a JavaScript function.');
+  }
+  return fn;
+}
+
+bool _hasProperty(JSAny? target, String property) =>
+    _reflectHas(target, property.toJS);
+
+@JS('Reflect.has')
+external bool _reflectHas(JSAny? target, JSAny? propertyKey);
+
+@JS('Reflect.get')
+external JSAny? _reflectGet(JSAny? target, JSAny? propertyKey);
+
+@JS('Reflect.set')
+external bool _reflectSet(JSAny? target, JSAny? propertyKey, JSAny? value);
+
+@JS('Reflect.construct')
+external JSAny? _reflectConstruct(
+  JSFunction target,
+  JSAny? argumentsList,
+);

@@ -220,7 +220,7 @@ class _ObservationFieldEditorSheetState
             const SizedBox(height: 12),
             if (_typeChangeAllowed)
               DropdownButtonFormField<ObservationFieldType>(
-                value: _type,
+                initialValue: _type,
                 decoration: const InputDecoration(
                   labelText: 'Field type',
                   border: OutlineInputBorder(),

@@ -4,6 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:my_app/firebase_options.dart';
 import 'package:my_app/models/navigation_arguments.dart';
 import 'package:my_app/screens/admin_page/admin_page.dart';
+import 'package:my_app/screens/admin_map/project_map_screen.dart';
 import 'package:my_app/screens/admin_notifications/admin_notifications_page.dart';
 import 'package:my_app/screens/auth/auth_gate.dart';
 import 'package:my_app/screens/auth/signup_screen.dart';
@@ -75,6 +76,7 @@ class MyApp extends StatelessWidget {
                   builder: (_) => AdminPage(
                     userEmail: args.userEmail,
                     userRole: args.userRole,
+                    initialProjectId: args.initialProjectId,
                   ),
                 );
               }
@@ -88,6 +90,16 @@ class MyApp extends StatelessWidget {
               final args = settings.arguments as AdminNotificationsArguments?;
               return MaterialPageRoute(
                 builder: (_) => AdminNotificationsPage(arguments: args),
+              );
+            }
+          case '/admin-project-map':
+            {
+              final args = settings.arguments as AdminProjectMapArguments?;
+              return MaterialPageRoute(
+                builder: (_) => ProjectMapScreen(
+                  userEmail: args?.userEmail,
+                  userRole: args?.userRole ?? 'admin',
+                ),
               );
             }
           default:

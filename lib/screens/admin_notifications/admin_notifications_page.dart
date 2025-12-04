@@ -107,8 +107,10 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage> {
       onAdminTap: _isAdmin ? _openAdminPage : null,
       onProjectsTap: _openProjectsPage,
       onNotificationsTap: () {},
+      onProjectMapTap: _isAdmin ? _openProjectMap : null,
       showAdminOption: _isAdmin,
       showNotificationsOption: _isAdmin,
+      showProjectMapOption: _isAdmin,
       unreadNotificationCount: _unreadNotificationCount,
       builder: (context, controller) {
         return Scaffold(
@@ -258,7 +260,10 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage> {
       return;
     } catch (error) {
       debugPrint('Failed to sign out: $error');
-      _showSnack('Unable to logout right now. Please try again.', isError: true);
+      _showSnack(
+        'Unable to logout right now. Please try again.',
+        isError: true,
+      );
       return;
     }
 
@@ -294,6 +299,17 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage> {
       context,
       '/admin',
       arguments: AdminPageArguments(
+        userEmail: widget.arguments?.userEmail,
+        userRole: widget.arguments?.userRole ?? 'admin',
+      ),
+    );
+  }
+
+  void _openProjectMap() {
+    Navigator.pushNamed(
+      context,
+      '/admin-project-map',
+      arguments: AdminProjectMapArguments(
         userEmail: widget.arguments?.userEmail,
         userRole: widget.arguments?.userRole ?? 'admin',
       ),

@@ -26,8 +26,14 @@ import 'package:my_app/widgets/profile_menu_shell.dart';
 class AdminPage extends StatefulWidget {
   final String? userEmail;
   final String userRole;
+  final String? initialProjectId;
 
-  const AdminPage({super.key, this.userEmail, this.userRole = 'admin'});
+  const AdminPage({
+    super.key,
+    this.userEmail,
+    this.userRole = 'admin',
+    this.initialProjectId,
+  });
 
   @override
   State<AdminPage> createState() => _AdminPageState();
@@ -54,7 +60,7 @@ class _AdminPageState extends State<AdminPage> {
   final Map<String, List<ObservationRecord>> _observationCache = {};
   final ObservationExportService _observationExportService =
       ObservationExportService.instance;
-    final LocationAutocompleteService _locationAutocompleteService =
+  final LocationAutocompleteService _locationAutocompleteService =
       LocationAutocompleteService();
   static const int _projectFetchLimit = 40;
   static const int _defaultObservationPageSize = 5;
@@ -119,6 +125,7 @@ class _AdminPageState extends State<AdminPage> {
   @override
   void initState() {
     super.initState();
+    _selectedProjectId = widget.initialProjectId;
     _loadStatusCounts();
     _loadProjects();
     _loadObservers();
@@ -386,6 +393,18 @@ class _AdminPageState extends State<AdminPage> {
 
   void _navigateToAdmin() {
     // Already on the admin page; nothing to do beyond closing the menu.
+  }
+
+  void _navigateToProjectMap() {
+    if (!_isAdmin) return;
+    Navigator.pushNamed(
+      context,
+      '/admin-project-map',
+      arguments: AdminProjectMapArguments(
+        userEmail: widget.userEmail,
+        userRole: widget.userRole,
+      ),
+    );
   }
 
   void _openNotificationsPage() {
@@ -1299,8 +1318,10 @@ class _AdminPageState extends State<AdminPage> {
       onAdminTap: _isAdmin ? _navigateToAdmin : null,
       onProjectsTap: _navigateToProjects,
       onNotificationsTap: _isAdmin ? _openNotificationsPage : null,
+      onProjectMapTap: _isAdmin ? _navigateToProjectMap : null,
       showAdminOption: _isAdmin,
       showNotificationsOption: _isAdmin,
+      showProjectMapOption: _isAdmin,
       unreadNotificationCount: _unreadNotificationCount,
       builder: (context, controller) {
         return Scaffold(
@@ -1320,8 +1341,9 @@ class _AdminPageState extends State<AdminPage> {
                           onProfileTap: controller.toggleMenu,
                           subtitle: 'Admin Panel',
                           subtitleIcon: Icons.shield_outlined,
-                          unreadNotificationCount:
-                              _isAdmin ? _unreadNotificationCount : 0,
+                          unreadNotificationCount: _isAdmin
+                              ? _unreadNotificationCount
+                              : 0,
                         ),
                         Expanded(
                           child: SingleChildScrollView(
@@ -1336,11 +1358,9 @@ class _AdminPageState extends State<AdminPage> {
                                   ? (_projectsLoading && _projects.isEmpty
                                         ? const _AdminLoadingState()
                                         : AdminProjectListView(
-                                            projects:
-                                                _filteredProjectsByStatus,
-                                            locationOptions:
-                                                AdminDataRepository
-                                                    .locationOptions,
+                                            projects: _filteredProjectsByStatus,
+                                            locationOptions: AdminDataRepository
+                                                .locationOptions,
                                             locationAutocompleteService:
                                                 _locationAutocompleteService,
                                             showNewProjectForm:
@@ -1428,13 +1448,15 @@ class _AdminPageState extends State<AdminPage> {
                                           _projectMainLocationError,
                                       onMainLocationChanged:
                                           _handleDetailMainLocationChanged,
-                                      onSaveMainLocation: _handleSaveMainLocation,
+                                      onSaveMainLocation:
+                                          _handleSaveMainLocation,
                                       isSavingMainLocation:
                                           _isSavingMainLocation,
                                       hasMainLocationChanges:
                                           mainLocationHasChanges,
                                       filters: _filters,
-                                      showObserverSelector: _showObserverSelector,
+                                      showObserverSelector:
+                                          _showObserverSelector,
                                       observerSearchQuery: _observerSearchQuery,
                                       showAddLocationField:
                                           _showAddLocationField,
@@ -1456,8 +1478,9 @@ class _AdminPageState extends State<AdminPage> {
                                             hydratedProject,
                                             status,
                                           ),
-                                      isStatusUpdating:
-                                          _isStatusUpdating(hydratedProject.id),
+                                      isStatusUpdating: _isStatusUpdating(
+                                        hydratedProject.id,
+                                      ),
                                       onToggleAddLocation:
                                           _toggleAddLocationField,
                                       onAddLocation:
@@ -1467,8 +1490,9 @@ class _AdminPageState extends State<AdminPage> {
                                       onToggleObserverSelector:
                                           _toggleObserverSelector,
                                       onObserverSearchChanged: (value) =>
-                                          setState(() =>
-                                              _observerSearchQuery = value),
+                                          setState(
+                                            () => _observerSearchQuery = value,
+                                          ),
                                       onAddObserver: _addObserverToProject,
                                       onRemoveObserver:
                                           _removeObserverFromProject,
@@ -1484,8 +1508,7 @@ class _AdminPageState extends State<AdminPage> {
                                       onEditField: (context, field) =>
                                           _handleEditField(context, field),
                                       onReorderField: _handleFieldReorder,
-                                      onToggleField:
-                                          _handleFieldEnabledChange,
+                                      onToggleField: _handleFieldEnabledChange,
                                       onDeleteField: _handleDeleteField,
                                       onResetFields:
                                           _handleResetFieldsToDefaults,
@@ -1496,9 +1519,8 @@ class _AdminPageState extends State<AdminPage> {
                                           filteredObservationList,
                                       isExportingObservations:
                                           _exportingProjectId ==
-                                              hydratedProject.id,
-                                      onEditObservation:
-                                          _openObservationEditor,
+                                          hydratedProject.id,
+                                      onEditObservation: _openObservationEditor,
                                       onRefreshObservations: () =>
                                           _handleRefreshObservations(
                                             hydratedProject,

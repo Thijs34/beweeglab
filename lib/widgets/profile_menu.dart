@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:my_app/theme/app_theme.dart';
 
-enum ProfileMenuDestination { notifications, admin, projects, observer }
+enum ProfileMenuDestination {
+  notifications,
+  admin,
+  projectMap,
+  projects,
+  observer,
+}
 
 /// Profile menu dropdown widget
 class ProfileMenu extends StatelessWidget {
@@ -13,9 +19,11 @@ class ProfileMenu extends StatelessWidget {
   final VoidCallback? onAdminTap;
   final VoidCallback? onProjectsTap;
   final VoidCallback? onNotificationsTap;
+  final VoidCallback? onProjectMapTap;
   final ProfileMenuDestination activeDestination;
   final bool showAdminOption;
   final bool showNotificationsOption;
+  final bool showProjectMapOption;
   final int unreadNotificationCount;
 
   const ProfileMenu({
@@ -28,9 +36,11 @@ class ProfileMenu extends StatelessWidget {
     this.onAdminTap,
     this.onProjectsTap,
     this.onNotificationsTap,
+    this.onProjectMapTap,
     this.activeDestination = ProfileMenuDestination.projects,
     this.showAdminOption = true,
     this.showNotificationsOption = false,
+    this.showProjectMapOption = false,
     this.unreadNotificationCount = 0,
   });
 
@@ -136,6 +146,7 @@ class ProfileMenu extends StatelessWidget {
     final showNotifications =
         showNotificationsOption && onNotificationsTap != null;
     final showAdmin = showAdminOption && onAdminTap != null;
+    final showProjectMap = showProjectMapOption && onProjectMapTap != null;
 
     if (showNotifications) {
       final badgeLabel = unreadNotificationCount > 0
@@ -158,6 +169,15 @@ class ProfileMenu extends StatelessWidget {
         label: 'Admin Page',
         destination: ProfileMenuDestination.admin,
         onTap: onAdminTap,
+      );
+    }
+
+    if (showProjectMap) {
+      addButton(
+        icon: Icons.map_outlined,
+        label: 'Project Map',
+        destination: ProfileMenuDestination.projectMap,
+        onTap: onProjectMapTap,
       );
     }
 

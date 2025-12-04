@@ -66,8 +66,9 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
       if (!mounted) return;
       setState(() {});
     };
-    _selectionService.selectedProjectListenable
-        .addListener(_selectionListener!);
+    _selectionService.selectedProjectListenable.addListener(
+      _selectionListener!,
+    );
   }
 
   @override
@@ -76,8 +77,9 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
     _projectsSubscription?.cancel();
     _searchController.dispose();
     if (_selectionListener != null) {
-      _selectionService.selectedProjectListenable
-          .removeListener(_selectionListener!);
+      _selectionService.selectedProjectListenable.removeListener(
+        _selectionListener!,
+      );
     }
     super.dispose();
   }
@@ -93,24 +95,32 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
     }
 
     _projectsSubscription?.cancel();
-    _projectsSubscription =
-        _projectService.watchObserverProjects(uid).listen((projects) {
-      if (!mounted) return;
-      _selectionService.syncWithProjects(projects);
-      setState(() {
-        _projects = projects;
-        _filteredProjects = _applyProjectFilter(projects, _searchController.text);
-        _isLoadingProjects = false;
-        _projectsError = null;
-      });
-    }, onError: (error) {
-      debugPrint('Failed to watch projects: $error');
-      if (!mounted) return;
-      setState(() {
-        _isLoadingProjects = false;
-        _projectsError = 'Something went wrong while loading your projects.';
-      });
-    });
+    _projectsSubscription = _projectService
+        .watchObserverProjects(uid)
+        .listen(
+          (projects) {
+            if (!mounted) return;
+            _selectionService.syncWithProjects(projects);
+            setState(() {
+              _projects = projects;
+              _filteredProjects = _applyProjectFilter(
+                projects,
+                _searchController.text,
+              );
+              _isLoadingProjects = false;
+              _projectsError = null;
+            });
+          },
+          onError: (error) {
+            debugPrint('Failed to watch projects: $error');
+            if (!mounted) return;
+            setState(() {
+              _isLoadingProjects = false;
+              _projectsError =
+                  'Something went wrong while loading your projects.';
+            });
+          },
+        );
   }
 
   void _startNotificationWatcher() {
@@ -132,8 +142,8 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
       return;
     }
 
-    final authDisplayName =
-        FirebaseAuth.instance.currentUser?.displayName?.trim();
+    final authDisplayName = FirebaseAuth.instance.currentUser?.displayName
+        ?.trim();
     if (authDisplayName != null && authDisplayName.isNotEmpty) {
       setState(() => _displayName = authDisplayName);
     }
@@ -155,7 +165,8 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
     var needsRefresh = true;
     if (cached != null) {
       applyRecord(cached);
-      needsRefresh = (cached.displayName == null ||
+      needsRefresh =
+          (cached.displayName == null ||
           (cached.displayName?.trim().isEmpty ?? true));
     }
 
@@ -167,27 +178,28 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
 
   void _filterProjects() {
     setState(() {
-      _filteredProjects =
-          _applyProjectFilter(_projects, _searchController.text);
+      _filteredProjects = _applyProjectFilter(
+        _projects,
+        _searchController.text,
+      );
     });
   }
 
-  List<Project> _applyProjectFilter(
-    List<Project> projects,
-    String query,
-  ) {
+  List<Project> _applyProjectFilter(List<Project> projects, String query) {
     final normalizedQuery = query.trim().toLowerCase();
     if (normalizedQuery.isEmpty) {
       return List<Project>.from(projects);
     }
-    return projects.where((project) {
-      final name = project.name.toLowerCase();
-      final location = project.mainLocation.toLowerCase();
-      final description = project.description?.toLowerCase() ?? '';
-      return name.contains(normalizedQuery) ||
-          location.contains(normalizedQuery) ||
-          description.contains(normalizedQuery);
-    }).toList(growable: false);
+    return projects
+        .where((project) {
+          final name = project.name.toLowerCase();
+          final location = project.mainLocation.toLowerCase();
+          final description = project.description?.toLowerCase() ?? '';
+          return name.contains(normalizedQuery) ||
+              location.contains(normalizedQuery) ||
+              description.contains(normalizedQuery);
+        })
+        .toList(growable: false);
   }
 
   String _getFirstName() {
@@ -204,27 +216,33 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
       return;
     }
     setState(() => _isRefreshingProjects = true);
-    _projectService.fetchObserverProjects(uid).then((projects) {
-      if (!mounted) return;
-      _selectionService.syncWithProjects(projects);
-      setState(() {
-        _projects = projects;
-        _filteredProjects =
-            _applyProjectFilter(projects, _searchController.text);
-        _projectsError = null;
-      });
-    }).catchError((error) {
-      debugPrint('Manual refresh failed: $error');
-      if (!mounted) return;
-      setState(() {
-        _projectsError =
-            'Unable to refresh projects right now. Please try again.';
-      });
-    }).whenComplete(() {
-      if (mounted) {
-        setState(() => _isRefreshingProjects = false);
-      }
-    });
+    _projectService
+        .fetchObserverProjects(uid)
+        .then((projects) {
+          if (!mounted) return;
+          _selectionService.syncWithProjects(projects);
+          setState(() {
+            _projects = projects;
+            _filteredProjects = _applyProjectFilter(
+              projects,
+              _searchController.text,
+            );
+            _projectsError = null;
+          });
+        })
+        .catchError((error) {
+          debugPrint('Manual refresh failed: $error');
+          if (!mounted) return;
+          setState(() {
+            _projectsError =
+                'Unable to refresh projects right now. Please try again.';
+          });
+        })
+        .whenComplete(() {
+          if (mounted) {
+            setState(() => _isRefreshingProjects = false);
+          }
+        });
   }
 
   void _handleProjectTap(Project project) {
@@ -276,6 +294,18 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
     );
   }
 
+  void _openProjectMap() {
+    if (!_isAdmin) return;
+    Navigator.pushNamed(
+      context,
+      '/admin-project-map',
+      arguments: AdminProjectMapArguments(
+        userEmail: widget.userEmail,
+        userRole: widget.userRole,
+      ),
+    );
+  }
+
   void _handleLogout() async {
     try {
       await AuthService.instance.signOut();
@@ -296,10 +326,7 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
   void _showLogoutError(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
@@ -313,8 +340,10 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
       onAdminTap: _isAdmin ? _openAdminPage : null,
       onProjectsTap: () {},
       onNotificationsTap: _isAdmin ? _openNotificationsPage : null,
+      onProjectMapTap: _isAdmin ? _openProjectMap : null,
       showAdminOption: _isAdmin,
       showNotificationsOption: _isAdmin,
+      showProjectMapOption: _isAdmin,
       unreadNotificationCount: _isAdmin ? _unreadNotificationCount : 0,
       builder: (context, controller) {
         return Scaffold(

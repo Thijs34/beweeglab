@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:my_app/widgets/profile_menu.dart';
 
-export 'package:my_app/widgets/profile_menu.dart'
-  show ProfileMenuDestination;
+export 'package:my_app/widgets/profile_menu.dart' show ProfileMenuDestination;
 
 /// Small helper that owns the profile avatar key and menu state so pages
 /// no longer have to duplicate that boilerplate.
@@ -17,13 +16,15 @@ class ProfileMenuShell extends StatefulWidget {
     this.onAdminTap,
     this.onProjectsTap,
     this.onNotificationsTap,
+    this.onProjectMapTap,
     this.showAdminOption = false,
     this.showNotificationsOption = false,
+    this.showProjectMapOption = false,
     this.unreadNotificationCount = 0,
   });
 
   final Widget Function(BuildContext context, ProfileMenuController controller)
-      builder;
+  builder;
   final ProfileMenuDestination activeDestination;
   final VoidCallback onLogout;
   final String? userEmail;
@@ -31,8 +32,10 @@ class ProfileMenuShell extends StatefulWidget {
   final VoidCallback? onAdminTap;
   final VoidCallback? onProjectsTap;
   final VoidCallback? onNotificationsTap;
+  final VoidCallback? onProjectMapTap;
   final bool showAdminOption;
   final bool showNotificationsOption;
+  final bool showProjectMapOption;
   final int unreadNotificationCount;
 
   @override
@@ -64,9 +67,11 @@ class _ProfileMenuShellState extends State<ProfileMenuShell> {
             onAdminTap: _wrapAction(widget.onAdminTap),
             onProjectsTap: _wrapAction(widget.onProjectsTap),
             onNotificationsTap: _wrapAction(widget.onNotificationsTap),
+            onProjectMapTap: _wrapAction(widget.onProjectMapTap),
             activeDestination: widget.activeDestination,
             showAdminOption: widget.showAdminOption,
             showNotificationsOption: widget.showNotificationsOption,
+            showProjectMapOption: widget.showProjectMapOption,
             unreadNotificationCount: widget.unreadNotificationCount,
           ),
       ],

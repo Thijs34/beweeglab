@@ -59,7 +59,7 @@ class ObservationExportService {
     await FileSaver.instance.saveFile(
       name: fileName,
       bytes: Uint8List.fromList(bytes),
-      ext: 'xlsx',
+      fileExtension: 'xlsx',
       mimeType: MimeType.microsoftExcel,
     );
   }
@@ -75,9 +75,11 @@ class ObservationExportService {
     sheet.getRangeByIndex(1, 1).setText('Project');
     sheet.getRangeByIndex(1, 2).setText(project.name);
     sheet.getRangeByIndex(2, 1).setText('Location');
-    sheet.getRangeByIndex(2, 2).setText(project.mainLocation.isEmpty
-        ? 'Not set'
-        : project.mainLocation);
+    sheet
+        .getRangeByIndex(2, 2)
+        .setText(
+          project.mainLocation.isEmpty ? 'Not set' : project.mainLocation,
+        );
     sheet.getRangeByIndex(3, 1).setText('Exported At');
     sheet.getRangeByIndex(3, 2).setText(_formatDateTime(DateTime.now()));
     sheet.getRangeByIndex(4, 1).setText('Observation Count');
@@ -141,9 +143,7 @@ class ObservationExportService {
 
   void _autoFitColumns(xlsio.Worksheet sheet, int recordCount) {
     final lastRow = _tableHeaderRowIndex + 1 + recordCount;
-    sheet
-        .getRangeByIndex(1, 1, lastRow, _tableHeaders.length)
-        .autoFitColumns();
+    sheet.getRangeByIndex(1, 1, lastRow, _tableHeaders.length).autoFitColumns();
   }
 
   void _freezeHeaderRows(xlsio.Worksheet sheet) {

@@ -8,8 +8,13 @@ class ProjectListArguments {
 class AdminPageArguments {
   final String? userEmail;
   final String userRole;
+  final String? initialProjectId;
 
-  const AdminPageArguments({this.userEmail, this.userRole = 'admin'});
+  const AdminPageArguments({
+    this.userEmail,
+    this.userRole = 'admin',
+    this.initialProjectId,
+  });
 }
 
 class AdminNotificationsArguments {
@@ -17,4 +22,11 @@ class AdminNotificationsArguments {
   final String userRole;
 
   const AdminNotificationsArguments({this.userEmail, this.userRole = 'admin'});
+}
+
+class AdminProjectMapArguments {
+  final String? userEmail;
+  final String userRole;
+
+  const AdminProjectMapArguments({this.userEmail, this.userRole = 'admin'});
 }
