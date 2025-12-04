@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:my_app/screens/admin_page/admin_models.dart';
 import 'package:my_app/theme/app_theme.dart';
 
+//dialog for editing observation
 class ObservationEditDialog extends StatefulWidget {
   final ObservationRecord record;
 
@@ -30,6 +31,8 @@ class _ObservationEditDialogState extends State<ObservationEditDialog> {
   @override
   void initState() {
     super.initState();
+
+    // Load the initial values from the record
     _personId = widget.record.personId;
     _gender = widget.record.gender;
     _ageGroup = widget.record.ageGroup;

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:my_app/screens/admin_page/admin_models.dart';
 import 'package:my_app/theme/app_theme.dart';
 
+// Badge widget to display project status for better UX
 class ProjectStatusBadge extends StatelessWidget {
   final ProjectStatus status;
   final EdgeInsets padding;

@@ -11,6 +11,7 @@ class AppUserRecord {
   final String? email;
   final String? displayName;
 
+  // Constructor for AppUserRecord from Firestore
   const AppUserRecord({
     required this.uid,
     required this.role,
@@ -31,6 +32,7 @@ class AppUserRecord {
   }
 }
 
+// Handles fetching caching and notifivations for user profiles
 class UserService {
   UserService._();
 
@@ -196,6 +198,7 @@ class UserService {
     }
   }
 
+  // Persists a user record to Shared preferences (doesn't need to always query Firestore)
   Future<void> _persistUserRecord(AppUserRecord record) async {
     try {
       final prefs = await SharedPreferences.getInstance();
