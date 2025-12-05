@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:my_app/l10n/l10n.dart';
 import 'package:my_app/theme/app_theme.dart';
 import 'package:my_app/widgets/profile_avatar_button.dart';
 
@@ -37,8 +38,8 @@ class ProjectListHeader extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
+              children: [
+                const Text(
                   'InnoBeweegLab',
                   style: TextStyle(
                     fontFamily: AppTheme.fontFamilyHeading,
@@ -47,10 +48,11 @@ class ProjectListHeader extends StatelessWidget {
                     color: AppTheme.gray900,
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
-                  'Field Observation System',
-                  style: TextStyle(fontSize: 14, color: AppTheme.gray600),
+                  context.l10n.appTagline,
+                  style:
+                      const TextStyle(fontSize: 14, color: AppTheme.gray600),
                 ),
               ],
             ),

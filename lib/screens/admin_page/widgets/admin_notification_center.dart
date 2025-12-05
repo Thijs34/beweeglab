@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:my_app/l10n/l10n.dart';
 import 'package:my_app/models/admin_notification.dart';
 import 'package:my_app/theme/app_theme.dart';
 
@@ -34,6 +36,8 @@ class AdminNotificationCenter extends StatelessWidget {
         MediaQuery.of(context).size.width -
         ((buttonPosition?.dx ?? 0) + (buttonSize?.width ?? 44));
 
+    final l10n = context.l10n;
+
     return Stack(
       children: [
         Positioned.fill(
@@ -62,8 +66,8 @@ class AdminNotificationCenter extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      const Text(
-                        'Admin notifications',
+                      Text(
+                        l10n.adminNotificationsTitle,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -75,12 +79,12 @@ class AdminNotificationCenter extends StatelessWidget {
                       if (hasUnread)
                         TextButton(
                           onPressed: onMarkAllAsRead,
-                          child: const Text('Mark all read'),
+                          child: Text(l10n.notificationsMarkAllRead),
                         ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  SizedBox(height: 240, child: _buildBody()),
+                  SizedBox(height: 240, child: _buildBody(context)),
                 ],
               ),
             ),
@@ -90,7 +94,8 @@ class AdminNotificationCenter extends StatelessWidget {
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildBody(BuildContext context) {
+    final l10n = context.l10n;
     if (isLoading) {
       return const Center(
         child: CircularProgressIndicator(color: AppTheme.primaryOrange),
@@ -100,12 +105,12 @@ class AdminNotificationCenter extends StatelessWidget {
     if (notifications.isEmpty) {
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
-          Icon(Icons.notifications_none, size: 36, color: AppTheme.gray300),
-          SizedBox(height: 12),
+        children: [
+          const Icon(Icons.notifications_none, size: 36, color: AppTheme.gray300),
+          const SizedBox(height: 12),
           Text(
-            'No notifications yet',
-            style: TextStyle(color: AppTheme.gray500, fontSize: 14),
+            l10n.notificationsEmptyTitle,
+            style: const TextStyle(color: AppTheme.gray500, fontSize: 14),
           ),
         ],
       );
@@ -135,7 +140,7 @@ class _NotificationTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final subtitle =
         '${notification.userEmail} • '
-        '${_formatRelativeTime(notification.createdAt)}';
+        '${_formatRelativeTime(context, notification.createdAt)}';
 
     return Container(
       decoration: BoxDecoration(
@@ -189,20 +194,19 @@ class _NotificationTile extends StatelessWidget {
   }
 
   // Turning timestapms into normal hours
-  String _formatRelativeTime(DateTime timestamp) {
+  String _formatRelativeTime(BuildContext context, DateTime timestamp) {
+    final l10n = context.l10n;
     final now = DateTime.now();
     final difference = now.difference(timestamp);
     if (difference.inMinutes < 1) {
-      return 'Just now';
+      return l10n.relativeJustNow;
     }
     if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}m ago';
+      return l10n.relativeMinutesAgo(difference.inMinutes);
     }
     if (difference.inHours < 24) {
-      return '${difference.inHours}h ago';
+      return l10n.relativeHoursAgo(difference.inHours);
     }
-    return '${timestamp.year}-${_pad(timestamp.month)}-${_pad(timestamp.day)}';
+    return DateFormat.yMd(l10n.localeName).format(timestamp);
   }
-
-  String _pad(int value) => value.toString().padLeft(2, '0');
 }

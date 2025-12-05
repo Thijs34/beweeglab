@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:my_app/l10n/l10n.dart';
 import 'package:my_app/theme/app_theme.dart';
 
 /// Displays the InnoBeweegLab logo and product title for auth screens.
@@ -27,9 +28,9 @@ class AuthBrandHeader extends StatelessWidget {
           },
         ),
         const SizedBox(height: 16),
-        const Text(
-          'Field Observation System',
-          style: TextStyle(fontSize: 14, color: AppTheme.gray600),
+        Text(
+          context.l10n.appTagline,
+          style: const TextStyle(fontSize: 14, color: AppTheme.gray600),
         ),
       ],
     );

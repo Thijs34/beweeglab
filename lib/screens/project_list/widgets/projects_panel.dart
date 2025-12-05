@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:my_app/models/project.dart';
+import 'package:my_app/l10n/l10n.dart';
 import 'package:my_app/theme/app_theme.dart';
 import 'package:my_app/widgets/empty_state.dart';
 import 'package:my_app/widgets/project_card.dart';
@@ -56,7 +57,7 @@ class ProjectsPanel extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                _buildSearchField(),
+                _buildSearchField(context),
                 const SizedBox(height: 16),
                 if (isLoading)
                   const _ProjectsLoadingState()
@@ -81,17 +82,16 @@ class ProjectsPanel extends StatelessWidget {
                     ),
                   )
                 else if (_hasSearchQuery)
-                  const EmptyStateMessage(
+                  EmptyStateMessage(
                     icon: Icons.search,
-                    title: 'No projects found',
-                    subtitle: 'Try adjusting your search terms',
+                    title: context.l10n.observerProjectsEmptySearchTitle,
+                    subtitle: context.l10n.observerProjectsEmptySearchSubtitle,
                   )
                 else
-                  const EmptyStateMessage(
+                  EmptyStateMessage(
                     icon: Icons.assignment_outlined,
-                    title: 'No Projects Assigned',
-                    subtitle:
-                        "You don't have any observation projects assigned yet.\nPlease contact your administrator to get access to projects.",
+                    title: context.l10n.observerProjectsEmptyTitle,
+                    subtitle: context.l10n.observerProjectsEmptySubtitle,
                   ),
               ],
             ),
@@ -101,14 +101,14 @@ class ProjectsPanel extends StatelessWidget {
     );
   }
 
-  Widget _buildSearchField() {
+  Widget _buildSearchField(BuildContext context) {
     return SizedBox(
       height: 44,
       child: TextField(
         controller: searchController,
         style: const TextStyle(fontSize: 14, color: AppTheme.gray900),
         decoration: InputDecoration(
-          hintText: 'Search projects...',
+          hintText: context.l10n.observerProjectsSearchPlaceholder,
           hintStyle: const TextStyle(fontSize: 14, color: AppTheme.gray400),
           prefixIcon: const Icon(
             Icons.search,
@@ -155,6 +155,7 @@ class _ProjectsPanelHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Container(
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: AppTheme.gray200, width: 1)),
@@ -166,9 +167,9 @@ class _ProjectsPanelHeader extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Your Projects',
-                style: TextStyle(
+              Text(
+                l10n.observerProjectsTitle,
+                style: const TextStyle(
                   fontFamily: AppTheme.fontFamilyHeading,
                   fontSize: 17,
                   fontWeight: FontWeight.w600,
@@ -177,7 +178,7 @@ class _ProjectsPanelHeader extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                '$projectCount ${projectCount == 1 ? 'project' : 'projects'} available',
+                l10n.observerProjectsAvailable(projectCount),
                 style: const TextStyle(fontSize: 12, color: AppTheme.gray500),
               ),
             ],
@@ -195,7 +196,7 @@ class _ProjectsPanelHeader extends StatelessWidget {
                     size: 16,
                     color: AppTheme.gray500,
                   ),
-            tooltip: 'Refresh projects',
+            tooltip: l10n.observerProjectsRefresh,
           ),
         ],
       ),
@@ -214,16 +215,24 @@ class _ProjectsLoadingState extends StatelessWidget {
         children: const [
           CircularProgressIndicator(),
           SizedBox(height: 12),
-          Text(
-            'Loading your projects...',
-            style: TextStyle(fontSize: 13, color: AppTheme.gray500),
-          ),
+          _ProjectsLoadingLabel(),
         ],
       ),
     );
   }
 }
 
+class _ProjectsLoadingLabel extends StatelessWidget {
+  const _ProjectsLoadingLabel();
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      context.l10n.projectsLoading,
+      style: const TextStyle(fontSize: 13, color: AppTheme.gray500),
+    );
+  }
+}
 class _ProjectsErrorState extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
@@ -232,17 +241,18 @@ class _ProjectsErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Column(
       children: [
         EmptyStateMessage(
           icon: Icons.error_outline,
-          title: 'Unable to load projects',
+          title: l10n.projectsLoadErrorTitle,
           subtitle: message,
         ),
         const SizedBox(height: 8),
         OutlinedButton(
           onPressed: onRetry,
-          child: const Text('Try again'),
+          child: Text(l10n.commonTryAgain),
         ),
       ],
     );

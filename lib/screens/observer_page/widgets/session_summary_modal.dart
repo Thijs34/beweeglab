@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:my_app/l10n/l10n.dart';
 import 'package:my_app/theme/app_theme.dart';
 import 'package:my_app/screens/observer_page/models/observer_entry.dart';
 import 'package:my_app/screens/observer_page/models/observation_mode.dart';
@@ -26,19 +27,20 @@ class SessionSummaryModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Positioned.fill(
       child: Material(
         color: AppTheme.white,
         child: SafeArea(
           child: Column(
             children: [
-              _buildHeader(),
+              _buildHeader(l10n),
               Expanded(
                 child: entries.isEmpty
-                    ? _buildEmptyState()
-                    : _buildSummaryContent(),
+                    ? _buildEmptyState(l10n)
+                    : _buildSummaryContent(l10n),
               ),
-              _buildBottomButtons(),
+              _buildBottomButtons(l10n),
             ],
           ),
         ),
@@ -46,7 +48,7 @@ class SessionSummaryModal extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(AppLocalizations l10n) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -56,9 +58,9 @@ class SessionSummaryModal extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Session Summary',
-            style: TextStyle(
+          Text(
+            l10n.observerSummaryTitle,
+            style: const TextStyle(
               fontFamily: AppTheme.fontFamilyHeading,
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -75,45 +77,45 @@ class SessionSummaryModal extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(AppLocalizations l10n) {
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
-          Icon(Icons.group_outlined, size: 72, color: AppTheme.gray300),
-          SizedBox(height: 16),
+        children: [
+          const Icon(Icons.group_outlined, size: 72, color: AppTheme.gray300),
+          const SizedBox(height: 16),
           Text(
-            'No observations recorded',
-            style: TextStyle(
+            l10n.observerSummaryEmptyTitle,
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: AppTheme.gray700,
             ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
-            'Record at least one person or group before submitting a session.',
+            l10n.observerSummaryEmptySubtitle,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14, color: AppTheme.gray500),
+            style: const TextStyle(fontSize: 14, color: AppTheme.gray500),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSummaryContent() {
-    final stats = _SummaryStats(entries);
+  Widget _buildSummaryContent(AppLocalizations l10n) {
+    final stats = _SummaryStats(entries, l10n);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
           _SummaryCard(
-            title: 'Total Recorded',
+            title: l10n.observerSummaryTotalRecorded,
             child: Column(
               children: [
-                _DividerLabel(label: '${entries.length} entries'),
+                _DividerLabel(label: l10n.observerSummaryEntries(entries.length)),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -121,7 +123,7 @@ class SessionSummaryModal extends StatelessWidget {
                       child: _StatPill(
                         background: const Color(0xFFFFF3E0),
                         valueColor: Color(0xFFFE5C01),
-                        label: 'Individuals',
+                        label: l10n.observerSummaryIndividuals,
                         value: stats.individuals.toString(),
                       ),
                     ),
@@ -130,14 +132,14 @@ class SessionSummaryModal extends StatelessWidget {
                       child: _StatPill(
                         background: const Color(0xFFFFE0B2),
                         valueColor: const Color(0xFFFE5C01),
-                        label: 'Groups',
+                        label: l10n.observerSummaryGroups,
                         value: stats.groups.toString(),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                _DividerLabel(label: 'Group Observations'),
+                _DividerLabel(label: l10n.observerSummaryGroupObservations),
                 const SizedBox(height: 4),
                 Text(
                   '${stats.groupPercentage}%',
@@ -152,12 +154,12 @@ class SessionSummaryModal extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _SummaryCard(
-            title: 'Demographics',
+            title: l10n.observerSummaryDemographics,
             child: Row(
               children: [
                 Expanded(
                   child: _CenteredStat(
-                    label: 'Males',
+                    label: l10n.observerSummaryMales,
                     value: stats.males.toString(),
                     color: const Color(0xFFBF360C),
                   ),
@@ -165,7 +167,7 @@ class SessionSummaryModal extends StatelessWidget {
                 Container(width: 1, height: 60, color: AppTheme.gray100),
                 Expanded(
                   child: _CenteredStat(
-                    label: 'Females',
+                    label: l10n.observerSummaryFemales,
                     value: stats.females.toString(),
                     color: AppTheme.gray900,
                   ),
@@ -173,7 +175,7 @@ class SessionSummaryModal extends StatelessWidget {
                 Container(width: 1, height: 60, color: AppTheme.gray100),
                 Expanded(
                   child: _CenteredStat(
-                    label: 'Children',
+                    label: l10n.observerSummaryChildren,
                     value: stats.children.toString(),
                     color: const Color(0xFFF59E0B),
                   ),
@@ -183,21 +185,21 @@ class SessionSummaryModal extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _SummaryCard(
-            title: 'Activity Levels',
+            title: l10n.observerSummaryActivityLevels,
             child: Column(
               children: [
                 _KeyValueRow(
-                  label: 'Sedentary',
+                  label: l10n.observerSummaryActivitySedentary,
                   value: stats.activitySedentary.toString(),
                 ),
                 const Divider(height: 24, color: AppTheme.gray100),
                 _KeyValueRow(
-                  label: 'Moving',
+                  label: l10n.observerSummaryActivityMoving,
                   value: stats.activityMoving.toString(),
                 ),
                 const Divider(height: 24, color: AppTheme.gray100),
                 _KeyValueRow(
-                  label: 'Intense',
+                  label: l10n.observerSummaryActivityIntense,
                   value: stats.activityIntense.toString(),
                 ),
               ],
@@ -205,18 +207,18 @@ class SessionSummaryModal extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _SummaryCard(
-            title: 'Session Details',
+            title: l10n.observerSummarySessionDetails,
             child: Column(
               children: [
-                _KeyValueRow(label: 'Location', value: stats.locationsLabel),
+                _KeyValueRow(label: l10n.observerSummaryLocation, value: stats.locationsLabel),
                 const Divider(height: 24, color: AppTheme.gray100),
-                _KeyValueRow(label: 'Date', value: currentDate),
+                _KeyValueRow(label: l10n.observerSummaryDate, value: currentDate),
                 const Divider(height: 24, color: AppTheme.gray100),
-                _KeyValueRow(label: 'Time', value: stats.timeRangeLabel),
+                _KeyValueRow(label: l10n.observerSummaryTime, value: stats.timeRangeLabel),
                 const Divider(height: 24, color: AppTheme.gray100),
                 _KeyValueRow(
-                  label: 'Weather',
-                  value: '$temperatureLabel \u2022 ${_readableWeatherLabel()}',
+                  label: l10n.observerSummaryWeather,
+                  value: '$temperatureLabel \u2022 ${_readableWeatherLabel(l10n)}',
                 ),
               ],
             ),
@@ -226,7 +228,7 @@ class SessionSummaryModal extends StatelessWidget {
     );
   }
 
-  Widget _buildBottomButtons() {
+  Widget _buildBottomButtons(AppLocalizations l10n) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
@@ -247,7 +249,7 @@ class SessionSummaryModal extends StatelessWidget {
                   ),
                   foregroundColor: AppTheme.gray700,
                 ),
-                child: const Text('Cancel'),
+                child: Text(l10n.commonCancel),
               ),
             ),
           ),
@@ -265,7 +267,7 @@ class SessionSummaryModal extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                child: const Text('Submit Session'),
+                child: Text(l10n.observerSummarySubmit),
               ),
             ),
           ),
@@ -274,11 +276,11 @@ class SessionSummaryModal extends StatelessWidget {
     );
   }
 
-  String _readableWeatherLabel() {
+  String _readableWeatherLabel(AppLocalizations l10n) {
     return switch (weatherCondition) {
-      WeatherCondition.cloudy => 'cloudy',
-      WeatherCondition.rainy => 'rainy',
-      WeatherCondition.sunny => 'sunny',
+      WeatherCondition.cloudy => l10n.weatherCloudy,
+      WeatherCondition.rainy => l10n.weatherRainy,
+      WeatherCondition.sunny => l10n.weatherSunny,
     };
   }
 }
@@ -462,6 +464,7 @@ class _KeyValueRow extends StatelessWidget {
 }
 
 class _SummaryStats {
+  final AppLocalizations l10n;
   final int individuals;
   final int groups;
   final int groupPercentage;
@@ -474,7 +477,7 @@ class _SummaryStats {
   final String locationsLabel;
   final String timeRangeLabel;
 
-  _SummaryStats(List<ObserverEntry> entries)
+  _SummaryStats(List<ObserverEntry> entries, this.l10n)
     : individuals = entries
           .where((e) => e.mode == ObservationMode.individual)
           .length,
@@ -506,30 +509,43 @@ class _SummaryStats {
       activityIntense = entries
           .where((e) => e.shared.activityLevel == 'intense')
           .length,
-      locationsLabel = _formatLocations(entries),
+      locationsLabel = _formatLocations(entries, l10n),
       timeRangeLabel = _formatTimeRange(entries);
 
-  static String _formatLocations(List<ObserverEntry> entries) {
+  static String _formatLocations(
+    List<ObserverEntry> entries,
+    AppLocalizations l10n,
+  ) {
     final labels = entries
         .map(
-          (e) => _humanLocation(e.shared.locationType, e.shared.customLocation),
+          (e) => _humanLocation(
+            e.shared.locationType,
+            e.shared.customLocation,
+            l10n,
+          ),
         )
         .toSet();
     if (labels.isEmpty) return '—';
     if (labels.length == 1) return labels.first;
-    return 'Multiple';
+    return l10n.observerSummaryLocationMultiple;
   }
 
-  static String _humanLocation(String locationType, String? customLocation) {
+  static String _humanLocation(
+    String locationType,
+    String? customLocation,
+    AppLocalizations l10n,
+  ) {
     switch (locationType) {
       case 'cruyff-court':
-        return 'C - Cruyff Court';
+        return l10n.observerSummaryLocationCruyff;
       case 'basketball-field':
-        return 'B - Basketball Field';
+        return l10n.observerSummaryLocationBasketball;
       case 'grass-field':
-        return 'G - Grass Field';
+        return l10n.observerSummaryLocationGrass;
       case 'custom':
-        return customLocation?.isNotEmpty == true ? customLocation! : 'Custom';
+        return customLocation?.isNotEmpty == true
+            ? customLocation!
+            : l10n.observerSummaryLocationCustom;
       default:
         return locationType;
     }

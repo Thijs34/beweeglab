@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:my_app/l10n/l10n.dart';
 import 'package:my_app/theme/app_theme.dart';
 
 class UserInfoBar extends StatelessWidget {
@@ -25,9 +26,10 @@ class UserInfoBar extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Logged in as',
-                style: TextStyle(fontSize: 14, color: AppTheme.gray500),
+              Text(
+                context.l10n.profileLoggedInAs,
+                style:
+                    const TextStyle(fontSize: 14, color: AppTheme.gray500),
               ),
               const SizedBox(height: 2),
               Text(
@@ -42,9 +44,9 @@ class UserInfoBar extends StatelessWidget {
           ),
           GestureDetector(
             onTap: onLogout,
-            child: const Text(
-              'Logout',
-              style: TextStyle(
+            child: Text(
+              context.l10n.profileLogout,
+              style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
                 color: AppTheme.primaryOrange,

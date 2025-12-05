@@ -1,0 +1,533 @@
+{
+  "@@locale": "en",
+  "appTitle": "InnoBeweegLab - Field Observation System",
+  "languageEnglish": "English",
+  "languageDutch": "Dutch",
+  "profileReauthRequired": "Please sign in again to update your name.",
+  "profileNameEmptyError": "Name cannot be empty.",
+  "profileNothingToUpdate": "Nothing to update.",
+  "profileNameUpdated": "Name updated.",
+  "profileUpdateNameError": "Unable to update name right now.",
+  "profileNoEmailError": "No email associated with this account.",
+  "profileResetLinkSent": "If an account exists for {email}, a reset link is on the way.",
+  "@profileResetLinkSent": {
+    "placeholders": {
+      "email": {}
+    }
+  },
+  "profileResetFailed": "Could not send reset email.",
+  "profileLogoutError": "Unable to logout right now. Please try again.",
+  "profileSettingsTitle": "Profile & Settings",
+  "profileSectionTitle": "Profile",
+  "profileNameLabel": "Name",
+  "profileNameHint": "Your name",
+  "profileSaveName": "Save name",
+  "profileEmailLabel": "Email",
+  "profileUnavailable": "Unavailable",
+  "profileRoleLabel": "Role",
+  "profileRoleAdmin": "Admin",
+  "profileRoleObserver": "Observer",
+  "profileRoleUnknown": "Unknown role",
+  "profilePreferencesTitle": "Preferences",
+  "profileLanguagePreference": "Language preference",
+  "profileSecurityTitle": "Security",
+  "profileSendingReset": "Sending reset...",
+  "profileChangePassword": "Change password",
+  "profileLogout": "Logout",
+  "profileShortcutsTitle": "Shortcuts",
+  "profileOpenAdminPanel": "Open Admin Panel",
+  "profileAdminPanelSubtitle": "Manage projects, observers, and alerts",
+  "adminNotificationsTitle": "Admin notifications",
+  "notificationsNavTitle": "Notifications",
+  "notificationsRecentActivity": "Recent activity",
+  "notificationsMarkAllRead": "Mark all read",
+  "notificationsMarkAllReadSuccess": "All notifications marked as read.",
+  "notificationsMarkAllReadFailure": "Could not mark notifications as read.",
+  "notificationsLoadError": "Unable to load notifications right now.",
+  "notificationsEmptyTitle": "No notifications yet",
+  "notificationsEmptySubtitle": "You will see new user sign-ups here once they happen.",
+  "relativeJustNow": "Just now",
+  "relativeMinutesAgo": "{minutes}m ago",
+  "@relativeMinutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "relativeHoursAgo": "{hours}h ago",
+  "@relativeHoursAgo": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "commonRefresh": "Refresh",
+  "commonCancel": "Cancel",
+  "commonDelete": "Delete",
+  "commonSaveChanges": "Save changes",
+  "commonDone": "Done",
+  "commonBackToProjects": "Back to Projects",
+  "commonTryAgain": "Try again",
+  "commonEmailLabel": "Email",
+  "commonPasswordLabel": "Password",
+  "authCheckingSession": "Checking your session...",
+  "authRestoringWorkspace": "Restoring your workspace...",
+  "authRestoreError": "Unable to restore your profile. Please sign in again.",
+  "authReturnToLogin": "Return to login",
+  "loginTitle": "Login",
+  "loginErrorGeneric": "Unable to login right now. Please try again.",
+  "loginEmailPlaceholder": "your.email@example.com",
+  "loginEmailRequired": "Email is required",
+  "loginEmailInvalid": "Please enter a valid email",
+  "loginPasswordPlaceholder": "Enter your password",
+  "loginPasswordRequired": "Password is required",
+  "loginForgotPassword": "Forgot password?",
+  "loginSubmit": "Login",
+  "loginNoAccountQuestion": "Don't have an account? ",
+  "loginSignUpCta": "Sign Up",
+  "loginResetPasswordTitle": "Reset password",
+  "loginResetPasswordBody": "Enter the email linked to your account. We will send a reset link if an account exists.",
+  "loginResetEmailRequired": "Please enter the email tied to your account.",
+  "loginResetSendError": "Unable to send reset email. Please try again.",
+  "loginResetSendLink": "Send link",
+  "loginResetLinkSent": "If an account exists for {email}, a reset link is on the way.",
+  "@loginResetLinkSent": {
+    "placeholders": {
+      "email": {}
+    }
+  },
+  "appTagline": "Field Observation System",
+  "observerWelcomeBack": "Welcome back, {firstName}!",
+  "@observerWelcomeBack": {
+    "placeholders": {
+      "firstName": {}
+    }
+  },
+  "observerSelectProjectPrompt": "Select a project to begin your observation",
+  "profileLoggedInAs": "Logged in as",
+  "profileMenuProfileSettings": "Profile & Settings",
+  "profileMenuNotifications": "Notifications",
+  "profileMenuAdminPanel": "Admin Panel",
+  "profileMenuProjectMap": "Project Map",
+  "profileMenuProjects": "Projects",
+  "profileMenuObserver": "Observer",
+  "projectsNeedHelp": "Need help? Contact your administrator for support",
+  "signupTitle": "Create Account",
+  "signupFirstNameLabel": "First Name",
+  "signupFirstNamePlaceholder": "Enter your first name",
+  "signupLastNameLabel": "Last Name",
+  "signupLastNamePlaceholder": "Enter your last name",
+  "signupEmailLabel": "Email",
+  "signupEmailPlaceholder": "your.email@example.com",
+  "signupEmailRequired": "Email is required",
+  "signupEmailInvalid": "Please enter a valid email",
+  "signupPasswordLabel": "Password",
+  "signupPasswordPlaceholder": "Create a password",
+  "signupPasswordRequired": "Password is required",
+  "signupPasswordTooShort": "Password must be at least 6 characters",
+  "signupPasswordConfirmLabel": "Confirm Password",
+  "signupPasswordConfirmPlaceholder": "Re-enter your password",
+  "signupPasswordConfirmRequired": "Please confirm your password",
+  "signupSubmit": "Create Account",
+  "signupRoleInfoPrefix": "New accounts are assigned the ",
+  "signupRoleName": "Observer role",
+  "signupRoleInfoSuffix": " by default. Admin privileges must be granted by the database owner.",
+  "signupAlreadyHaveAccountPrefix": "Already have an account? ",
+  "signupLoginCta": "Login",
+  "observerSummaryTitle": "Session Summary",
+  "observerSummaryEmptyTitle": "No observations recorded",
+  "observerSummaryEmptySubtitle": "Record at least one person or group before submitting a session.",
+  "observerSummaryTotalRecorded": "Total Recorded",
+  "observerSummaryEntries": "{count} entries",
+  "@observerSummaryEntries": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "observerSummaryIndividuals": "Individuals",
+  "observerSummaryGroups": "Groups",
+  "observerSummaryGroupObservations": "Group Observations",
+  "observerSummaryDemographics": "Demographics",
+  "observerSummaryMales": "Males",
+  "observerSummaryFemales": "Females",
+  "observerSummaryChildren": "Children",
+  "observerSummaryActivityLevels": "Activity Levels",
+  "observerSummaryActivitySedentary": "Sedentary",
+  "observerSummaryActivityMoving": "Moving",
+  "observerSummaryActivityIntense": "Intense",
+  "observerSummarySessionDetails": "Session Details",
+  "observerSummaryLocation": "Location",
+  "observerSummaryDate": "Date",
+  "observerSummaryTime": "Time",
+  "observerSummaryWeather": "Weather",
+  "observerSummarySubmit": "Submit Session",
+  "weatherCloudy": "cloudy",
+  "weatherRainy": "rainy",
+  "weatherSunny": "sunny",
+  "observerSummaryLocationMultiple": "Multiple",
+  "observerSummaryLocationCruyff": "C - Cruyff Court",
+  "observerSummaryLocationBasketball": "B - Basketball Field",
+  "observerSummaryLocationGrass": "G - Grass Field",
+  "observerSummaryLocationCustom": "Custom",
+  "observerFinishSession": "Finish Session",
+  "observerSubmitGroup": "Submit Group",
+  "observerSubmitPerson": "Submit Person",
+  "observerNoOptionsConfigured": "No options configured.",
+  "observerOtherOption": "Other",
+  "observerNoProjectTitle": "No project selected",
+  "observerNoProjectSubtitle": "Choose a project from the list to start recording observations.",
+  "observerBackToProjectList": "Back to projects",
+  "observerAdditionalNotesHint": "Additional notes...",
+  "observerDateLabel": "Date",
+  "observerTimeLabel": "Time",
+  "observerModeLabel": "Observation Mode",
+  "observerModeIndividual": "Individual",
+  "observerModeGroup": "Group",
+  "observerNoFieldsConfigured": "No observation fields are configured for this project.",
+  "observerSelectProject": "Select a project before recording observations.",
+  "observerPleaseSignIn": "Please sign in again to continue.",
+  "observerEnterNumber": "Please enter a number",
+  "observerProjectsTitle": "Your Projects",
+  "observerProjectsAvailable": "{count, plural, one {{count} project available} other {{count} projects available}}",
+  "@observerProjectsAvailable": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "observerProjectsSearchPlaceholder": "Search projects...",
+  "observerProjectsEmptySearchTitle": "No projects found",
+  "observerProjectsEmptySearchSubtitle": "Try adjusting your search terms",
+  "observerProjectsEmptyTitle": "No Projects Assigned",
+  "observerProjectsEmptySubtitle": "You don't have any observation projects assigned yet.\nPlease contact your administrator to get access to projects.",
+  "observerProjectsRefresh": "Refresh projects",
+  "projectMapTitle": "Project Map",
+  "observerSuccessTitle": "Observation Saved!",
+  "observerSuccessPerson": "Person #{personId} has been recorded.",
+  "@observerSuccessPerson": {
+    "placeholders": {
+      "personId": {}
+    }
+  },
+  "observerSuccessGroup": "Group of {groupSize} people has been recorded.",
+  "@observerSuccessGroup": {
+    "placeholders": {
+      "groupSize": {
+        "type": "int"
+      }
+    }
+  },
+  "observerSuccessPreparing": "Preparing next observation...",
+  "exportSheetName": "Observations",
+  "exportProjectLabel": "Project",
+  "exportLocationLabel": "Location",
+  "exportLocationNotSet": "Not set",
+  "exportExportedAt": "Exported At",
+  "exportObservationCount": "Observation Count",
+  "exportHeaderPersonId": "Person ID",
+  "exportHeaderMode": "Mode",
+  "exportHeaderTimestamp": "Timestamp",
+  "exportHeaderObserverEmail": "Observer Email",
+  "exportHeaderObserverUid": "Observer UID",
+  "exportHeaderGender": "Gender",
+  "exportHeaderAgeGroup": "Age Group",
+  "exportHeaderSocialContext": "Social Context",
+  "exportHeaderActivityLevel": "Activity Level",
+  "exportHeaderActivityType": "Activity Type",
+  "exportHeaderLocation": "Location",
+  "exportHeaderLocationTypeId": "Location Type ID",
+  "exportHeaderGroupSize": "Group Size",
+  "exportHeaderGenderMix": "Gender Mix",
+  "exportHeaderAgeMix": "Age Mix",
+  "exportHeaderNotes": "Notes",
+  "exportSuccessMessage": "Excel export saved to your device.",
+  "exportErrorMessage": "Unable to export observations right now.",
+  "commonClose": "Close",
+  "projectMapLocationUnavailable": "Location unavailable",
+  "projectMapOpenInAdmin": "Open in Admin",
+  "projectMapProjectCount": "{count, plural, one {{count} project} other {{count} projects}}",
+  "@projectMapProjectCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "projectsLoading": "Loading projects...",
+  "projectsLoadErrorTitle": "Couldn't load projects",
+  "projectsRefreshTooltip": "Refresh projects",
+  "adminStatusActive": "Active",
+  "adminStatusFinished": "Finished",
+  "adminStatusArchived": "Archived",
+  "adminSectionGeneral": "General",
+  "adminSectionObservers": "Observers",
+  "adminSectionFields": "Fields",
+  "adminSectionData": "Data",
+  "adminManageProjectsTitle": "Manage Projects",
+  "adminManageProjectsSubtitle": "Create and organize observation projects, assign observers, and monitor data collection",
+  "adminCreateNewProject": "Create New Project",
+  "adminNoProjectsTitle": "No {status} projects yet",
+  "@adminNoProjectsTitle": {
+    "placeholders": {
+      "status": {}
+    }
+  },
+  "adminNoProjectsSubtitle": "Create your first project to get started",
+  "adminStatusChipLabel": "{status} ({count})",
+  "@adminStatusChipLabel": {
+    "placeholders": {
+      "status": {},
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminProjectCreatedSuccess": "Project created successfully!",
+  "adminStatusProjectsTitle": "{status} Projects ({count})",
+  "@adminStatusProjectsTitle": {
+    "placeholders": {
+      "status": {},
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminNewProjectNameLabel": "Project Name",
+  "adminNewProjectNameHint": "e.g., Parkstraat Observation Site",
+  "adminNewProjectMainLocationLabel": "Main Location",
+  "adminNewProjectMainLocationHint": "e.g., Parkstraat, Amsterdam",
+  "adminNoSuggestionsFound": "No suggestions found",
+  "adminDescriptionOptionalLabel": "Description (Optional)",
+  "adminDescriptionOptionalHint": "Add project description or notes...",
+  "adminCreating": "Creating...",
+  "adminCreateProject": "Create Project",
+  "adminLocationTypesTitle": "Location Types",
+  "adminLocationTypesSubtitle": "Select all location types available at this site",
+  "adminCustomLocationPlaceholder": "Add a custom location... (Enter or Add)",
+  "adminAdd": "Add",
+  "adminHiddenLocationTypes": "Hidden location types:",
+  "adminAssignObserversTitle": "Assign Observers (Optional)",
+  "adminAssignObserversSubtitle": "Add team members who can collect observations for this project",
+  "adminAddObserver": "Add Observer",
+  "adminSearchObserversPlaceholder": "Search observers by name or email...",
+  "adminNoObserversFound": "No observers found",
+  "adminDone": "Done",
+  "adminNoObserversAssigned": "No observers assigned yet. You can add them later.",
+  "adminProjectMainLocationUnset": "Main location not set",
+  "adminProjectObservationCount": "{count, plural, one {{count} observation} other {{count} observations}}",
+  "@adminProjectObservationCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminProjectObserverCount": "{count, plural, one {{count} observer} other {{count} observers}}",
+  "@adminProjectObserverCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminDeleteWarningTitle": "You are about to permanently delete this project. This will remove:",
+  "adminDeleteRemoveObservations": "• {count, plural, one {{count} observation} other {{count} observations}}",
+  "@adminDeleteRemoveObservations": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminDeleteRemoveObservers": "• All assigned observers",
+  "adminDeleteRemoveData": "• All project data and settings",
+  "adminDeleteIrreversible": "This data cannot be recovered once deleted.",
+  "adminDeleteConfirmQuestion": "Are you absolutely sure you want to continue?",
+  "adminDeleteConfirmButton": "Yes, Delete Project",
+  "adminDeleteDialogTitle": "Delete Project?",
+  "adminDeleteWarningHeader": "⚠️ WARNING: This action cannot be reversed!",
+  "adminLoadingProjects": "Loading projects...",
+  "adminChangeStatusTooltip": "Change project status",
+  "adminStatusOptionCurrent": "{status} (current)",
+  "@adminStatusOptionCurrent": {
+    "placeholders": {
+      "status": {}
+    }
+  },
+  "adminObserverAssignedCount": "{count, plural, one {{count} observer assigned} other {{count} observers assigned}}",
+  "@adminObserverAssignedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminLocationTypesHeader": "Location Types",
+  "adminAddLocation": "Add Location",
+  "adminAddLocationHint": "Add location",
+  "adminNoLocationTypes": "No location types configured",
+  "adminAssignedObservers": "Assigned Observers",
+  "adminObserverSearchPlaceholder": "Search observers by name or email...",
+  "adminObserversAllAssigned": "All observers are already assigned",
+  "adminNoObserversFoundSelector": "No observers found",
+  "adminNoObserversAssignedTitle": "No observers assigned yet",
+  "adminNoObserversAssignedSubtitle": "Click \"Add Observer\" to assign team members",
+  "adminClearAll": "Clear All",
+  "adminEdit": "Edit",
+  "adminEntriesLabel": "Entries",
+  "adminEntriesOption": "{count} entries",
+  "@adminEntriesOption": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "adminNoFieldsTitle": "No fields configured yet.",
+  "adminNoFieldsSubtitle": "Add your first custom field or restore the default template.",
+  "adminFieldStandard": "Standard",
+  "adminFieldCustom": "Custom",
+  "adminEditObservationTitle": "Edit Observation",
+  "adminPersonIdLabel": "Person ID",
+  "adminPersonIdHint": "Enter person ID",
+  "adminAgeGroupLabel": "Age Group",
+  "adminSocialContextLabel": "Social Context",
+  "adminActivityLevelLabel": "Activity Level",
+  "adminActivityTypeLabel": "Activity Type",
+  "adminGenderMale": "Male",
+  "adminGenderFemale": "Female",
+  "adminAgeChild": "Child",
+  "adminAgeTeen": "Teen",
+  "adminAgeAdult": "Adult",
+  "adminAgeSenior": "Senior",
+  "adminSocialAlone": "Alone",
+  "adminSocialTogether": "Together",
+  "adminActivityLevelSitting": "Sitting",
+  "adminActivityLevelMoving": "Moving",
+  "adminActivityLevelIntense": "Intense",
+  "adminActivityTypeOrganized": "Organized",
+  "adminActivityTypeUnorganized": "Unorganized",
+  "adminEditStandardField": "Edit Standard Field",
+  "adminEditCustomField": "Edit Custom Field",
+  "adminFieldLabel": "Label",
+  "adminHelperTextOptional": "Helper text (optional)",
+  "adminTextFieldSettings": "Text field settings",
+  "adminPlaceholderLabel": "Placeholder",
+  "adminMaxLengthOptional": "Max length (optional)",
+  "adminAllowMultilineInput": "Allow multiline input",
+  "adminOptionsTitle": "Options",
+  "adminAddOption": "Add option",
+  "adminRemoveOption": "Remove option",
+  "adminAllowMultipleValues": "Allow selecting multiple values",
+  "adminAudienceIndividual": "Individual",
+  "adminAudienceGroup": "Group",
+  "adminAudienceBoth": "Both",
+  "adminOptionNumber": "Option {index}",
+  "@adminOptionNumber": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "adminOptionFallback": "Option",
+  "adminFieldLabelRequiredError": "Field label is required.",
+  "adminOptionMinimumError": "Please provide at least two options.",
+  "adminFieldTypeTextInput": "Text input",
+  "adminFieldTypeNumber": "Number",
+  "adminFieldTypeDropdownLegacy": "Dropdown (legacy)",
+  "adminFieldTypeMultiSelect": "Multi-select",
+  "adminFieldTypeCheckbox": "Checkbox",
+  "adminFieldTypeDate": "Date",
+  "adminFieldTypeTime": "Time",
+  "adminFieldTypeRating": "Rating scale",
+  "adminObservationsRecorded": "{count, plural, one {{count} observation recorded} other {{count} observations recorded}}",
+  "@adminObservationsRecorded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminPanelTitle": "Admin Panel",
+  "adminAdjustStatus": "Adjust status",
+  "adminUpdatingStatus": "Updating...",
+  "adminObservationFieldsTitle": "Observation Fields",
+  "adminObservationFieldsCount": "{count, plural, one {{count} field} other {{count} fields}}",
+  "@adminObservationFieldsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminObservationFieldsSubtitle": "Reorder, edit, or toggle standard/custom fields. Remember to save changes.",
+  "adminAddField": "Add Field",
+  "adminRestoreDefaults": "Restore defaults",
+  "adminSaving": "Saving…",
+  "adminSaveChanges": "Save Changes",
+  "adminDeleteFieldTitle": "Delete field",
+  "adminDeleteFieldMessage": "Are you sure you want to delete \"{label}\"? This cannot be undone.",
+  "@adminDeleteFieldMessage": {
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "adminAdditionalNotesHint": "Additional notes...",
+  "adminRequiredField": "Required field",
+  "adminRequiredFieldSubtitle": "Observers must provide a value before saving.",
+  "adminFieldTypeLabel": "Field type",
+  "adminFormVisibility": "Form visibility",
+  "adminObservationDataTitle": "Observation Data",
+  "adminExporting": "Exporting...",
+  "adminExport": "Export",
+  "adminFiltersTitle": "Filters",
+  "adminRefreshData": "Refresh data",
+  "adminFilterGender": "Gender",
+  "adminFilterAge": "Age",
+  "adminFilterSocial": "Social",
+  "adminFilterLevel": "Level",
+  "adminFilterLocation": "Location",
+  "adminNoObservationDataTitle": "No observation data yet",
+  "adminNoObservationDataSubtitle": "Data will appear here once observers start collecting",
+  "adminNoFilteredObservationsTitle": "No observations match your filters",
+  "adminNoFilteredObservationsSubtitle": "Try adjusting your filter criteria",
+  "adminLoadingMore": "Loading more...",
+  "adminLoadOlderObservations": "Load older observations",
+  "adminRecordGroup": "Group",
+  "adminRecordIndividual": "Individual",
+  "adminFieldGender": "Gender",
+  "adminFieldAge": "Age",
+  "adminFieldSocial": "Social",
+  "adminFieldGroupSize": "Group Size",
+  "adminFieldGenderMix": "Gender Mix",
+  "adminFieldAgeMix": "Age Mix",
+  "adminFieldActivity": "Activity",
+  "adminFieldType": "Type",
+  "adminFieldLocation": "Location",
+  "adminFieldEmail": "Email:",
+  "adminFieldNotes": "Notes",
+  "adminNoRecordsCollected": "No records collected yet",
+  "adminFilteredResults": "Filtered results (showing {count})",
+  "@adminFilteredResults": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminShowingLatest": "Showing latest {visible} of {total} records",
+  "@adminShowingLatest": {
+    "placeholders": {
+      "visible": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  }
+}

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:my_app/l10n/l10n.dart';
 import 'package:my_app/models/navigation_arguments.dart';
 import 'package:my_app/services/auth_service.dart';
 import 'package:my_app/theme/app_theme.dart';
@@ -68,7 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() => _errorMessage = error.message);
     } catch (_) {
       setState(
-        () => _errorMessage = 'Unable to login right now. Please try again.',
+        () => _errorMessage = context.l10n.loginErrorGeneric,
       );
     } finally {
       if (mounted) {
@@ -78,6 +79,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleForgotPassword() async {
+    final l10n = context.l10n;
     final dialogEmailController =
         TextEditingController(text: _emailController.text.trim());
     String? dialogError;
@@ -89,22 +91,22 @@ class _LoginScreenState extends State<LoginScreen> {
         return StatefulBuilder(
           builder: (dialogContext, setDialogState) {
             return AlertDialog(
-              title: const Text('Reset password'),
+              title: Text(l10n.loginResetPasswordTitle),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
-                    'Enter the email linked to your account. We will send a reset link if an account exists.',
-                    style: TextStyle(fontSize: 13, color: AppTheme.gray600),
+                  Text(
+                    l10n.loginResetPasswordBody,
+                    style: const TextStyle(fontSize: 13, color: AppTheme.gray600),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: dialogEmailController,
                     autofocus: true,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
+                    decoration: InputDecoration(
+                      labelText: l10n.commonEmailLabel,
                     ),
                   ),
                   if (dialogError != null) ...[
@@ -121,7 +123,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   onPressed: isSending
                       ? null
                       : () => Navigator.of(dialogContext).pop(false),
-                  child: const Text('Cancel'),
+                  child: Text(l10n.commonCancel),
                 ),
                 ElevatedButton(
                   onPressed: isSending
@@ -132,7 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           if (requestEmail.isEmpty) {
                             setDialogState(
                               () => dialogError =
-                                  'Please enter the email tied to your account.',
+                                  l10n.loginResetEmailRequired,
                             );
                             return;
                           }
@@ -155,8 +157,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             });
                           } catch (_) {
                             setDialogState(() {
-                              dialogError =
-                                  'Unable to send reset email. Please try again.';
+                              dialogError = l10n.loginResetSendError;
                               isSending = false;
                             });
                           }
@@ -167,7 +168,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           height: 18,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Send link'),
+                      : Text(l10n.loginResetSendLink),
                 ),
               ],
             );
@@ -181,7 +182,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (didSend == true) {
       _showLoginSnack(
-        'If an account exists for $requestedEmail, a reset link is on the way.',
+        l10n.loginResetLinkSent(requestedEmail),
       );
     }
   }
@@ -224,6 +225,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return AuthFormLayout(
       child: Form(
         key: _formKey,
@@ -236,9 +238,9 @@ class _LoginScreenState extends State<LoginScreen> {
             AuthFormCard(
               child: Column(
                 children: [
-                  const Text(
-                    'Login',
-                    style: TextStyle(
+                  Text(
+                    l10n.loginTitle,
+                    style: const TextStyle(
                       fontFamily: AppTheme.fontFamilyHeading,
                       fontSize: 24,
                       fontWeight: FontWeight.w600,
@@ -248,30 +250,30 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 24),
                   CustomTextField(
-                    label: 'Email',
-                    placeholder: 'your.email@example.com',
+                    label: l10n.commonEmailLabel,
+                    placeholder: l10n.loginEmailPlaceholder,
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     validator: (value) {
                       final text = value?.trim() ?? '';
                       if (text.isEmpty) {
-                        return 'Email is required';
+                        return l10n.loginEmailRequired;
                       }
                       if (!text.contains('@')) {
-                        return 'Please enter a valid email';
+                        return l10n.loginEmailInvalid;
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 16),
                   CustomTextField(
-                    label: 'Password',
-                    placeholder: 'Enter your password',
+                    label: l10n.commonPasswordLabel,
+                    placeholder: l10n.loginPasswordPlaceholder,
                     controller: _passwordController,
                     isPassword: true,
                     validator: (value) {
                       if ((value ?? '').trim().isEmpty) {
-                        return 'Password is required';
+                        return l10n.loginPasswordRequired;
                       }
                       return null;
                     },
@@ -283,9 +285,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       cursor: SystemMouseCursors.click,
                       child: GestureDetector(
                         onTap: _handleForgotPassword,
-                        child: const Text(
-                          'Forgot password?',
-                          style: TextStyle(
+                        child: Text(
+                          l10n.loginForgotPassword,
+                          style: const TextStyle(
                             fontSize: 14,
                             color: AppTheme.primaryOrange,
                           ),
@@ -295,7 +297,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 16),
                   CustomButton(
-                    text: 'Login',
+                    text: l10n.loginSubmit,
                     onPressed: _handleLogin,
                     isLoading: _isSubmitting,
                   ),
@@ -310,15 +312,15 @@ class _LoginScreenState extends State<LoginScreen> {
                 text: TextSpan(
                   style: const TextStyle(fontSize: 14, color: AppTheme.gray600),
                   children: [
-                    const TextSpan(text: "Don't have an account? "),
+                    TextSpan(text: l10n.loginNoAccountQuestion),
                     WidgetSpan(
                       child: MouseRegion(
                         cursor: SystemMouseCursors.click,
                         child: GestureDetector(
                           onTap: _navigateToSignUp,
-                          child: const Text(
-                            'Sign Up',
-                            style: TextStyle(
+                          child: Text(
+                            l10n.loginSignUpCta,
+                            style: const TextStyle(
                               fontSize: 14,
                               color: AppTheme.primaryOrange,
                             ),

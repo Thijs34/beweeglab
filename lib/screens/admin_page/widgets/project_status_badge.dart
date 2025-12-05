@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:my_app/l10n/gen/app_localizations.dart';
 import 'package:my_app/screens/admin_page/admin_models.dart';
 import 'package:my_app/theme/app_theme.dart';
 
 // Badge widget to display project status for better UX
 class ProjectStatusBadge extends StatelessWidget {
   final ProjectStatus status;
+  final AppLocalizations l10n;
   final EdgeInsets padding;
   final double fontSize;
 
   const ProjectStatusBadge({
     super.key,
     required this.status,
+    required this.l10n,
     this.padding = const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
     this.fontSize = 12,
   });
@@ -26,7 +29,7 @@ class ProjectStatusBadge extends StatelessWidget {
         border: Border.all(color: style.border),
       ),
       child: Text(
-        status.label,
+        status.localizedLabel(l10n),
         style: TextStyle(
           color: style.foreground,
           fontWeight: FontWeight.w700,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:my_app/l10n/l10n.dart';
 import 'package:my_app/theme/app_theme.dart';
 
 enum ProfileMenuDestination {
@@ -99,14 +100,14 @@ class ProfileMenu extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  ..._buildMenuButtons(),
+                  ..._buildMenuButtons(context),
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 4),
                     child: Divider(height: 1, color: AppTheme.gray200),
                   ),
                   _MenuButton(
                     icon: Icons.logout,
-                    label: 'Logout',
+                    label: context.l10n.profileLogout,
                     onTap: () {
                       onClose();
                       onLogout();
@@ -121,7 +122,7 @@ class ProfileMenu extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildMenuButtons() {
+  List<Widget> _buildMenuButtons(BuildContext context) {
     final children = <Widget>[];
 
     void addButton({
@@ -158,7 +159,7 @@ class ProfileMenu extends StatelessWidget {
     if (showProfileSettings) {
       addButton(
         icon: Icons.person_outline,
-        label: 'Profile & Settings',
+        label: context.l10n.profileMenuProfileSettings,
         destination: ProfileMenuDestination.profile,
         onTap: onProfileSettingsTap,
       );
@@ -172,7 +173,7 @@ class ProfileMenu extends StatelessWidget {
           : null;
       addButton(
         icon: Icons.notifications_none,
-        label: 'Notifications',
+        label: context.l10n.profileMenuNotifications,
         destination: ProfileMenuDestination.notifications,
         onTap: onNotificationsTap,
         badgeLabel: badgeLabel,
@@ -182,7 +183,7 @@ class ProfileMenu extends StatelessWidget {
     if (showAdmin) {
       addButton(
         icon: Icons.shield_outlined,
-        label: 'Admin Page',
+        label: context.l10n.profileMenuAdminPanel,
         destination: ProfileMenuDestination.admin,
         onTap: onAdminTap,
       );
@@ -191,7 +192,7 @@ class ProfileMenu extends StatelessWidget {
     if (showProjectMap) {
       addButton(
         icon: Icons.map_outlined,
-        label: 'Project Map',
+        label: context.l10n.profileMenuProjectMap,
         destination: ProfileMenuDestination.projectMap,
         onTap: onProjectMapTap,
       );
@@ -199,14 +200,14 @@ class ProfileMenu extends StatelessWidget {
 
     addButton(
       icon: Icons.folder_outlined,
-      label: 'Project List',
+      label: context.l10n.profileMenuProjects,
       destination: ProfileMenuDestination.projects,
       onTap: onProjectsTap,
     );
 
     addButton(
       icon: Icons.assignment_outlined,
-      label: 'Observer Page',
+      label: context.l10n.profileMenuObserver,
       destination: ProfileMenuDestination.observer,
       onTap: onObserverTap,
     );

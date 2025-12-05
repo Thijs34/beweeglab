@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'package:my_app/l10n/l10n.dart';
 import 'package:my_app/models/observation_field.dart';
 import 'package:my_app/screens/admin_page/admin_models.dart';
 import 'package:my_app/screens/admin_page/widgets/project_detail_section_selector.dart';
@@ -144,7 +145,7 @@ class ProjectDetailView extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
               icon: const Icon(Icons.arrow_back, size: 18),
-              label: const Text('Back to Projects'),
+              label: Text(context.l10n.commonBackToProjects),
             ),
           ),
           const SizedBox(height: 16),
@@ -263,9 +264,10 @@ class _ProjectHeaderBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final locationLabel = project.mainLocation.isEmpty
-        ? 'Main location not set'
-        : project.mainLocation;
+      ? l10n.adminProjectMainLocationUnset
+      : project.mainLocation;
 
     Widget buildActionBar() {
       return Wrap(
@@ -275,6 +277,7 @@ class _ProjectHeaderBar extends StatelessWidget {
         children: [
           ProjectStatusBadge(
             status: project.status,
+            l10n: l10n,
             padding: const EdgeInsets.symmetric(
               horizontal: 14,
               vertical: 6,
@@ -293,7 +296,7 @@ class _ProjectHeaderBar extends StatelessWidget {
               foregroundColor: AppTheme.red600,
             ),
             icon: const Icon(Icons.delete_outline, size: 18),
-            label: const Text('Delete'),
+            label: Text(l10n.commonDelete),
           ),
         ],
       );
@@ -420,7 +423,7 @@ class _ProjectMetricsCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                '$observationCount observation${observationCount == 1 ? '' : 's'} recorded',
+                context.l10n.adminObservationsRecorded(observationCount),
                 style: const TextStyle(
                   color: AppTheme.gray700,
                   fontWeight: FontWeight.w600,
@@ -438,7 +441,7 @@ class _ProjectMetricsCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                '$observerCount observer${observerCount == 1 ? '' : 's'} assigned',
+                context.l10n.adminObserverAssignedCount(observerCount),
                 style: const TextStyle(
                   color: AppTheme.gray700,
                   fontWeight: FontWeight.w600,
@@ -465,9 +468,10 @@ class _StatusMenuButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return PopupMenuButton<ProjectStatus>(
       enabled: !disabled,
-      tooltip: 'Change project status',
+      tooltip: l10n.adminChangeStatusTooltip,
       onSelected: (status) {
         if (status == current) {
           return;
@@ -477,6 +481,7 @@ class _StatusMenuButton extends StatelessWidget {
       itemBuilder: (context) {
         return ProjectStatus.values.map((status) {
           final isCurrent = status == current;
+          final statusLabel = status.localizedLabel(l10n);
           return PopupMenuItem<ProjectStatus>(
             value: status,
             enabled: !isCurrent,
@@ -489,7 +494,9 @@ class _StatusMenuButton extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  isCurrent ? '${status.label} (current)' : status.label,
+                  isCurrent
+                      ? l10n.adminStatusOptionCurrent(statusLabel)
+                      : statusLabel,
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ],
@@ -560,7 +567,9 @@ class _StatusMenuButtonChild extends StatelessWidget {
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 150),
             child: Text(
-              disabled ? 'Updating...' : 'Adjust status',
+              disabled
+                  ? context.l10n.adminUpdatingStatus
+                  : context.l10n.adminAdjustStatus,
               key: ValueKey(disabled),
               style: TextStyle(
                 color: disabled ? AppTheme.gray500 : AppTheme.gray700,
@@ -740,8 +749,9 @@ class _LocationTypesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return _SectionCard(
-      title: 'Location Types',
+      title: l10n.adminLocationTypesHeader,
       trailing: ElevatedButton.icon(
         onPressed: onToggleAddLocation,
         style: ElevatedButton.styleFrom(
@@ -749,7 +759,7 @@ class _LocationTypesCard extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
         ),
         icon: const Icon(Icons.add, size: 18),
-        label: const Text('Add Location'),
+        label: Text(l10n.adminAddLocation),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -769,8 +779,8 @@ class _LocationTypesCard extends StatelessWidget {
                   Expanded(
                     child: TextField(
                       controller: addLocationController,
-                      decoration: const InputDecoration(
-                        hintText: 'Add location',
+                      decoration: InputDecoration(
+                        hintText: l10n.adminAddLocationHint,
                       ),
                       onSubmitted: (_) => onAddLocation(),
                     ),
@@ -781,7 +791,7 @@ class _LocationTypesCard extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       minimumSize: const Size(0, 44),
                     ),
-                    child: const Text('Add'),
+                    child: Text(l10n.adminAdd),
                   ),
                 ],
               ),
@@ -789,9 +799,9 @@ class _LocationTypesCard extends StatelessWidget {
             const SizedBox(height: 12),
           ],
           if (project.locationTypeIds.isEmpty)
-            const Text(
-              'No location types configured',
-              style: TextStyle(color: AppTheme.gray500),
+            Text(
+              l10n.adminNoLocationTypes,
+              style: const TextStyle(color: AppTheme.gray500),
             )
           else
             Wrap(
@@ -835,8 +845,9 @@ class _AssignedObserversCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return _SectionCard(
-      title: 'Assigned Observers',
+      title: l10n.adminAssignedObservers,
       trailing: ElevatedButton.icon(
         onPressed: onToggleObserverSelector,
         style: ElevatedButton.styleFrom(
@@ -848,7 +859,7 @@ class _AssignedObserversCard extends StatelessWidget {
           ),
         ),
         icon: const Icon(Icons.add, size: 18),
-        label: const Text('Add Observer'),
+        label: Text(l10n.adminAddObserver),
       ),
       child: Column(
         children: [
@@ -865,9 +876,9 @@ class _AssignedObserversCard extends StatelessWidget {
               child: Column(
                 children: [
                   TextField(
-                    decoration: const InputDecoration(
-                      hintText: 'Search observers by name or email...',
-                      prefixIcon: Icon(Icons.search),
+                    decoration: InputDecoration(
+                      hintText: l10n.adminObserverSearchPlaceholder,
+                      prefixIcon: const Icon(Icons.search),
                     ),
                     onChanged: onObserverSearchChanged,
                   ),
@@ -877,8 +888,8 @@ class _AssignedObserversCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       child: Text(
                         observerSearchQuery.isEmpty
-                            ? 'All observers are already assigned'
-                            : 'No observers found',
+                            ? l10n.adminObserversAllAssigned
+                            : l10n.adminNoObserversFoundSelector,
                         style: const TextStyle(color: AppTheme.gray500),
                       ),
                     )
@@ -929,7 +940,7 @@ class _AssignedObserversCard extends StatelessWidget {
                       side: const BorderSide(color: AppTheme.gray300),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    child: const Text('Done'),
+                    child: Text(l10n.commonDone),
                   ),
                 ],
               ),
@@ -943,17 +954,18 @@ class _AssignedObserversCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppTheme.borderRadiusLarge),
               ),
               child: Column(
-                children: const [
-                  Icon(Icons.group_outlined, size: 48, color: AppTheme.gray300),
-                  SizedBox(height: 8),
+                children: [
+                  const Icon(Icons.group_outlined, size: 48, color: AppTheme.gray300),
+                  const SizedBox(height: 8),
                   Text(
-                    'No observers assigned yet',
-                    style: TextStyle(color: AppTheme.gray500),
+                    l10n.adminNoObserversAssignedTitle,
+                    style: const TextStyle(color: AppTheme.gray500),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
-                    'Click "Add Observer" to assign team members',
-                    style: TextStyle(fontSize: 12, color: AppTheme.gray400),
+                    l10n.adminNoObserversAssignedSubtitle,
+                    style:
+                        const TextStyle(fontSize: 12, color: AppTheme.gray400),
                   ),
                 ],
               ),
@@ -1058,6 +1070,7 @@ class _ObservationDataCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final hasFilters = filters.values.any((value) => value != 'all');
     final locationFilterOptions = <String>{
       ...project.locationTypeIds,
@@ -1065,12 +1078,15 @@ class _ObservationDataCard extends StatelessWidget {
     };
     final totalRecords = project.totalObservationCount;
     final subtitle = totalRecords == 0
-        ? 'No records collected yet'
+        ? l10n.adminNoRecordsCollected
         : hasFilters
-        ? 'Filtered results (showing ${filteredObservations.length})'
-        : 'Showing latest ${filteredObservations.length} of $totalRecords records';
+            ? l10n.adminFilteredResults(filteredObservations.length)
+            : l10n.adminShowingLatest(
+                filteredObservations.length,
+                totalRecords,
+              );
     return _SectionCard(
-      title: 'Observation Data',
+      title: l10n.adminObservationDataTitle,
       subtitle: subtitle,
       trailing: project.observations.isEmpty
           ? null
@@ -1104,7 +1120,9 @@ class _ObservationDataCard extends StatelessWidget {
                       ),
                     )
                   : const Icon(Icons.download, size: 18),
-              label: Text(isExporting ? 'Exporting...' : 'Export'),
+              label: Text(
+                isExporting ? l10n.adminExporting : l10n.adminExport,
+              ),
             ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1128,16 +1146,16 @@ class _ObservationDataCard extends StatelessWidget {
                         color: AppTheme.primaryOrange,
                       ),
                       const SizedBox(width: 8),
-                      const Text(
-                        'Filters',
-                        style: TextStyle(
+                      Text(
+                        l10n.adminFiltersTitle,
+                        style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                           color: AppTheme.gray900,
                         ),
                       ),
                       IconButton(
-                        tooltip: 'Refresh data',
+                        tooltip: l10n.adminRefreshData,
                         splashRadius: 18,
                         iconSize: 18,
                         onPressed: isLoadingMoreObservations
@@ -1152,7 +1170,7 @@ class _ObservationDataCard extends StatelessWidget {
                       if (hasFilters)
                         TextButton(
                           onPressed: onClearFilters,
-                          child: const Text('Clear All'),
+                          child: Text(l10n.adminClearAll),
                         ),
                     ],
                   ),
@@ -1165,7 +1183,7 @@ class _ObservationDataCard extends StatelessWidget {
                         value: filters['gender']!,
                         onChanged: (value) => onFilterChanged('gender', value),
                         options: const ['all', 'male', 'female'],
-                        label: 'Gender',
+                        label: l10n.adminFilterGender,
                       ),
                       _FilterDropdown(
                         value: filters['ageGroup']!,
@@ -1180,14 +1198,14 @@ class _ObservationDataCard extends StatelessWidget {
                           '45-64',
                           '65-plus',
                         ],
-                        label: 'Age',
+                        label: l10n.adminFilterAge,
                       ),
                       _FilterDropdown(
                         value: filters['socialContext']!,
                         onChanged: (value) =>
                             onFilterChanged('socialContext', value),
                         options: const ['all', 'alone', 'together'],
-                        label: 'Social',
+                        label: l10n.adminFilterSocial,
                       ),
                       _FilterDropdown(
                         value: filters['activityLevel']!,
@@ -1199,16 +1217,16 @@ class _ObservationDataCard extends StatelessWidget {
                           'moving',
                           'intense',
                         ],
-                        label: 'Level',
+                        label: l10n.adminFilterLevel,
                       ),
                       _FilterDropdown(
                         value: filters['locationType']!,
                         onChanged: (value) =>
                             onFilterChanged('locationType', value),
                         options: ['all', ...locationFilterOptions],
-                        label: 'Location',
+                        label: l10n.adminFilterLocation,
                         optionBuilder: (value) => value == 'all'
-                            ? 'Location'
+                          ? l10n.adminFilterLocation
                             : resolveLocationDisplay(
                                 value,
                                 locationOptions,
@@ -1239,21 +1257,21 @@ class _ObservationDataCard extends StatelessWidget {
                       color: AppTheme.primaryOrange,
                     )
                   : Column(
-                      children: const [
-                        Icon(
+                      children: [
+                        const Icon(
                           Icons.storage_outlined,
                           size: 48,
                           color: AppTheme.gray300,
                         ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 8),
                         Text(
-                          'No observation data yet',
-                          style: TextStyle(color: AppTheme.gray500),
+                          l10n.adminNoObservationDataTitle,
+                          style: const TextStyle(color: AppTheme.gray500),
                         ),
-                        SizedBox(height: 4),
+                        const SizedBox(height: 4),
                         Text(
-                          'Data will appear here once observers start collecting',
-                          style: TextStyle(
+                          l10n.adminNoObservationDataSubtitle,
+                          style: const TextStyle(
                             fontSize: 12,
                             color: AppTheme.gray400,
                           ),
@@ -1270,17 +1288,18 @@ class _ObservationDataCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppTheme.borderRadiusLarge),
               ),
               child: Column(
-                children: const [
-                  Icon(Icons.search, size: 48, color: AppTheme.gray300),
-                  SizedBox(height: 8),
+                children: [
+                  const Icon(Icons.search, size: 48, color: AppTheme.gray300),
+                  const SizedBox(height: 8),
                   Text(
-                    'No observations match your filters',
-                    style: TextStyle(color: AppTheme.gray500),
+                    l10n.adminNoFilteredObservationsTitle,
+                    style: const TextStyle(color: AppTheme.gray500),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
-                    'Try adjusting your filter criteria',
-                    style: TextStyle(fontSize: 12, color: AppTheme.gray400),
+                    l10n.adminNoFilteredObservationsSubtitle,
+                    style:
+                        const TextStyle(fontSize: 12, color: AppTheme.gray400),
                   ),
                 ],
               ),
@@ -1322,8 +1341,8 @@ class _ObservationDataCard extends StatelessWidget {
                       : const Icon(Icons.history),
                   label: Text(
                     isLoadingMoreObservations
-                        ? 'Loading more...'
-                        : 'Load older observations',
+                        ? l10n.adminLoadingMore
+                        : l10n.adminLoadOlderObservations,
                   ),
                 ),
               ),
@@ -1347,6 +1366,7 @@ class _ObservationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final locationDisplay = resolveLocationDisplay(
       record.locationTypeId,
       locationOptions,
@@ -1391,7 +1411,9 @@ class _ObservationCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  record.isGroup ? 'Group' : 'Individual',
+                  record.isGroup
+                      ? l10n.adminRecordGroup
+                      : l10n.adminRecordIndividual,
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
@@ -1413,26 +1435,35 @@ class _ObservationCard extends StatelessWidget {
                     minimumSize: const Size(0, 32),
                   ),
                   icon: const Icon(Icons.edit, size: 16),
-                  label: const Text('Edit'),
+                  label: Text(l10n.adminEdit),
                 ),
             ],
           ),
           const SizedBox(height: 12),
-          _ObservationRow(label: 'Gender', value: record.gender),
-          _ObservationRow(label: 'Age', value: record.ageGroup),
-          _ObservationRow(label: 'Social', value: record.socialContext),
+          _ObservationRow(label: l10n.adminFieldGender, value: record.gender),
+          _ObservationRow(label: l10n.adminFieldAge, value: record.ageGroup),
+          _ObservationRow(
+            label: l10n.adminFieldSocial,
+            value: record.socialContext,
+          ),
           if (record.isGroup && record.groupSize != null)
             _ObservationRow(
-              label: 'Group Size',
+              label: l10n.adminFieldGroupSize,
               value: record.groupSize.toString(),
             ),
           if (record.isGroup && record.genderMix != null)
-            _ObservationRow(label: 'Gender Mix', value: record.genderMix!),
+            _ObservationRow(
+              label: l10n.adminFieldGenderMix,
+              value: record.genderMix!,
+            ),
           if (record.isGroup && record.ageMix != null)
-            _ObservationRow(label: 'Age Mix', value: record.ageMix!),
-          _ObservationRow(label: 'Activity', value: record.activityLevel),
-          _ObservationRow(label: 'Type', value: record.activityType),
-          _ObservationRow(label: 'Location', value: locationLabel),
+            _ObservationRow(label: l10n.adminFieldAgeMix, value: record.ageMix!),
+          _ObservationRow(
+            label: l10n.adminFieldActivity,
+            value: record.activityLevel,
+          ),
+          _ObservationRow(label: l10n.adminFieldType, value: record.activityType),
+          _ObservationRow(label: l10n.adminFieldLocation, value: locationLabel),
           if (record.observerEmail?.isNotEmpty ?? false) ...[
             const SizedBox(height: 8),
             Row(
@@ -1444,9 +1475,9 @@ class _ObservationCard extends StatelessWidget {
                   color: AppTheme.gray500,
                 ),
                 const SizedBox(width: 6),
-                const Text(
-                  'Email:',
-                  style: TextStyle(
+                Text(
+                  l10n.adminFieldEmail,
+                  style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: AppTheme.gray500,
@@ -1468,9 +1499,9 @@ class _ObservationCard extends StatelessWidget {
           ],
           if (record.notes.isNotEmpty) ...[
             const SizedBox(height: 8),
-            const Text(
-              'Notes',
-              style: TextStyle(fontSize: 12, color: AppTheme.gray500),
+            Text(
+              l10n.adminFieldNotes,
+              style: const TextStyle(fontSize: 12, color: AppTheme.gray500),
             ),
             const SizedBox(height: 4),
             Container(
@@ -1712,12 +1743,14 @@ class _PageSizeDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return SizedBox(
       width: 140,
       child: InputDecorator(
-        decoration: const InputDecoration(
-          labelText: 'Entries',
-          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: InputDecoration(
+          labelText: l10n.adminEntriesLabel,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         ),
         child: DropdownButtonHideUnderline(
           child: DropdownButton<int>(
@@ -1728,7 +1761,7 @@ class _PageSizeDropdown extends StatelessWidget {
                 .map(
                   (option) => DropdownMenuItem(
                     value: option,
-                    child: Text('$option entries'),
+                    child: Text(l10n.adminEntriesOption(option)),
                   ),
                 )
                 .toList(),

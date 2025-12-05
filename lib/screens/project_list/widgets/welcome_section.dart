@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:my_app/l10n/l10n.dart';
 import 'package:my_app/theme/app_theme.dart';
 
 class WelcomeSection extends StatelessWidget {
@@ -19,7 +20,7 @@ class WelcomeSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Welcome back, $firstName!',
+            context.l10n.observerWelcomeBack(firstName),
             style: const TextStyle(
               fontFamily: AppTheme.fontFamilyHeading,
               fontSize: 24,
@@ -28,9 +29,9 @@ class WelcomeSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Select a project to begin your observation',
-            style: TextStyle(fontSize: 14, color: AppTheme.gray600),
+          Text(
+            context.l10n.observerSelectProjectPrompt,
+            style: const TextStyle(fontSize: 14, color: AppTheme.gray600),
           ),
         ],
       ),

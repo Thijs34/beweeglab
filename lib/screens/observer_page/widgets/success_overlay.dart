@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:my_app/theme/app_theme.dart';
+import 'package:my_app/l10n/l10n.dart';
 import 'package:my_app/screens/observer_page/models/observation_mode.dart';
+import 'package:my_app/theme/app_theme.dart';
 
 class ObserverSuccessOverlay extends StatelessWidget {
   final ObservationMode mode;
@@ -16,9 +17,10 @@ class ObserverSuccessOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final message = mode == ObservationMode.individual
-        ? 'Person #$personId has been recorded.'
-        : 'Group of $groupSize people has been recorded.';
+      ? l10n.observerSuccessPerson(personId)
+      : l10n.observerSuccessGroup(groupSize);
 
     return Positioned.fill(
       child: Container(
@@ -55,9 +57,9 @@ class ObserverSuccessOverlay extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Observation Saved!',
-                  style: TextStyle(
+                Text(
+                  l10n.observerSuccessTitle,
+                  style: const TextStyle(
                     fontFamily: AppTheme.fontFamilyHeading,
                     fontSize: 24,
                     fontWeight: FontWeight.w600,
@@ -71,9 +73,9 @@ class ObserverSuccessOverlay extends StatelessWidget {
                   style: const TextStyle(fontSize: 14, color: AppTheme.gray600),
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'Preparing next observation...',
-                  style: TextStyle(fontSize: 12, color: AppTheme.gray500),
+                Text(
+                  l10n.observerSuccessPreparing,
+                  style: const TextStyle(fontSize: 12, color: AppTheme.gray500),
                 ),
               ],
             ),

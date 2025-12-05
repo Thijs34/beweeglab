@@ -16,6 +16,7 @@ import 'package:my_app/services/user_service.dart';
 import 'package:my_app/theme/app_theme.dart';
 import 'package:my_app/widgets/app_page_header.dart';
 import 'package:my_app/widgets/profile_menu_shell.dart';
+import 'package:my_app/l10n/l10n.dart';
 
 /// Project List screen matching the React UI design.
 class ProjectListScreen extends StatefulWidget {
@@ -372,7 +373,7 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
                       AppPageHeader(
                         profileButtonKey: controller.profileButtonKey,
                         onProfileTap: controller.toggleMenu,
-                        subtitle: 'Field Observation System',
+                        subtitle: context.l10n.appTagline,
                         unreadNotificationCount: _isAdmin
                             ? _unreadNotificationCount
                             : 0,
@@ -414,21 +415,21 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
                                     16,
                                   ),
                                   child: Column(
-                                    children: const [
-                                      Divider(
+                                    children: [
+                                      const Divider(
                                         color: AppTheme.gray200,
                                         height: 1,
                                       ),
-                                      SizedBox(height: 12),
+                                      const SizedBox(height: 12),
                                       Text(
-                                        'Need help? Contact your administrator for support',
-                                        style: TextStyle(
+                                        context.l10n.projectsNeedHelp,
+                                        style: const TextStyle(
                                           fontSize: 12,
                                           color: AppTheme.gray400,
                                         ),
                                         textAlign: TextAlign.center,
                                       ),
-                                      SizedBox(height: 12),
+                                      const SizedBox(height: 12),
                                     ],
                                   ),
                                 ),

@@ -1,0 +1,533 @@
+{
+  "@@locale": "nl",
+  "appTitle": "InnoBeweegLab - Field Observation System",
+  "languageEnglish": "Engels",
+  "languageDutch": "Nederlands",
+  "profileReauthRequired": "Log opnieuw in om je naam bij te werken.",
+  "profileNameEmptyError": "Naam mag niet leeg zijn.",
+  "profileNothingToUpdate": "Niets om bij te werken.",
+  "profileNameUpdated": "Naam bijgewerkt.",
+  "profileUpdateNameError": "Naam kan nu niet worden bijgewerkt.",
+  "profileNoEmailError": "Geen e-mailadres gekoppeld aan dit account.",
+  "profileResetLinkSent": "Als er een account bestaat voor {email}, sturen we een resetlink.",
+  "@profileResetLinkSent": {
+    "placeholders": {
+      "email": {}
+    }
+  },
+  "profileResetFailed": "Kon reset-e-mail niet versturen.",
+  "profileLogoutError": "Uitloggen lukt nu niet. Probeer het opnieuw.",
+  "profileSettingsTitle": "Profiel & instellingen",
+  "profileSectionTitle": "Profiel",
+  "profileNameLabel": "Naam",
+  "profileNameHint": "Je naam",
+  "profileSaveName": "Naam opslaan",
+  "profileEmailLabel": "E-mail",
+  "profileUnavailable": "Niet beschikbaar",
+  "profileRoleLabel": "Rol",
+  "profileRoleAdmin": "Admin",
+  "profileRoleObserver": "Observator",
+  "profileRoleUnknown": "Onbekende rol",
+  "profilePreferencesTitle": "Voorkeuren",
+  "profileLanguagePreference": "Taalvoorkeur",
+  "profileSecurityTitle": "Beveiliging",
+  "profileSendingReset": "Reset versturen...",
+  "profileChangePassword": "Wachtwoord wijzigen",
+  "profileLogout": "Uitloggen",
+  "profileShortcutsTitle": "Snelkoppelingen",
+  "profileOpenAdminPanel": "Open adminpaneel",
+  "profileAdminPanelSubtitle": "Beheer projecten, observatoren en meldingen",
+  "adminNotificationsTitle": "Beheermeldingen",
+  "notificationsNavTitle": "Meldingen",
+  "notificationsRecentActivity": "Recente activiteit",
+  "notificationsMarkAllRead": "Alles als gelezen markeren",
+  "notificationsMarkAllReadSuccess": "Alle meldingen gemarkeerd als gelezen.",
+  "notificationsMarkAllReadFailure": "Kon meldingen niet als gelezen markeren.",
+  "notificationsLoadError": "Meldingen kunnen nu niet worden geladen.",
+  "notificationsEmptyTitle": "Nog geen meldingen",
+  "notificationsEmptySubtitle": "Nieuwe gebruikersmeldingen verschijnen hier zodra ze binnenkomen.",
+  "relativeJustNow": "Zojuist",
+  "relativeMinutesAgo": "{minutes} min geleden",
+  "@relativeMinutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "relativeHoursAgo": "{hours} u geleden",
+  "@relativeHoursAgo": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "commonRefresh": "Vernieuwen",
+  "commonCancel": "Annuleren",
+  "commonDelete": "Verwijderen",
+  "commonSaveChanges": "Wijzigingen opslaan",
+  "commonDone": "Klaar",
+  "commonBackToProjects": "Terug naar projecten",
+  "commonEmailLabel": "E-mail",
+  "commonTryAgain": "Probeer opnieuw",
+  "commonPasswordLabel": "Wachtwoord",
+  "authCheckingSession": "Sessie controleren...",
+  "authRestoringWorkspace": "Werkruimte herstellen...",
+  "authRestoreError": "Profiel kan niet worden hersteld. Log opnieuw in.",
+  "authReturnToLogin": "Terug naar login",
+  "loginTitle": "Inloggen",
+  "loginErrorGeneric": "Inloggen lukt nu niet. Probeer het opnieuw.",
+  "loginEmailPlaceholder": "jouw.email@voorbeeld.com",
+  "loginEmailRequired": "E-mail is verplicht",
+  "loginEmailInvalid": "Voer een geldig e-mailadres in",
+  "loginPasswordPlaceholder": "Voer je wachtwoord in",
+  "loginPasswordRequired": "Wachtwoord is verplicht",
+  "loginForgotPassword": "Wachtwoord vergeten?",
+  "loginSubmit": "Inloggen",
+  "loginNoAccountQuestion": "Nog geen account? ",
+  "loginSignUpCta": "Aanmelden",
+  "loginResetPasswordTitle": "Wachtwoord resetten",
+  "loginResetPasswordBody": "Vul het e-mailadres in dat aan je account is gekoppeld. We sturen een resetlink als er een account bestaat.",
+  "loginResetEmailRequired": "Vul het e-mailadres van je account in.",
+  "loginResetSendError": "Reset-e-mail versturen lukt niet. Probeer het opnieuw.",
+  "loginResetSendLink": "Link versturen",
+  "loginResetLinkSent": "Als er een account bestaat voor {email}, sturen we een resetlink.",
+  "@loginResetLinkSent": {
+    "placeholders": {
+      "email": {}
+    }
+  },
+  "appTagline": "Veldobservatiesysteem",
+  "observerWelcomeBack": "Welkom terug, {firstName}!",
+  "@observerWelcomeBack": {
+    "placeholders": {
+      "firstName": {}
+    }
+  },
+  "observerSelectProjectPrompt": "Selecteer een project om je observatie te starten",
+  "profileLoggedInAs": "Ingelogd als",
+  "profileMenuProfileSettings": "Profiel & instellingen",
+  "profileMenuNotifications": "Meldingen",
+  "profileMenuAdminPanel": "Beheerpaneel",
+  "profileMenuProjectMap": "Projectkaart",
+  "profileMenuProjects": "Projecten",
+  "profileMenuObserver": "Observer",
+  "projectsNeedHelp": "Hulp nodig? Neem contact op met je beheerder voor ondersteuning",
+  "signupTitle": "Account aanmaken",
+  "signupFirstNameLabel": "Voornaam",
+  "signupFirstNamePlaceholder": "Vul je voornaam in",
+  "signupLastNameLabel": "Achternaam",
+  "signupLastNamePlaceholder": "Vul je achternaam in",
+  "signupEmailLabel": "E-mail",
+  "signupEmailPlaceholder": "jouw.email@example.com",
+  "signupEmailRequired": "E-mail is verplicht",
+  "signupEmailInvalid": "Vul een geldig e-mailadres in",
+  "signupPasswordLabel": "Wachtwoord",
+  "signupPasswordPlaceholder": "Kies een wachtwoord",
+  "signupPasswordRequired": "Wachtwoord is verplicht",
+  "signupPasswordTooShort": "Wachtwoord moet minstens 6 tekens hebben",
+  "signupPasswordConfirmLabel": "Bevestig wachtwoord",
+  "signupPasswordConfirmPlaceholder": "Voer je wachtwoord opnieuw in",
+  "signupPasswordConfirmRequired": "Bevestig je wachtwoord",
+  "signupSubmit": "Account aanmaken",
+  "signupRoleInfoPrefix": "Nieuwe accounts krijgen standaard de ",
+  "signupRoleName": "Observer-rol",
+  "signupRoleInfoSuffix": " toegewezen. Adminrechten moeten worden verstrekt door de database-eigenaar.",
+  "signupAlreadyHaveAccountPrefix": "Al een account? ",
+  "signupLoginCta": "Inloggen",
+  "observerSummaryTitle": "Sessiesamenvatting",
+  "observerSummaryEmptyTitle": "Geen observaties vastgelegd",
+  "observerSummaryEmptySubtitle": "Noteer minimaal één persoon of groep voordat je een sessie indient.",
+  "observerSummaryTotalRecorded": "Totaal vastgelegd",
+  "observerSummaryEntries": "{count} registraties",
+  "@observerSummaryEntries": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "observerSummaryIndividuals": "Individuen",
+  "observerSummaryGroups": "Groepen",
+  "observerSummaryGroupObservations": "Groepsobservaties",
+  "observerSummaryDemographics": "Demografie",
+  "observerSummaryMales": "Mannen",
+  "observerSummaryFemales": "Vrouwen",
+  "observerSummaryChildren": "Kinderen",
+  "observerSummaryActivityLevels": "Activiteitsniveaus",
+  "observerSummaryActivitySedentary": "Zittend",
+  "observerSummaryActivityMoving": "Bewegend",
+  "observerSummaryActivityIntense": "Intensief",
+  "observerSummarySessionDetails": "Sessiedetails",
+  "observerSummaryLocation": "Locatie",
+  "observerSummaryDate": "Datum",
+  "observerSummaryTime": "Tijd",
+  "observerSummaryWeather": "Weer",
+  "observerSummarySubmit": "Sessie indienen",
+  "weatherCloudy": "bewolkt",
+  "weatherRainy": "regenachtig",
+  "weatherSunny": "zonnig",
+  "observerSummaryLocationMultiple": "Meerdere",
+  "observerSummaryLocationCruyff": "C - Cruyff Court",
+  "observerSummaryLocationBasketball": "B - Basketbalveld",
+  "observerSummaryLocationGrass": "G - Grasveld",
+  "observerSummaryLocationCustom": "Aangepast",
+  "observerFinishSession": "Sessie afronden",
+  "observerSubmitGroup": "Groep indienen",
+  "observerSubmitPerson": "Persoon indienen",
+  "observerNoOptionsConfigured": "Geen opties geconfigureerd.",
+  "observerOtherOption": "Anders",
+  "observerNoProjectTitle": "Geen project geselecteerd",
+  "observerNoProjectSubtitle": "Kies een project uit de lijst om observaties te starten.",
+  "observerBackToProjectList": "Terug naar projecten",
+  "observerAdditionalNotesHint": "Extra notities...",
+  "observerDateLabel": "Datum",
+  "observerTimeLabel": "Tijd",
+  "observerModeLabel": "Observatiemodus",
+  "observerModeIndividual": "Individu",
+  "observerModeGroup": "Groep",
+  "observerNoFieldsConfigured": "Er zijn geen observatievelden voor dit project geconfigureerd.",
+  "observerSelectProject": "Kies eerst een project voordat je observaties registreert.",
+  "observerPleaseSignIn": "Meld je opnieuw aan om door te gaan.",
+  "observerEnterNumber": "Vul een getal in",
+  "observerProjectsTitle": "Jouw projecten",
+  "observerProjectsAvailable": "{count, plural, one {{count} project beschikbaar} other {{count} projecten beschikbaar}}",
+  "@observerProjectsAvailable": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "observerProjectsSearchPlaceholder": "Zoek projecten...",
+  "observerProjectsEmptySearchTitle": "Geen projecten gevonden",
+  "observerProjectsEmptySearchSubtitle": "Pas je zoektermen aan",
+  "observerProjectsEmptyTitle": "Geen projecten toegewezen",
+  "observerProjectsEmptySubtitle": "Je hebt nog geen observatieprojecten toegewezen.\nNeem contact op met je beheerder voor toegang.",
+  "observerProjectsRefresh": "Projecten vernieuwen",
+  "projectMapTitle": "Projectkaart",
+  "observerSuccessTitle": "Observatie opgeslagen!",
+  "observerSuccessPerson": "Persoon #{personId} is geregistreerd.",
+  "@observerSuccessPerson": {
+    "placeholders": {
+      "personId": {}
+    }
+  },
+  "observerSuccessGroup": "Groep van {groupSize} personen is geregistreerd.",
+  "@observerSuccessGroup": {
+    "placeholders": {
+      "groupSize": {
+        "type": "int"
+      }
+    }
+  },
+  "observerSuccessPreparing": "Volgende observatie voorbereiden...",
+  "exportSheetName": "Observaties",
+  "exportProjectLabel": "Project",
+  "exportLocationLabel": "Locatie",
+  "exportLocationNotSet": "Niet ingesteld",
+  "exportExportedAt": "Geëxporteerd op",
+  "exportObservationCount": "Aantal observaties",
+  "exportHeaderPersonId": "Persoon ID",
+  "exportHeaderMode": "Modus",
+  "exportHeaderTimestamp": "Tijdstempel",
+  "exportHeaderObserverEmail": "Observer e-mail",
+  "exportHeaderObserverUid": "Observer UID",
+  "exportHeaderGender": "Geslacht",
+  "exportHeaderAgeGroup": "Leeftijdsgroep",
+  "exportHeaderSocialContext": "Sociale context",
+  "exportHeaderActivityLevel": "Activiteitsniveau",
+  "exportHeaderActivityType": "Activiteitstype",
+  "exportHeaderLocation": "Locatie",
+  "exportHeaderLocationTypeId": "Locatietype-ID",
+  "exportHeaderGroupSize": "Groepsgrootte",
+  "exportHeaderGenderMix": "Geslachtsverdeling",
+  "exportHeaderAgeMix": "Leeftijdsverdeling",
+  "exportHeaderNotes": "Notities",
+  "exportSuccessMessage": "Excel-export opgeslagen op je apparaat.",
+  "exportErrorMessage": "Observaties kunnen nu niet worden geëxporteerd.",
+  "commonClose": "Sluiten",
+  "projectMapLocationUnavailable": "Locatie niet beschikbaar",
+  "projectMapOpenInAdmin": "Openen in admin",
+  "projectMapProjectCount": "{count, plural, one {{count} project} other {{count} projecten}}",
+  "@projectMapProjectCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "projectsLoading": "Projecten laden...",
+  "projectsLoadErrorTitle": "Projecten konden niet worden geladen",
+  "projectsRefreshTooltip": "Projecten verversen",
+  "adminStatusActive": "Actief",
+  "adminStatusFinished": "Afgerond",
+  "adminStatusArchived": "Gearchiveerd",
+  "adminSectionGeneral": "Algemeen",
+  "adminSectionObservers": "Observatoren",
+  "adminSectionFields": "Velden",
+  "adminSectionData": "Data",
+  "adminManageProjectsTitle": "Projecten beheren",
+  "adminManageProjectsSubtitle": "Maak en organiseer observatieprojecten, wijs observatoren toe en volg dataverzameling",
+  "adminCreateNewProject": "Nieuw project maken",
+  "adminNoProjectsTitle": "Nog geen {status}-projecten",
+  "@adminNoProjectsTitle": {
+    "placeholders": {
+      "status": {}
+    }
+  },
+  "adminNoProjectsSubtitle": "Maak je eerste project om te beginnen",
+  "adminStatusChipLabel": "{status} ({count})",
+  "@adminStatusChipLabel": {
+    "placeholders": {
+      "status": {},
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminProjectCreatedSuccess": "Project succesvol aangemaakt!",
+  "adminStatusProjectsTitle": "{status}-projecten ({count})",
+  "@adminStatusProjectsTitle": {
+    "placeholders": {
+      "status": {},
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminNewProjectNameLabel": "Projectnaam",
+  "adminNewProjectNameHint": "bijv. Parkstraat observatielocatie",
+  "adminNewProjectMainLocationLabel": "Hoofdlocatie",
+  "adminNewProjectMainLocationHint": "bijv. Parkstraat, Amsterdam",
+  "adminNoSuggestionsFound": "Geen suggesties gevonden",
+  "adminDescriptionOptionalLabel": "Beschrijving (optioneel)",
+  "adminDescriptionOptionalHint": "Voeg een beschrijving of notities toe...",
+  "adminCreating": "Bezig met aanmaken...",
+  "adminCreateProject": "Project aanmaken",
+  "adminLocationTypesTitle": "Locatietypes",
+  "adminLocationTypesSubtitle": "Selecteer alle locatietypes die hier beschikbaar zijn",
+  "adminCustomLocationPlaceholder": "Voeg een aangepaste locatie toe... (Enter of Toevoegen)",
+  "adminAdd": "Toevoegen",
+  "adminHiddenLocationTypes": "Verborgen locatietypes:",
+  "adminAssignObserversTitle": "Observatoren toewijzen (optioneel)",
+  "adminAssignObserversSubtitle": "Voeg teamleden toe die observaties voor dit project kunnen verzamelen",
+  "adminAddObserver": "Observator toevoegen",
+  "adminSearchObserversPlaceholder": "Zoek observatoren op naam of e-mail...",
+  "adminNoObserversFound": "Geen observatoren gevonden",
+  "adminDone": "Klaar",
+  "adminNoObserversAssigned": "Nog geen observatoren toegewezen. Je kunt ze later toevoegen.",
+  "adminProjectMainLocationUnset": "Hoofdlocatie niet ingesteld",
+  "adminProjectObservationCount": "{count, plural, one {{count} observatie} other {{count} observaties}}",
+  "@adminProjectObservationCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminProjectObserverCount": "{count, plural, one {{count} observator} other {{count} observatoren}}",
+  "@adminProjectObserverCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminDeleteWarningTitle": "Je staat op het punt dit project definitief te verwijderen. Hiermee verwijder je:",
+  "adminDeleteRemoveObservations": "• {count, plural, one {{count} observatie} other {{count} observaties}}",
+  "@adminDeleteRemoveObservations": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminDeleteRemoveObservers": "• Alle gekoppelde observatoren",
+  "adminDeleteRemoveData": "• Alle projectgegevens en instellingen",
+  "adminDeleteIrreversible": "Deze gegevens kunnen niet worden teruggezet na verwijderen.",
+  "adminDeleteConfirmQuestion": "Weet je zeker dat je wilt doorgaan?",
+  "adminDeleteConfirmButton": "Ja, verwijder project",
+  "adminDeleteDialogTitle": "Project verwijderen?",
+  "adminDeleteWarningHeader": "⚠️ WAARSCHUWING: Deze actie kan niet ongedaan worden gemaakt!",
+  "adminLoadingProjects": "Projecten laden...",
+  "adminChangeStatusTooltip": "Projectstatus wijzigen",
+  "adminStatusOptionCurrent": "{status} (huidig)",
+  "@adminStatusOptionCurrent": {
+    "placeholders": {
+      "status": {}
+    }
+  },
+  "adminObserverAssignedCount": "{count, plural, one {{count} observator toegewezen} other {{count} observatoren toegewezen}}",
+  "@adminObserverAssignedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminObservationsRecorded": "{count, plural, one {{count} observatie vastgelegd} other {{count} observaties vastgelegd}}",
+  "@adminObservationsRecorded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminPanelTitle": "Beheerpaneel",
+  "adminLocationTypesHeader": "Locatietypes",
+  "adminAddLocation": "Locatie toevoegen",
+  "adminAddLocationHint": "Locatie toevoegen",
+  "adminNoLocationTypes": "Geen locatietypes geconfigureerd",
+  "adminAssignedObservers": "Toegewezen observatoren",
+  "adminObserverSearchPlaceholder": "Zoek observatoren op naam of e-mail...",
+  "adminObserversAllAssigned": "Alle observatoren zijn al toegewezen",
+  "adminNoObserversFoundSelector": "Geen observatoren gevonden",
+  "adminNoObserversAssignedTitle": "Nog geen observatoren toegewezen",
+  "adminNoObserversAssignedSubtitle": "Klik op \"Observator toevoegen\" om teamleden toe te wijzen",
+  "adminClearAll": "Alles wissen",
+  "adminEdit": "Bewerken",
+  "adminEntriesLabel": "Aantal rijen",
+  "adminEntriesOption": "{count} items",
+  "@adminEntriesOption": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "adminNoFieldsTitle": "Nog geen velden geconfigureerd.",
+  "adminNoFieldsSubtitle": "Voeg je eerste aangepaste veld toe of herstel het standaard sjabloon.",
+  "adminFieldStandard": "Standaard",
+  "adminFieldCustom": "Aangepast",
+  "adminEditObservationTitle": "Observatie bewerken",
+  "adminPersonIdLabel": "Persoons-ID",
+  "adminPersonIdHint": "Voer persoons-ID in",
+  "adminAgeGroupLabel": "Leeftijdsgroep",
+  "adminSocialContextLabel": "Sociale context",
+  "adminActivityLevelLabel": "Activiteitsniveau",
+  "adminActivityTypeLabel": "Activiteitstype",
+  "adminGenderMale": "Man",
+  "adminGenderFemale": "Vrouw",
+  "adminAgeChild": "Kind",
+  "adminAgeTeen": "Tiener",
+  "adminAgeAdult": "Volwassene",
+  "adminAgeSenior": "Senior",
+  "adminSocialAlone": "Alleen",
+  "adminSocialTogether": "Samen",
+  "adminActivityLevelSitting": "Zittend",
+  "adminActivityLevelMoving": "Bewegend",
+  "adminActivityLevelIntense": "Intensief",
+  "adminActivityTypeOrganized": "Georganiseerd",
+  "adminActivityTypeUnorganized": "Ongeorganiseerd",
+  "adminEditStandardField": "Standaardveld bewerken",
+  "adminEditCustomField": "Aangepast veld bewerken",
+  "adminFieldLabel": "Label",
+  "adminHelperTextOptional": "Hulptekst (optioneel)",
+  "adminTextFieldSettings": "Tekstveld-instellingen",
+  "adminPlaceholderLabel": "Plaatshouder",
+  "adminMaxLengthOptional": "Maximale lengte (optioneel)",
+  "adminAllowMultilineInput": "Meerdere regels toestaan",
+  "adminOptionsTitle": "Opties",
+  "adminAddOption": "Optie toevoegen",
+  "adminRemoveOption": "Optie verwijderen",
+  "adminAllowMultipleValues": "Meerdere waarden toestaan",
+  "adminAudienceIndividual": "Individu",
+  "adminAudienceGroup": "Groep",
+  "adminAudienceBoth": "Beide",
+  "adminOptionNumber": "Optie {index}",
+  "@adminOptionNumber": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "adminOptionFallback": "Optie",
+  "adminFieldLabelRequiredError": "Veldlabel is verplicht.",
+  "adminOptionMinimumError": "Geef minimaal twee opties op.",
+  "adminFieldTypeTextInput": "Tekstinvoer",
+  "adminFieldTypeNumber": "Nummer",
+  "adminFieldTypeDropdownLegacy": "Dropdown (verouderd)",
+  "adminFieldTypeMultiSelect": "Meervoudige selectie",
+  "adminFieldTypeCheckbox": "Selectievakje",
+  "adminFieldTypeDate": "Datum",
+  "adminFieldTypeTime": "Tijd",
+  "adminFieldTypeRating": "Beoordelingsschaal",
+  "adminAdjustStatus": "Status aanpassen",
+  "adminUpdatingStatus": "Bijwerken...",
+  "adminObservationFieldsTitle": "Observatievelden",
+  "adminObservationFieldsCount": "{count, plural, one {{count} veld} other {{count} velden}}",
+  "@adminObservationFieldsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminObservationFieldsSubtitle": "Herschik, bewerk of schakel standaard/aangepaste velden. Vergeet niet op te slaan.",
+  "adminAddField": "Veld toevoegen",
+  "adminRestoreDefaults": "Standaard herstellen",
+  "adminSaving": "Opslaan…",
+  "adminSaveChanges": "Wijzigingen opslaan",
+  "adminDeleteFieldTitle": "Veld verwijderen",
+  "adminDeleteFieldMessage": "Weet je zeker dat je \"{label}\" wilt verwijderen? Dit kan niet ongedaan worden gemaakt.",
+  "@adminDeleteFieldMessage": {
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "adminAdditionalNotesHint": "Extra notities...",
+  "adminRequiredField": "Verplicht veld",
+  "adminRequiredFieldSubtitle": "Observatoren moeten een waarde invullen voordat ze opslaan.",
+  "adminFieldTypeLabel": "Veldtype",
+  "adminFormVisibility": "Formulierzichtbaarheid",
+  "adminObservationDataTitle": "Observatiedata",
+  "adminExporting": "Bezig met exporteren...",
+  "adminExport": "Exporteren",
+  "adminFiltersTitle": "Filters",
+  "adminRefreshData": "Gegevens verversen",
+  "adminFilterGender": "Geslacht",
+  "adminFilterAge": "Leeftijd",
+  "adminFilterSocial": "Sociaal",
+  "adminFilterLevel": "Niveau",
+  "adminFilterLocation": "Locatie",
+  "adminNoObservationDataTitle": "Nog geen observatiedata",
+  "adminNoObservationDataSubtitle": "Data verschijnt hier zodra observatoren starten",
+  "adminNoFilteredObservationsTitle": "Geen observaties matchen je filters",
+  "adminNoFilteredObservationsSubtitle": "Pas je filtercriteria aan",
+  "adminLoadingMore": "Meer laden...",
+  "adminLoadOlderObservations": "Oudere observaties laden",
+  "adminRecordGroup": "Groep",
+  "adminRecordIndividual": "Individu",
+  "adminFieldGender": "Geslacht",
+  "adminFieldAge": "Leeftijd",
+  "adminFieldSocial": "Sociaal",
+  "adminFieldGroupSize": "Grootte van de groep",
+  "adminFieldGenderMix": "Geslachtsverdeling",
+  "adminFieldAgeMix": "Leeftijdsverdeling",
+  "adminFieldActivity": "Activiteit",
+  "adminFieldType": "Type",
+  "adminFieldLocation": "Locatie",
+  "adminFieldEmail": "E-mail:",
+  "adminFieldNotes": "Notities",
+  "adminNoRecordsCollected": "Nog geen registraties",
+  "adminFilteredResults": "Gefilterde resultaten (toont {count})",
+  "@adminFilteredResults": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminShowingLatest": "Toont de laatste {visible} van {total} registraties",
+  "@adminShowingLatest": {
+    "placeholders": {
+      "visible": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  }
+}

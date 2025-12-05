@@ -2,10 +2,12 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:my_app/l10n/l10n.dart';
 import 'package:my_app/models/navigation_arguments.dart';
 import 'package:my_app/screens/observer_page/observer_page.dart';
 import 'package:my_app/services/admin_notification_service.dart';
 import 'package:my_app/services/auth_service.dart';
+import 'package:my_app/services/locale_service.dart';
 import 'package:my_app/services/user_service.dart';
 import 'package:my_app/theme/app_theme.dart';
 import 'package:my_app/widgets/app_page_header.dart';
@@ -26,7 +28,9 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
   final UserService _userService = UserService.instance;
   final AdminNotificationService _notificationService =
       AdminNotificationService.instance;
+  final LocaleService _localeService = LocaleService.instance;
   StreamSubscription<int>? _notificationSubscription;
+  late final VoidCallback _localeListener;
   bool _isSavingName = false;
   bool _isSendingReset = false;
   bool _hasLoadedInitialName = false;
@@ -37,6 +41,17 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
   String? _lastSavedName;
 
   bool get _isAdmin => _userRole == 'admin';
+
+  String _localizedRole(AppLocalizations l10n) {
+    switch (_userRole.toLowerCase()) {
+      case 'admin':
+        return l10n.profileRoleAdmin;
+      case 'observer':
+        return l10n.profileRoleObserver;
+      default:
+        return l10n.profileRoleUnknown;
+    }
+  }
 
   @override
   void initState() {
@@ -53,11 +68,21 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
     if (_isAdmin) {
       _startNotificationWatcher();
     }
+    _language = _localeService.locale.languageCode;
+    _localeListener = () {
+      if (!mounted) return;
+      final code = _localeService.locale.languageCode;
+      if (code != _language) {
+        setState(() => _language = code);
+      }
+    };
+    _localeService.addListener(_localeListener);
     _loadProfile();
   }
 
   @override
   void dispose() {
+    _localeService.removeListener(_localeListener);
     _notificationSubscription?.cancel();
     _nameController.dispose();
     super.dispose();
@@ -103,18 +128,22 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
   }
 
   Future<void> _saveDisplayName() async {
+    final l10n = context.l10n;
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
-      _showSnack('Please sign in again to update your name.', isError: true);
+      _showSnack(
+        l10n.profileReauthRequired,
+        isError: true,
+      );
       return;
     }
     final trimmedName = _nameController.text.trim();
     if (trimmedName.isEmpty) {
-      _showSnack('Name cannot be empty.', isError: true);
+      _showSnack(l10n.profileNameEmptyError, isError: true);
       return;
     }
     if (trimmedName == (_lastSavedName ?? '').trim()) {
-      _showSnack('Nothing to update.');
+      _showSnack(l10n.profileNothingToUpdate);
       return;
     }
 
@@ -124,10 +153,12 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
       if (mounted) {
         setState(() => _lastSavedName = trimmedName);
       }
-      _showSnack('Name updated.');
+      if (!mounted) return;
+      _showSnack(l10n.profileNameUpdated);
     } catch (error) {
       debugPrint('Failed to update name: $error');
-      _showSnack('Unable to update name right now.', isError: true);
+      if (!mounted) return;
+      _showSnack(l10n.profileUpdateNameError, isError: true);
     } finally {
       if (mounted) {
         setState(() => _isSavingName = false);
@@ -136,23 +167,25 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
   }
 
   Future<void> _sendPasswordReset() async {
+    final l10n = context.l10n;
     final email = _userEmail;
     if (email == null || email.isEmpty) {
-      _showSnack('No email associated with this account.', isError: true);
+      _showSnack(l10n.profileNoEmailError, isError: true);
       return;
     }
     if (_isSendingReset) return;
     setState(() => _isSendingReset = true);
     try {
       await AuthService.instance.sendPasswordResetEmail(email: email);
-      _showSnack(
-        'If an account exists for $email, a reset link is on the way.',
-      );
+      if (!mounted) return;
+      _showSnack(l10n.profileResetLinkSent(email));
     } on AuthException catch (error) {
+      if (!mounted) return;
       _showSnack(error.message, isError: true);
     } catch (error) {
       debugPrint('Failed to send password reset: $error');
-      _showSnack('Could not send reset email.', isError: true);
+      if (!mounted) return;
+      _showSnack(l10n.profileResetFailed, isError: true);
     } finally {
       if (mounted) {
         setState(() => _isSendingReset = false);
@@ -161,14 +194,17 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
   }
 
   Future<void> _handleLogout() async {
+    final l10n = context.l10n;
     try {
       await AuthService.instance.signOut();
     } on AuthException catch (error) {
+      if (!mounted) return;
       _showSnack(error.message, isError: true);
       return;
     } catch (error) {
       debugPrint('Failed to sign out: $error');
-      _showSnack('Unable to logout right now. Please try again.', isError: true);
+      if (!mounted) return;
+      _showSnack(l10n.profileLogoutError, isError: true);
       return;
     }
     if (!mounted) return;
@@ -244,6 +280,11 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
     );
   }
 
+  Future<void> _updateLanguage(String code) async {
+    setState(() => _language = code);
+    await _localeService.setLocale(Locale(code));
+  }
+
   bool get _canSaveName {
     final trimmed = _nameController.text.trim();
     if (trimmed.isEmpty) return false;
@@ -264,7 +305,8 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
           _language == 'nl',
         ],
         onPressed: (index) {
-          setState(() => _language = index == 0 ? 'en' : 'nl');
+          final code = index == 0 ? 'en' : 'nl';
+          _updateLanguage(code);
         },
         borderRadius: BorderRadius.circular(999),
         renderBorder: false,
@@ -272,9 +314,9 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
         selectedColor: AppTheme.primaryOrange,
         color: AppTheme.gray600,
         constraints: const BoxConstraints(minHeight: 36, minWidth: 110),
-        children: const [
-          Text('English'),
-          Text('Dutch'),
+        children: [
+          Text(context.l10n.languageEnglish),
+          Text(context.l10n.languageDutch),
         ],
       ),
     );
@@ -310,7 +352,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
                     AppPageHeader(
                       profileButtonKey: controller.profileButtonKey,
                       onProfileTap: controller.toggleMenu,
-                      subtitle: 'Profile & Settings',
+                      subtitle: context.l10n.profileSettingsTitle,
                       subtitleIcon: Icons.settings_outlined,
                       unreadNotificationCount:
                           _isAdmin ? _unreadNotificationCount : 0,
@@ -327,14 +369,14 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             _SettingsCard(
-                              title: 'Profile',
+                              title: context.l10n.profileSectionTitle,
                               children: [
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
-                                      'Name',
-                                      style: TextStyle(
+                                    Text(
+                                      context.l10n.profileNameLabel,
+                                      style: const TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w400,
                                         color: AppTheme.gray700,
@@ -351,7 +393,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
                                               onChanged: (_) => setState(() {}),
                                               style: const TextStyle(fontSize: 14, color: AppTheme.gray900),
                                               decoration: InputDecoration(
-                                                hintText: 'Your name',
+                                                hintText: context.l10n.profileNameHint,
                                                 hintStyle: const TextStyle(fontSize: 14, color: AppTheme.gray400),
                                                 filled: true,
                                                 fillColor: AppTheme.gray50,
@@ -385,7 +427,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
                                               duration: const Duration(milliseconds: 200),
                                               opacity: _canSaveName && !_isSavingName ? 1 : 0.4,
                                               child: CustomButton(
-                                                text: 'Save name',
+                                                text: context.l10n.profileSaveName,
                                                 onPressed: _saveDisplayName,
                                                 isLoading: _isSavingName,
                                                 isFullWidth: false,
@@ -399,23 +441,24 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
                                 ),
                                 const SizedBox(height: 12),
                                 _ReadOnlyField(
-                                  label: 'Email',
-                                  value: _userEmail ?? 'Unavailable',
+                                  label: context.l10n.profileEmailLabel,
+                                  value: _userEmail ??
+                                      context.l10n.profileUnavailable,
                                 ),
                                 const SizedBox(height: 10),
                                 _ReadOnlyField(
-                                  label: 'Role',
-                                  value: _userRole,
+                                  label: context.l10n.profileRoleLabel,
+                                  value: _localizedRole(context.l10n),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 12),
                             _SettingsCard(
-                              title: 'Preferences',
+                              title: context.l10n.profilePreferencesTitle,
                               children: [
-                                const Text(
-                                  'Language preference',
-                                  style: TextStyle(
+                                Text(
+                                  context.l10n.profileLanguagePreference,
+                                  style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
                                     color: AppTheme.gray700,
@@ -427,7 +470,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
                             ),
                             const SizedBox(height: 12),
                             _SettingsCard(
-                              title: 'Security',
+                              title: context.l10n.profileSecurityTitle,
                               children: [
                                 SizedBox(
                                   width: double.infinity,
@@ -438,8 +481,8 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
                                     icon: const Icon(Icons.lock_reset),
                                     label: Text(
                                       _isSendingReset
-                                          ? 'Sending reset...'
-                                          : 'Change password',
+                                          ? context.l10n.profileSendingReset
+                                          : context.l10n.profileChangePassword,
                                     ),
                                     style: OutlinedButton.styleFrom(
                                       foregroundColor: AppTheme.primaryOrange,
@@ -462,7 +505,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
                                 TextButton.icon(
                                   onPressed: _handleLogout,
                                   icon: const Icon(Icons.logout),
-                                  label: const Text('Logout'),
+                                  label: Text(context.l10n.profileLogout),
                                   style: TextButton.styleFrom(
                                     foregroundColor: AppTheme.gray700,
                                     padding: EdgeInsets.zero,
@@ -474,13 +517,13 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
                             if (_isAdmin) ...[
                               const SizedBox(height: 12),
                               _SettingsCard(
-                                title: 'Shortcuts',
+                                title: context.l10n.profileShortcutsTitle,
                                 children: [
                                   _SettingsTile(
                                     icon: Icons.shield_outlined,
-                                    title: 'Open Admin Panel',
-                                    subtitle:
-                                        'Manage projects, observers, and alerts',
+                                    title: context.l10n.profileOpenAdminPanel,
+                                    subtitle: context.l10n
+                                        .profileAdminPanelSubtitle,
                                     onTap: _openAdminPage,
                                   ),
                                 ],

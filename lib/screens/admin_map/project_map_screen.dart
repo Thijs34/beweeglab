@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:my_app/l10n/l10n.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:my_app/config/app_config.dart';
 import 'package:my_app/models/navigation_arguments.dart';
@@ -310,7 +311,7 @@ class _ProjectMapScreenState extends State<ProjectMapScreen> {
                     AppPageHeader(
                       profileButtonKey: controller.profileButtonKey,
                       onProfileTap: controller.toggleMenu,
-                      subtitle: 'Project Map',
+                      subtitle: context.l10n.projectMapTitle,
                       subtitleIcon: Icons.map_outlined,
                       unreadNotificationCount: _isAdmin
                           ? _unreadNotificationCount
@@ -500,8 +501,8 @@ class _ProjectPreviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final locationLabel = pin.project.mainLocation.isEmpty
-        ? 'Location unavailable'
-        : pin.project.mainLocation;
+      ? context.l10n.projectMapLocationUnavailable
+      : pin.project.mainLocation;
     return Material(
       elevation: 8,
       borderRadius: BorderRadius.circular(AppTheme.borderRadiusLarge),
@@ -532,7 +533,7 @@ class _ProjectPreviewCard extends StatelessWidget {
                   icon: const Icon(Icons.close),
                   color: AppTheme.gray500,
                   onPressed: onClose,
-                  tooltip: 'Close',
+                  tooltip: context.l10n.commonClose,
                 ),
               ],
             ),
@@ -549,7 +550,7 @@ class _ProjectPreviewCard extends StatelessWidget {
                 TextButton.icon(
                   onPressed: onOpenProject,
                   icon: const Icon(Icons.open_in_new, size: 16),
-                  label: const Text('Open in Admin'),
+                  label: Text(context.l10n.projectMapOpenInAdmin),
                 ),
               ],
             ),
@@ -605,7 +606,7 @@ class _MapSummaryChip extends StatelessWidget {
           const Icon(Icons.place_outlined, size: 16, color: AppTheme.gray600),
           const SizedBox(width: 6),
           Text(
-            '$projectCount project${projectCount == 1 ? '' : 's'}',
+            context.l10n.projectMapProjectCount(projectCount),
             style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,

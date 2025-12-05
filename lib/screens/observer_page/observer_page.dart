@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:my_app/l10n/l10n.dart';
 import 'package:my_app/models/navigation_arguments.dart';
 import 'package:my_app/models/observation_field.dart';
 import 'package:my_app/models/observation_field_audience.dart';
@@ -317,7 +318,7 @@ class _ObserverPageState extends State<ObserverPage> {
                           ),
                         ),
                       ),
-                      child: const Text('Finish Session'),
+                      child: Text(context.l10n.observerFinishSession),
                     ),
                   ),
                 ),
@@ -351,10 +352,10 @@ class _ObserverPageState extends State<ObserverPage> {
                                 ),
                               ),
                             )
-                          : Text(
+                            : Text(
                               _mode == ObservationMode.group
-                                  ? 'Submit Group'
-                                  : 'Submit Person',
+                                ? context.l10n.observerSubmitGroup
+                                : context.l10n.observerSubmitPerson,
                             ),
                     ),
                   ),
@@ -428,19 +429,20 @@ class _ObserverPageState extends State<ObserverPage> {
   }
 
   Widget _buildModeToggle() {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Observation Mode',
-          style: TextStyle(fontSize: 12, color: AppTheme.gray700),
+        Text(
+          l10n.observerModeLabel,
+          style: const TextStyle(fontSize: 12, color: AppTheme.gray700),
         ),
         const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
               child: ObserverOptionButton(
-                label: 'Individual',
+                label: l10n.observerModeIndividual,
                 icon: Icons.person_outline,
                 iconSize: 18,
                 height: 40,
@@ -452,7 +454,7 @@ class _ObserverPageState extends State<ObserverPage> {
             const SizedBox(width: 8),
             Expanded(
               child: ObserverOptionButton(
-                label: 'Group',
+                label: l10n.observerModeGroup,
                 icon: Icons.groups_outlined,
                 iconSize: 18,
                 height: 40,
@@ -492,9 +494,9 @@ class _ObserverPageState extends State<ObserverPage> {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppTheme.gray200, width: 1),
         ),
-        child: const Text(
-          'No observation fields are configured for this project.',
-          style: TextStyle(color: AppTheme.gray600),
+        child: Text(
+          context.l10n.observerNoFieldsConfigured,
+          style: const TextStyle(color: AppTheme.gray600),
         ),
       );
     }
@@ -699,7 +701,7 @@ class _ObserverPageState extends State<ObserverPage> {
     ];
     final allowOther = config?.allowOtherOption ?? false;
     if (combinedOptions.isEmpty && !allowOther) {
-      return const Text('No options configured');
+      return Text(context.l10n.observerNoOptionsConfigured);
     }
 
     final selectionOptions = combinedOptions
@@ -717,8 +719,8 @@ class _ObserverPageState extends State<ObserverPage> {
         .toList(growable: true);
     if (allowOther) {
       selectionOptions.add(
-        const _SelectionOption(
-          label: 'Other',
+        _SelectionOption(
+          label: context.l10n.observerOtherOption,
           value: _kOtherOptionValue,
           icon: Icons.edit_outlined,
         ),
@@ -1167,6 +1169,7 @@ class _ObserverPageState extends State<ObserverPage> {
     if (_isSubmitting) return;
 
     await _restoreSessionDrafts();
+    if (!mounted) return;
 
     if (!_isFormEmpty()) {
       final validation = _validateCurrent();
@@ -1181,14 +1184,14 @@ class _ObserverPageState extends State<ObserverPage> {
       final project = _activeProject;
       if (project == null) {
         _showSnackMessage(
-          'Select a project before recording observations.',
+          context.l10n.observerSelectProject,
           isError: true,
         );
         return;
       }
       final observerUid = FirebaseAuth.instance.currentUser?.uid;
       if (observerUid == null) {
-        _showSnackMessage('Please sign in again to continue.', isError: true);
+        _showSnackMessage(context.l10n.observerPleaseSignIn, isError: true);
         return;
       }
       final entry = _buildSnapshot();
@@ -1198,7 +1201,7 @@ class _ObserverPageState extends State<ObserverPage> {
         observerUid: observerUid,
         showSuccessOverlay: false,
       );
-      if (!success) {
+      if (!success || !mounted) {
         return;
       }
       _resetInputs(preservePersonId: false);
@@ -1230,7 +1233,7 @@ class _ObserverPageState extends State<ObserverPage> {
         final raw = (value as String?) ?? '$_currentGroupSize';
         if (raw.isEmpty) {
           if (field.isRequired) {
-            errors[field.id] = 'Please enter a number';
+            errors[field.id] = context.l10n.observerEnterNumber;
           }
         } else {
           final parsed = int.tryParse(raw);
@@ -1752,20 +1755,20 @@ class _ObserverPageState extends State<ObserverPage> {
                 color: AppTheme.primaryOrange,
               ),
               const SizedBox(height: 16),
-              const Text(
-                'No project selected. Please choose a project from the list before starting an observation.',
+              Text(
+                context.l10n.observerNoProjectTitle,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: AppTheme.gray700,
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
-                'Select a project on the Project List screen to unlock the observation tools.',
+              Text(
+                context.l10n.observerNoProjectSubtitle,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: AppTheme.gray600),
+                style: const TextStyle(fontSize: 14, color: AppTheme.gray600),
               ),
               const SizedBox(height: 24),
               SizedBox(
@@ -1776,7 +1779,7 @@ class _ObserverPageState extends State<ObserverPage> {
                     backgroundColor: AppTheme.primaryOrange,
                     foregroundColor: AppTheme.white,
                   ),
-                  child: const Text('Back to Project List'),
+                  child: Text(context.l10n.observerBackToProjectList),
                 ),
               ),
             ],

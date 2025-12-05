@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:my_app/l10n/l10n.dart';
 import 'package:my_app/models/observation_field.dart';
 import 'package:my_app/theme/app_theme.dart';
 
@@ -21,10 +22,8 @@ class ProjectObservationFieldsCard extends StatelessWidget {
   final bool hasChanges;
   final bool isSaving;
   final Future<void> Function(BuildContext context) onAddField;
-  final Future<void> Function(
-    BuildContext context,
-    ObservationField field,
-  ) onEditField;
+  final Future<void> Function(BuildContext context, ObservationField field)
+      onEditField;
   final void Function(int oldIndex, int newIndex) onReorderField;
   final void Function(String fieldId, bool isEnabled) onToggleField;
   final void Function(String fieldId) onDeleteField;
@@ -33,6 +32,7 @@ class ProjectObservationFieldsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -58,10 +58,10 @@ class ProjectObservationFieldsCard extends StatelessWidget {
               final titleGroup = Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Flexible(
+                  Flexible(
                     child: Text(
-                      'Observation Fields',
-                      style: TextStyle(
+                      l10n.adminObservationFieldsTitle,
+                      style: const TextStyle(
                         fontFamily: AppTheme.fontFamilyHeading,
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -80,7 +80,7 @@ class ProjectObservationFieldsCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
-                      '${fields.length} field${fields.length == 1 ? '' : 's'}',
+                      l10n.adminObservationFieldsCount(fields.length),
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppTheme.gray600,
@@ -94,7 +94,7 @@ class ProjectObservationFieldsCard extends StatelessWidget {
               final addButton = OutlinedButton.icon(
                 onPressed: () => onAddField(context),
                 icon: const Icon(Icons.add, size: 18),
-                label: const Text('Add Field'),
+                label: Text(l10n.adminAddField),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
@@ -123,9 +123,9 @@ class ProjectObservationFieldsCard extends StatelessWidget {
             },
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Reorder, edit, or toggle standard/custom fields. Remember to save changes.',
-            style: TextStyle(color: AppTheme.gray600, fontSize: 13),
+          Text(
+            l10n.adminObservationFieldsSubtitle,
+            style: const TextStyle(color: AppTheme.gray600, fontSize: 13),
           ),
           const SizedBox(height: 16),
           if (fields.isEmpty)
@@ -161,7 +161,7 @@ class ProjectObservationFieldsCard extends StatelessWidget {
               final resetButton = TextButton.icon(
                 onPressed: onResetFields,
                 icon: const Icon(Icons.settings_backup_restore, size: 18),
-                label: const Text('Restore defaults'),
+                label: Text(l10n.adminRestoreDefaults),
                 style: TextButton.styleFrom(
                   foregroundColor: AppTheme.gray600,
                 ),
@@ -180,7 +180,9 @@ class ProjectObservationFieldsCard extends StatelessWidget {
                         ),
                       )
                     : const Icon(Icons.save_outlined, size: 18),
-                label: Text(isSaving ? 'Saving…' : 'Save Changes'),
+                label: Text(
+                  isSaving ? l10n.adminSaving : l10n.adminSaveChanges,
+                ),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 20,
@@ -221,24 +223,25 @@ class ProjectObservationFieldsCard extends StatelessWidget {
     if (field.isStandard) {
       return;
     }
+    final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Delete field'),
+            title: Text(l10n.adminDeleteFieldTitle),
             content: Text(
-              'Are you sure you want to delete "${field.label}"? This cannot be undone.',
+              l10n.adminDeleteFieldMessage(field.label),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Cancel'),
+                child: Text(l10n.commonCancel),
               ),
               FilledButton(
                 onPressed: () => Navigator.of(context).pop(true),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppTheme.red600,
                 ),
-                child: const Text('Delete'),
+                child: Text(l10n.commonDelete),
               ),
             ],
           ),
@@ -257,6 +260,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
@@ -269,23 +273,23 @@ class _EmptyState extends StatelessWidget {
         children: [
           const Icon(Icons.ballot_outlined, size: 36, color: AppTheme.gray400),
           const SizedBox(height: 12),
-          const Text(
-            'No fields configured yet.',
-            style: TextStyle(
+          Text(
+            l10n.adminNoFieldsTitle,
+            style: const TextStyle(
               fontWeight: FontWeight.w600,
               color: AppTheme.gray700,
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Add your first custom field or restore the default template.',
+          Text(
+            l10n.adminNoFieldsSubtitle,
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppTheme.gray600),
+            style: const TextStyle(color: AppTheme.gray600),
           ),
           const SizedBox(height: 14),
           OutlinedButton(
             onPressed: () => onAddField(context),
-            child: const Text('Add Field'),
+            child: Text(l10n.adminAddField),
           ),
         ],
       ),
@@ -312,27 +316,28 @@ class _FieldRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final chips = <Widget>[
       _buildChip(
-        label: field.type.name,
+        label: _typeLabel(l10n, field.type),
         color: AppTheme.gray100,
         textColor: AppTheme.gray700,
       ),
       if (field.isStandard)
         _buildChip(
-          label: 'Standard',
+          label: l10n.adminFieldStandard,
           color: const Color(0xFFE4F1FF),
           textColor: const Color(0xFF0E5AA6),
         )
       else
         _buildChip(
-          label: 'Custom',
+          label: l10n.adminFieldCustom,
           color: const Color(0xFFFCECDD),
           textColor: const Color(0xFF9A4E00),
         ),
       if (field.isRequired)
         _buildChip(
-          label: 'Required',
+          label: l10n.adminRequiredField,
           color: const Color(0xFFFFE5E5),
           textColor: const Color(0xFFB3261E),
         ),
@@ -381,8 +386,7 @@ class _FieldRow extends StatelessWidget {
                           field.helperText!,
                           style: const TextStyle(
                             fontSize: 12,
-                            color: AppTheme.gray600,
-                          ),
+                            color: AppTheme.gray600),
                         ),
                       ),
                   ],
@@ -399,15 +403,16 @@ class _FieldRow extends StatelessWidget {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      TextButton(
+                      IconButton(
                         onPressed: onEditField,
-                        child: const Text('Edit'),
+                        icon: const Icon(Icons.edit_outlined),
+                        tooltip: l10n.adminEdit,
                       ),
                       if (!field.isStandard)
                         IconButton(
-                          tooltip: 'Delete field',
                           onPressed: onDeleteField,
                           icon: const Icon(Icons.delete_outline, size: 20),
+                          tooltip: l10n.commonDelete,
                           color: AppTheme.red600,
                         ),
                     ],
@@ -447,5 +452,26 @@ class _FieldRow extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _typeLabel(AppLocalizations l10n, ObservationFieldType type) {
+    switch (type) {
+      case ObservationFieldType.text:
+        return l10n.adminFieldTypeTextInput;
+      case ObservationFieldType.number:
+        return l10n.adminFieldTypeNumber;
+      case ObservationFieldType.dropdown:
+        return l10n.adminFieldTypeDropdownLegacy;
+      case ObservationFieldType.multiSelect:
+        return l10n.adminFieldTypeMultiSelect;
+      case ObservationFieldType.checkbox:
+        return l10n.adminFieldTypeCheckbox;
+      case ObservationFieldType.date:
+        return l10n.adminFieldTypeDate;
+      case ObservationFieldType.time:
+        return l10n.adminFieldTypeTime;
+      case ObservationFieldType.rating:
+        return l10n.adminFieldTypeRating;
+    }
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'package:my_app/l10n/l10n.dart';
 import 'package:my_app/screens/admin_page/admin_models.dart';
 import 'package:my_app/screens/admin_page/widgets/project_status_badge.dart';
 import 'package:my_app/services/location_autocomplete_service.dart';
@@ -89,6 +90,7 @@ class AdminProjectListView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppTheme.pageGutter,
@@ -100,9 +102,9 @@ class AdminProjectListView extends StatelessWidget {
           if (showProjectSuccess)
             _SuccessBanner(projectName: lastCreatedProjectName),
           const SizedBox(height: 16),
-          const Text(
-            'Manage Projects',
-            style: TextStyle(
+          Text(
+            l10n.adminManageProjectsTitle,
+            style: const TextStyle(
               fontFamily: AppTheme.fontFamilyHeading,
               fontSize: 28,
               fontWeight: FontWeight.w600,
@@ -110,9 +112,9 @@ class AdminProjectListView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Create and organize observation projects, assign observers, and monitor data collection',
-            style: TextStyle(color: AppTheme.gray600, fontSize: 15),
+          Text(
+            l10n.adminManageProjectsSubtitle,
+            style: const TextStyle(color: AppTheme.gray600, fontSize: 15),
           ),
           const SizedBox(height: 16),
           _StatusFilterChips(
@@ -137,9 +139,10 @@ class AdminProjectListView extends StatelessWidget {
                   ),
                 ),
                 icon: const Icon(Icons.add, size: 20),
-                label: const Text(
-                  'Create New Project',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                label: Text(
+                  l10n.adminCreateNewProject,
+                  style:
+                      const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
               ),
             ),
@@ -181,7 +184,10 @@ class AdminProjectListView extends StatelessWidget {
           if (showNewProjectForm) const SizedBox(height: 16),
           const SizedBox(height: 24),
           Text(
-            '${statusFilter.label} Projects (${projects.length})',
+            l10n.adminStatusProjectsTitle(
+              statusFilter.localizedLabel(l10n),
+              projects.length,
+            ),
             style: const TextStyle(
               fontFamily: AppTheme.fontFamilyHeading,
               fontSize: 18,
@@ -210,16 +216,19 @@ class AdminProjectListView extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'No ${statusFilter.label.toLowerCase()} projects yet',
-                    style: TextStyle(
+                    l10n.adminNoProjectsTitle(
+                      statusFilter.localizedLabel(l10n).toLowerCase(),
+                    ),
+                    style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       color: AppTheme.gray500,
                     ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    'Create your first project to get started',
-                    style: TextStyle(color: AppTheme.gray400, fontSize: 13),
+                  Text(
+                    l10n.adminNoProjectsSubtitle,
+                    style:
+                        const TextStyle(color: AppTheme.gray400, fontSize: 13),
                   ),
                 ],
               ),
@@ -260,6 +269,7 @@ class _StatusFilterChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Wrap(
       spacing: 12,
       runSpacing: 8,
@@ -267,7 +277,12 @@ class _StatusFilterChips extends StatelessWidget {
         final isSelected = status == selectedStatus;
         final count = statusCounts[status] ?? 0;
         return ChoiceChip(
-          label: Text('${status.label} ($count)'),
+          label: Text(
+            l10n.adminStatusChipLabel(
+              status.localizedLabel(l10n),
+              count,
+            ),
+          ),
           selected: isSelected,
           onSelected: (_) => onStatusSelected(status),
           labelStyle: TextStyle(
@@ -311,9 +326,9 @@ class _SuccessBanner extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Project created successfully!',
-                  style: TextStyle(
+                Text(
+                  context.l10n.adminProjectCreatedSuccess,
+                  style: const TextStyle(
                     color: AppTheme.green900,
                     fontWeight: FontWeight.w600,
                   ),
@@ -400,6 +415,7 @@ class _NewProjectForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -418,9 +434,9 @@ class _NewProjectForm extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Create New Project',
-            style: TextStyle(
+          Text(
+            l10n.adminCreateNewProject,
+            style: const TextStyle(
               fontFamily: AppTheme.fontFamilyHeading,
               fontSize: 20,
               fontWeight: FontWeight.w600,
@@ -428,12 +444,12 @@ class _NewProjectForm extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           _LabeledField(
-            label: 'Project Name',
+            label: l10n.adminNewProjectNameLabel,
             isRequired: true,
             child: TextField(
               controller: newProjectNameController,
               decoration: InputDecoration(
-                hintText: 'e.g., Parkstraat Observation Site',
+                hintText: l10n.adminNewProjectNameHint,
                 errorText: errors['name'],
               ),
               onChanged: (_) => onProjectNameChanged(),
@@ -441,7 +457,7 @@ class _NewProjectForm extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           _LabeledField(
-            label: 'Main Location',
+            label: l10n.adminNewProjectMainLocationLabel,
             isRequired: true,
             child: TypeAheadField<LocationPrediction>(
               controller: newProjectMainLocationController,
@@ -463,7 +479,7 @@ class _NewProjectForm extends StatelessWidget {
                 controller: controller,
                 focusNode: focusNode,
                 decoration: InputDecoration(
-                  hintText: 'e.g., Parkstraat, Amsterdam',
+                  hintText: l10n.adminNewProjectMainLocationHint,
                   errorText: errors['mainLocation'],
                 ),
                 onChanged: (_) => onMainLocationChanged(),
@@ -490,11 +506,11 @@ class _NewProjectForm extends StatelessWidget {
                     suggestion.description;
                 onMainLocationChanged();
               },
-              emptyBuilder: (context) => const Padding(
+              emptyBuilder: (context) => Padding(
                 padding: EdgeInsets.all(12),
                 child: Text(
-                  'No suggestions found',
-                  style: TextStyle(color: AppTheme.gray500),
+                  l10n.adminNoSuggestionsFound,
+                  style: const TextStyle(color: AppTheme.gray500),
                 ),
               ),
               loadingBuilder: (context) => const Padding(
@@ -510,17 +526,17 @@ class _NewProjectForm extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          _buildLocationSection(),
+          _buildLocationSection(l10n),
           const SizedBox(height: 20),
-          _buildObserverSection(),
+          _buildObserverSection(l10n),
           const SizedBox(height: 20),
           _LabeledField(
-            label: 'Description (Optional)',
+            label: l10n.adminDescriptionOptionalLabel,
             child: TextField(
               controller: newProjectDescriptionController,
               maxLines: 4,
-              decoration: const InputDecoration(
-                hintText: 'Add project description or notes...',
+              decoration: InputDecoration(
+                hintText: l10n.adminDescriptionOptionalHint,
               ),
             ),
           ),
@@ -534,7 +550,7 @@ class _NewProjectForm extends StatelessWidget {
                     side: const BorderSide(color: AppTheme.gray300),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: const Text('Cancel'),
+                  child: Text(l10n.commonCancel),
                 ),
               ),
               const SizedBox(width: 12),
@@ -555,7 +571,9 @@ class _NewProjectForm extends StatelessWidget {
                         )
                       : const Icon(Icons.add, size: 20),
                   label: Text(
-                    isCreatingProject ? 'Creating...' : 'Create Project',
+                    isCreatingProject
+                        ? l10n.adminCreating
+                        : l10n.adminCreateProject,
                   ),
                 ),
               ),
@@ -566,13 +584,13 @@ class _NewProjectForm extends StatelessWidget {
     );
   }
 
-  Widget _buildLocationSection() {
+  Widget _buildLocationSection(AppLocalizations l10n) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _SectionTitle(
-          title: 'Location Types',
-          subtitle: 'Select all location types available at this site',
+        _SectionTitle(
+          title: l10n.adminLocationTypesTitle,
+          subtitle: l10n.adminLocationTypesSubtitle,
           isRequired: true,
         ),
         const SizedBox(height: 12),
@@ -613,8 +631,8 @@ class _NewProjectForm extends StatelessWidget {
             Expanded(
               child: TextField(
                 controller: customLocationController,
-                decoration: const InputDecoration(
-                  hintText: 'Add a custom location… (Enter or Add)',
+                decoration: InputDecoration(
+                  hintText: l10n.adminCustomLocationPlaceholder,
                 ),
                 onSubmitted: (_) => onAddCustomLocation(),
               ),
@@ -641,7 +659,7 @@ class _NewProjectForm extends StatelessWidget {
                   ),
                 ),
                 icon: const Icon(Icons.add, size: 20),
-                label: const Text('Add'),
+                label: Text(l10n.adminAdd),
               ),
             ),
           ],
@@ -687,9 +705,9 @@ class _NewProjectForm extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Hidden location types:',
-                  style: TextStyle(
+                Text(
+                  l10n.adminHiddenLocationTypes,
+                  style: const TextStyle(
                     fontSize: 12,
                     color: AppTheme.gray600,
                     fontWeight: FontWeight.w600,
@@ -729,7 +747,7 @@ class _NewProjectForm extends StatelessWidget {
     );
   }
 
-  Widget _buildObserverSection() {
+  Widget _buildObserverSection(AppLocalizations l10n) {
     final selectedObservers = selectedObserverIds
         .map(
           (id) => allObservers.where((observer) => observer.id == id).toList(),
@@ -741,10 +759,9 @@ class _NewProjectForm extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _SectionTitle(
-          label: 'Assign Observers (Optional)',
-          subtitle:
-              'Add team members who can collect observations for this project',
+        _SectionTitle(
+          label: l10n.adminAssignObserversTitle,
+          subtitle: l10n.adminAssignObserversSubtitle,
         ),
         const SizedBox(height: 12),
         if (!showObserverSelector)
@@ -765,9 +782,9 @@ class _NewProjectForm extends StatelessWidget {
               ),
             ),
             icon: const Icon(Icons.add, color: AppTheme.primaryOrange),
-            label: const Text(
-              'Add Observer',
-              style: TextStyle(color: AppTheme.primaryOrange),
+            label: Text(
+              l10n.adminAddObserver,
+              style: const TextStyle(color: AppTheme.primaryOrange),
             ),
           )
         else
@@ -782,19 +799,19 @@ class _NewProjectForm extends StatelessWidget {
             child: Column(
               children: [
                 TextField(
-                  decoration: const InputDecoration(
-                    hintText: 'Search observers by name or email...',
-                    prefixIcon: Icon(Icons.search, size: 18),
+                  decoration: InputDecoration(
+                    hintText: l10n.adminSearchObserversPlaceholder,
+                    prefixIcon: const Icon(Icons.search, size: 18),
                   ),
                   onChanged: onObserverSearchChanged,
                 ),
                 const SizedBox(height: 12),
                 if (availableObserverOptions.isEmpty)
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.symmetric(vertical: 24),
                     child: Text(
-                      'No observers found',
-                      style: TextStyle(color: AppTheme.gray500),
+                      l10n.adminNoObserversFound,
+                      style: const TextStyle(color: AppTheme.gray500),
                     ),
                   )
                 else
@@ -874,7 +891,7 @@ class _NewProjectForm extends StatelessWidget {
                     side: const BorderSide(color: AppTheme.gray300),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                  child: const Text('Done'),
+                  child: Text(l10n.adminDone),
                 ),
               ],
             ),
@@ -945,9 +962,9 @@ class _NewProjectForm extends StatelessWidget {
                 .toList(),
           )
         else if (!showObserverSelector)
-          const Text(
-            'No observers assigned yet. You can add them later.',
-            style: TextStyle(
+          Text(
+            l10n.adminNoObserversAssigned,
+            style: const TextStyle(
               color: AppTheme.gray400,
               fontSize: 12,
               fontStyle: FontStyle.italic,
@@ -975,6 +992,7 @@ class _ProjectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -1027,7 +1045,7 @@ class _ProjectCard extends StatelessWidget {
                           Expanded(
                             child: Text(
                               project.mainLocation.isEmpty
-                                  ? 'Main location not set'
+                                  ? l10n.adminProjectMainLocationUnset
                                   : project.mainLocation,
                               style: const TextStyle(
                                 color: AppTheme.gray700,
@@ -1045,6 +1063,7 @@ class _ProjectCard extends StatelessWidget {
                   children: [
                     ProjectStatusBadge(
                       status: project.status,
+                      l10n: l10n,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
                         vertical: 4,
@@ -1099,7 +1118,7 @@ class _ProjectCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      '$observationCount observation${observationCount == 1 ? '' : 's'}',
+                      l10n.adminProjectObservationCount(observationCount),
                       style: const TextStyle(color: AppTheme.gray600),
                     ),
                   ],
@@ -1114,7 +1133,7 @@ class _ProjectCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      '$observerCount observer${observerCount == 1 ? '' : 's'}',
+                      l10n.adminProjectObserverCount(observerCount),
                       style: const TextStyle(color: AppTheme.gray600),
                     ),
                   ],

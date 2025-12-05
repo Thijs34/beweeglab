@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:my_app/l10n/l10n.dart';
 import 'package:my_app/models/observation_field.dart';
 import 'package:my_app/theme/app_theme.dart';
 
@@ -63,6 +64,12 @@ class _ObservationFieldEditorSheetState
 
   String? _errorText;
 
+  late AppLocalizations _l10n;
+  bool _didLoadL10n = false;
+  ObservationFieldConfig? _initialConfig;
+
+  AppLocalizations get l10n => _l10n;
+
   @override
   void initState() {
     super.initState();
@@ -84,7 +91,16 @@ class _ObservationFieldEditorSheetState
     _textMaxLengthController = TextEditingController();
 
     _audience = widget.field.audience;
-    _hydrateConfigState(config);
+    _initialConfig = config;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didLoadL10n) return;
+    _l10n = context.l10n;
+    _hydrateConfigState(_initialConfig);
+    _didLoadL10n = true;
   }
 
   @override
@@ -132,19 +148,37 @@ class _ObservationFieldEditorSheetState
       draft.dispose();
     }
     _optionDrafts = options
-        .map((option) => _OptionDraft(id: option.id, label: option.label))
+        .map(
+          (option) => _OptionDraft(
+            id: option.id,
+            label: option.label,
+            l10n: _l10n,
+          ),
+        )
         .toList();
     if (_optionDrafts.isEmpty) {
       _optionDrafts = _defaultOptions()
-          .map((option) => _OptionDraft(id: option.id, label: option.label))
+          .map(
+            (option) => _OptionDraft(
+              id: option.id,
+              label: option.label,
+              l10n: _l10n,
+            ),
+          )
           .toList();
     }
   }
 
   List<ObservationFieldOption> _defaultOptions() {
-    return const [
-      ObservationFieldOption(id: 'option-1', label: 'Option 1'),
-      ObservationFieldOption(id: 'option-2', label: 'Option 2'),
+    return [
+      ObservationFieldOption(
+        id: 'option-1',
+        label: _l10n.adminOptionNumber(1),
+      ),
+      ObservationFieldOption(
+        id: 'option-2',
+        label: _l10n.adminOptionNumber(2),
+      ),
     ];
   }
 
@@ -173,6 +207,7 @@ class _ObservationFieldEditorSheetState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = _l10n;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     return Padding(
       padding: EdgeInsets.only(bottom: bottomInset),
@@ -186,8 +221,8 @@ class _ObservationFieldEditorSheetState
                 Expanded(
                   child: Text(
                     widget.field.isStandard
-                        ? 'Edit Standard Field'
-                        : 'Edit Custom Field',
+                        ? l10n.adminEditStandardField
+                        : l10n.adminEditCustomField,
                     style: const TextStyle(
                       fontFamily: AppTheme.fontFamilyHeading,
                       fontSize: 18,
@@ -204,26 +239,26 @@ class _ObservationFieldEditorSheetState
             const SizedBox(height: 16),
             TextField(
               controller: _labelController,
-              decoration: const InputDecoration(
-                labelText: 'Label',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.adminFieldLabel,
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _helperController,
-              decoration: const InputDecoration(
-                labelText: 'Helper text (optional)',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.adminHelperTextOptional,
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
             if (_typeChangeAllowed)
               DropdownButtonFormField<ObservationFieldType>(
                 initialValue: _type,
-                decoration: const InputDecoration(
-                  labelText: 'Field type',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.adminFieldTypeLabel,
+                  border: const OutlineInputBorder(),
                 ),
                 onChanged: _handleTypeChanged,
                 items: _supportedTypes
@@ -238,9 +273,9 @@ class _ObservationFieldEditorSheetState
             else
               TextFormField(
                 initialValue: _humanizeType(_type),
-                decoration: const InputDecoration(
-                  labelText: 'Field type',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.adminFieldTypeLabel,
+                  border: const OutlineInputBorder(),
                 ),
                 readOnly: true,
               ),
@@ -249,9 +284,9 @@ class _ObservationFieldEditorSheetState
               contentPadding: EdgeInsets.zero,
               value: _isRequired,
               onChanged: (value) => setState(() => _isRequired = value),
-              title: const Text('Required field'),
-              subtitle: const Text(
-                'Observers must provide a value before saving.',
+              title: Text(l10n.adminRequiredField),
+              subtitle: Text(
+                l10n.adminRequiredFieldSubtitle,
               ),
             ),
             const SizedBox(height: 16),
@@ -264,7 +299,6 @@ class _ObservationFieldEditorSheetState
                 _errorText!,
                 style: const TextStyle(
                   color: AppTheme.red600,
-                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -274,14 +308,14 @@ class _ObservationFieldEditorSheetState
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Cancel'),
+                    child: Text(l10n.commonCancel),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
                     onPressed: _handleSubmit,
-                    child: const Text('Save changes'),
+                    child: Text(l10n.adminSaveChanges),
                   ),
                 ),
               ],
@@ -313,9 +347,9 @@ class _ObservationFieldEditorSheetState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Form visibility',
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        Text(
+          l10n.adminFormVisibility,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 8),
         Wrap(
@@ -338,25 +372,25 @@ class _ObservationFieldEditorSheetState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Text field settings',
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        Text(
+          l10n.adminTextFieldSettings,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
         TextField(
           controller: _textPlaceholderController,
-          decoration: const InputDecoration(
-            labelText: 'Placeholder',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.adminPlaceholderLabel,
+            border: const OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 12),
         TextField(
           controller: _textMaxLengthController,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Max length (optional)',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.adminMaxLengthOptional,
+            border: const OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 12),
@@ -364,7 +398,7 @@ class _ObservationFieldEditorSheetState
           contentPadding: EdgeInsets.zero,
           value: _textMultiline,
           onChanged: (value) => setState(() => _textMultiline = value),
-          title: const Text('Allow multiline input'),
+          title: Text(l10n.adminAllowMultilineInput),
         ),
       ],
     );
@@ -374,9 +408,9 @@ class _ObservationFieldEditorSheetState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Options',
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        Text(
+          l10n.adminOptionsTitle,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
         ..._optionDrafts.map(_buildOptionRow),
@@ -386,14 +420,14 @@ class _ObservationFieldEditorSheetState
           child: TextButton.icon(
             onPressed: _addOption,
             icon: const Icon(Icons.add, size: 18),
-            label: const Text('Add option'),
+            label: Text(l10n.adminAddOption),
           ),
         ),
         SwitchListTile.adaptive(
           contentPadding: EdgeInsets.zero,
           value: _optionAllowMultiple,
           onChanged: (value) => setState(() => _optionAllowMultiple = value),
-          title: const Text('Allow selecting multiple values'),
+          title: Text(l10n.adminAllowMultipleValues),
         ),
       ],
     );
@@ -409,15 +443,15 @@ class _ObservationFieldEditorSheetState
           Expanded(
             child: TextField(
               controller: draft.labelController,
-              decoration: const InputDecoration(
-                labelText: 'Label',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.adminFieldLabel,
+                border: const OutlineInputBorder(),
               ),
             ),
           ),
           const SizedBox(width: 12),
           IconButton(
-            tooltip: 'Remove option',
+            tooltip: l10n.adminRemoveOption,
             onPressed: _optionDrafts.length <= 1
                 ? null
                 : () => _removeOption(draft),
@@ -432,7 +466,7 @@ class _ObservationFieldEditorSheetState
     setState(() {
       _optionDrafts = [
         ..._optionDrafts,
-        _OptionDraft.empty(_optionDrafts.length),
+        _OptionDraft.empty(_optionDrafts.length, l10n),
       ];
     });
   }
@@ -447,39 +481,39 @@ class _ObservationFieldEditorSheetState
   String _audienceLabel(ObservationFieldAudience value) {
     switch (value) {
       case ObservationFieldAudience.individual:
-        return 'Individual';
+        return l10n.adminAudienceIndividual;
       case ObservationFieldAudience.group:
-        return 'Group';
+        return l10n.adminAudienceGroup;
       case ObservationFieldAudience.all:
-        return 'Both';
+        return l10n.adminAudienceBoth;
     }
   }
 
   String _humanizeType(ObservationFieldType type) {
     switch (type) {
       case ObservationFieldType.text:
-        return 'Text input';
+        return l10n.adminFieldTypeTextInput;
       case ObservationFieldType.number:
-        return 'Number';
+        return l10n.adminFieldTypeNumber;
       case ObservationFieldType.dropdown:
-        return 'Dropdown (legacy)';
+        return l10n.adminFieldTypeDropdownLegacy;
       case ObservationFieldType.multiSelect:
-        return 'Multi-select';
+        return l10n.adminFieldTypeMultiSelect;
       case ObservationFieldType.checkbox:
-        return 'Checkbox';
+        return l10n.adminFieldTypeCheckbox;
       case ObservationFieldType.date:
-        return 'Date';
+        return l10n.adminFieldTypeDate;
       case ObservationFieldType.time:
-        return 'Time';
+        return l10n.adminFieldTypeTime;
       case ObservationFieldType.rating:
-        return 'Rating scale';
+        return l10n.adminFieldTypeRating;
     }
   }
 
   void _handleSubmit() {
     final label = _labelController.text.trim();
     if (label.isEmpty) {
-      setState(() => _errorText = 'Field label is required.');
+      setState(() => _errorText = l10n.adminFieldLabelRequiredError);
       return;
     }
 
@@ -506,7 +540,7 @@ class _ObservationFieldEditorSheetState
             .where((option) => option.label.trim().isNotEmpty)
             .toList();
         if (options.length < 2) {
-          setState(() => _errorText = 'Please provide at least two options.');
+          setState(() => _errorText = l10n.adminOptionMinimumError);
           return;
         }
         final existingOptionConfig = widget.field.config;
@@ -540,16 +574,19 @@ class _ObservationFieldEditorSheetState
 }
 
 class _OptionDraft {
-  _OptionDraft({required String id, required String label})
+  _OptionDraft({required String id, required String label, required this.l10n})
     : _id = id,
       labelController = TextEditingController(text: label);
 
-  _OptionDraft.empty(int index)
+  _OptionDraft.empty(int index, this.l10n)
     : _id = '',
-      labelController = TextEditingController(text: 'Option ${index + 1}');
+      labelController = TextEditingController(
+        text: l10n.adminOptionNumber(index + 1),
+      );
 
   final String _id;
   final TextEditingController labelController;
+  final AppLocalizations l10n;
 
   ObservationFieldOption toOption() {
     final label = labelController.text.trim();
@@ -557,7 +594,7 @@ class _OptionDraft {
     final id = (_id.isNotEmpty ? _id : slug).trim();
     return ObservationFieldOption(
       id: id.isEmpty ? 'option-${DateTime.now().millisecondsSinceEpoch}' : id,
-      label: label.isEmpty ? 'Option' : label,
+      label: label.isEmpty ? l10n.adminOptionFallback : label,
       description: null,
     );
   }

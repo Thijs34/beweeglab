@@ -1,3 +1,4 @@
+import 'package:my_app/l10n/gen/app_localizations.dart';
 import 'package:my_app/models/observation_field.dart';
 
 enum ProjectStatus { active, finished, archived }
@@ -28,6 +29,17 @@ extension ProjectStatusX on ProjectStatus {
     }
   }
 
+  String localizedLabel(AppLocalizations l10n) {
+    switch (this) {
+      case ProjectStatus.active:
+        return l10n.adminStatusActive;
+      case ProjectStatus.finished:
+        return l10n.adminStatusFinished;
+      case ProjectStatus.archived:
+        return l10n.adminStatusArchived;
+    }
+  }
+
   String get firestoreValue {
     switch (this) {
       case ProjectStatus.active:
@@ -51,6 +63,19 @@ extension ProjectDetailSectionX on ProjectDetailSection {
         return 'Fields';
       case ProjectDetailSection.data:
         return 'Data';
+    }
+  }
+
+  String localizedLabel(AppLocalizations l10n) {
+    switch (this) {
+      case ProjectDetailSection.general:
+        return l10n.adminSectionGeneral;
+      case ProjectDetailSection.observers:
+        return l10n.adminSectionObservers;
+      case ProjectDetailSection.fields:
+        return l10n.adminSectionFields;
+      case ProjectDetailSection.data:
+        return l10n.adminSectionData;
     }
   }
 }

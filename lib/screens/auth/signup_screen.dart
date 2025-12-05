@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:my_app/models/navigation_arguments.dart';
 import 'package:my_app/services/auth_service.dart';
 import 'package:my_app/theme/app_theme.dart';
+import 'package:my_app/l10n/l10n.dart';
 import 'package:my_app/widgets/auth/auth_brand_header.dart';
 import 'package:my_app/widgets/auth/auth_form_card.dart';
 import 'package:my_app/widgets/auth/auth_form_layout.dart';
@@ -100,6 +101,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return AuthFormLayout(
       padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 8),
       child: Form(
@@ -113,9 +115,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
             AuthFormCard(
               child: Column(
                 children: [
-                  const Text(
-                    'Create Account',
-                    style: TextStyle(
+                  Text(
+                    l10n.signupTitle,
+                    style: const TextStyle(
                       fontFamily: AppTheme.fontFamilyHeading,
                       fontSize: 24,
                       fontWeight: FontWeight.w600,
@@ -125,66 +127,66 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                   const SizedBox(height: 24),
                   CustomTextField(
-                    label: 'First Name',
-                    placeholder: 'Enter your first name',
+                    label: l10n.signupFirstNameLabel,
+                    placeholder: l10n.signupFirstNamePlaceholder,
                     controller: _firstNameController,
                   ),
                   const SizedBox(height: 16),
                   CustomTextField(
-                    label: 'Last Name',
-                    placeholder: 'Enter your last name',
+                    label: l10n.signupLastNameLabel,
+                    placeholder: l10n.signupLastNamePlaceholder,
                     controller: _lastNameController,
                   ),
                   const SizedBox(height: 16),
                   CustomTextField(
-                    label: 'Email',
-                    placeholder: 'your.email@example.com',
+                    label: l10n.signupEmailLabel,
+                    placeholder: l10n.signupEmailPlaceholder,
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     validator: (value) {
                       final text = value?.trim() ?? '';
                       if (text.isEmpty) {
-                        return 'Email is required';
+                        return l10n.signupEmailRequired;
                       }
                       if (!text.contains('@')) {
-                        return 'Please enter a valid email';
+                        return l10n.signupEmailInvalid;
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 16),
                   CustomTextField(
-                    label: 'Password',
-                    placeholder: 'Create a password',
+                    label: l10n.signupPasswordLabel,
+                    placeholder: l10n.signupPasswordPlaceholder,
                     controller: _passwordController,
                     isPassword: true,
                     validator: (value) {
                       final text = value?.trim() ?? '';
                       if (text.isEmpty) {
-                        return 'Password is required';
+                        return l10n.signupPasswordRequired;
                       }
                       if (text.length < 6) {
-                        return 'Password must be at least 6 characters';
+                        return l10n.signupPasswordTooShort;
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 16),
                   CustomTextField(
-                    label: 'Confirm Password',
-                    placeholder: 'Re-enter your password',
+                    label: l10n.signupPasswordConfirmLabel,
+                    placeholder: l10n.signupPasswordConfirmPlaceholder,
                     controller: _confirmPasswordController,
                     isPassword: true,
                     validator: (value) {
                       if ((value ?? '').trim().isEmpty) {
-                        return 'Please confirm your password';
+                        return l10n.signupPasswordConfirmRequired;
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 16),
                   CustomButton(
-                    text: 'Create Account',
+                    text: l10n.signupSubmit,
                     onPressed: _handleSignUp,
                     isLoading: _isSubmitting,
                   ),
@@ -217,24 +219,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: RichText(
-                            text: const TextSpan(
-                              style: TextStyle(
+                            text: TextSpan(
+                              style: const TextStyle(
                                 fontSize: 12,
                                 color: AppTheme.gray700,
                                 height: 1.5,
                               ),
                               children: [
+                                TextSpan(text: l10n.signupRoleInfoPrefix),
                                 TextSpan(
-                                  text: 'New accounts are assigned the ',
+                                  text: l10n.signupRoleName,
+                                  style: const TextStyle(fontWeight: FontWeight.w600),
                                 ),
-                                TextSpan(
-                                  text: 'Observer role',
-                                  style: TextStyle(fontWeight: FontWeight.w600),
-                                ),
-                                TextSpan(
-                                  text:
-                                      ' by default. Admin privileges must be granted by the database owner.',
-                                ),
+                                TextSpan(text: l10n.signupRoleInfoSuffix),
                               ],
                             ),
                           ),
@@ -251,15 +248,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 text: TextSpan(
                   style: const TextStyle(fontSize: 14, color: AppTheme.gray600),
                   children: [
-                    const TextSpan(text: "Already have an account? "),
+                    TextSpan(text: l10n.signupAlreadyHaveAccountPrefix),
                     WidgetSpan(
                       child: MouseRegion(
                         cursor: SystemMouseCursors.click,
                         child: GestureDetector(
                           onTap: _navigateToLogin,
-                          child: const Text(
-                            'Login',
-                            style: TextStyle(
+                          child: Text(
+                            l10n.signupLoginCta,
+                            style: const TextStyle(
                               fontSize: 14,
                               color: AppTheme.primaryOrange,
                             ),

@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:my_app/l10n/l10n.dart';
 import 'package:my_app/screens/auth/login_screen.dart';
 import 'package:my_app/screens/project_list/project_list_screen.dart';
 import 'package:my_app/services/auth_service.dart';
@@ -13,8 +14,9 @@ class AuthGate extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, authSnapshot) {
+        final l10n = context.l10n;
         if (authSnapshot.connectionState == ConnectionState.waiting) {
-          return const _AuthLoading(message: 'Checking your session...');
+          return _AuthLoading(message: l10n.authCheckingSession);
         }
 
         final user = authSnapshot.data;
@@ -25,14 +27,14 @@ class AuthGate extends StatelessWidget {
         return FutureBuilder<String>(
           future: AuthService.instance.getUserRole(user.uid),
           builder: (context, roleSnapshot) {
+            final l10n = context.l10n;
             if (roleSnapshot.connectionState == ConnectionState.waiting) {
-              return const _AuthLoading(message: 'Restoring your workspace...');
+              return _AuthLoading(message: l10n.authRestoringWorkspace);
             }
 
             if (roleSnapshot.hasError) {
               return _AuthError(
-                message:
-                    'Unable to restore your profile. Please sign in again.',
+                message: l10n.authRestoreError,
                 onSignOut: () => FirebaseAuth.instance.signOut(),
               );
             }
@@ -91,12 +93,21 @@ class _AuthError extends StatelessWidget {
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: onSignOut,
-                child: const Text('Return to login'),
+                child: const _ReturnToLoginText(),
               ),
             ],
           ),
         ),
       ),
     );
+  }
+}
+
+class _ReturnToLoginText extends StatelessWidget {
+  const _ReturnToLoginText();
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(context.l10n.authReturnToLogin);
   }
 }

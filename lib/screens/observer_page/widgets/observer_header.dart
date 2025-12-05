@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:my_app/l10n/l10n.dart';
 import 'package:my_app/theme/app_theme.dart';
 import 'package:my_app/screens/observer_page/models/weather_condition.dart';
 import 'package:my_app/widgets/profile_avatar_button.dart';
@@ -42,6 +43,7 @@ class ObserverHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Container(
       decoration: const BoxDecoration(
         color: AppTheme.white,
@@ -126,9 +128,9 @@ class ObserverHeader extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    _InfoChip(label: 'Date', value: dateLabel),
+                    _InfoChip(label: l10n.observerDateLabel, value: dateLabel),
                     const SizedBox(width: 16),
-                    _InfoChip(label: 'Time', value: timeLabel),
+                    _InfoChip(label: l10n.observerTimeLabel, value: timeLabel),
                   ],
                 ),
                 Row(

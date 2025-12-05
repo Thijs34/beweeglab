@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:my_app/l10n/l10n.dart';
 import 'package:my_app/models/admin_notification.dart';
 import 'package:my_app/models/navigation_arguments.dart';
 import 'package:my_app/screens/observer_page/observer_page.dart';
@@ -26,17 +28,22 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage> {
   List<AdminNotification> _notifications = const [];
   bool _isLoading = true;
   bool _isMarkingAllRead = false;
+  bool _initialized = false;
 
   // Listen to the notification stream and update UI whenever records change.
   // Errors are caught to avoid stream failures crashing the widget
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_initialized) return;
+    _initialized = true;
+    final l10n = context.l10n;
     _subscription = _notificationService
         .watchNotifications(limit: 50)
         .listen(
           (records) {
+            if (!mounted) return;
             setState(() {
               _notifications = records;
               _isLoading = false;
@@ -44,9 +51,10 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage> {
           },
           onError: (error) {
             debugPrint('Failed to load notifications: $error');
+            if (!mounted) return;
             setState(() => _isLoading = false);
             _showSnack(
-              'Unable to load notifications right now.',
+              l10n.notificationsLoadError,
               isError: true,
             );
           },
@@ -66,6 +74,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage> {
       _notifications.any((notification) => !notification.isRead);
 
   Future<void> _markAllAsRead() async {
+    final l10n = context.l10n;
     if (_isMarkingAllRead) return;
     final unreadIds = _notifications
         .where((notification) => !notification.isRead)
@@ -75,10 +84,10 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage> {
     setState(() => _isMarkingAllRead = true);
     try {
       await _notificationService.markAllAsRead(unreadIds);
-      _showSnack('All notifications marked as read.');
+      _showSnack(l10n.notificationsMarkAllReadSuccess);
     } catch (error) {
       debugPrint('Failed to mark notifications read: $error');
-      _showSnack('Could not mark notifications as read.', isError: true);
+      _showSnack(l10n.notificationsMarkAllReadFailure, isError: true);
     } finally {
       if (mounted) {
         setState(() => _isMarkingAllRead = false);
@@ -114,6 +123,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage> {
       showProjectMapOption: _isAdmin,
       unreadNotificationCount: _unreadNotificationCount,
       builder: (context, controller) {
+        final l10n = context.l10n;
         return Scaffold(
           backgroundColor: AppTheme.background,
           body: SafeArea(
@@ -127,7 +137,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage> {
                     AppPageHeader(
                       profileButtonKey: controller.profileButtonKey,
                       onProfileTap: controller.toggleMenu,
-                      subtitle: 'Notifications',
+                      subtitle: l10n.notificationsNavTitle,
                       subtitleIcon: Icons.notifications_none,
                       unreadNotificationCount: _unreadNotificationCount,
                     ),
@@ -153,6 +163,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage> {
   }
 
   Widget _buildNotificationSection() {
+    final l10n = context.l10n;
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.white,
@@ -175,9 +186,9 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Recent activity',
-                      style: TextStyle(
+                    Text(
+                      l10n.notificationsRecentActivity,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: AppTheme.gray900,
@@ -204,7 +215,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage> {
                           height: 18,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Mark all read'),
+                      : Text(l10n.notificationsMarkAllRead),
                 ),
             ],
           ),
@@ -254,6 +265,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage> {
   }
 
   void _handleLogout() async {
+    final l10n = context.l10n;
     try {
       await AuthService.instance.signOut();
     } on AuthException catch (error) {
@@ -262,7 +274,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage> {
     } catch (error) {
       debugPrint('Failed to sign out: $error');
       _showSnack(
-        'Unable to logout right now. Please try again.',
+        l10n.profileLogoutError,
         isError: true,
       );
       return;
@@ -344,7 +356,7 @@ class _NotificationTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final subtitle =
         '${notification.userEmail} • '
-        '${_formatRelativeTime(notification.createdAt)}';
+        '${_formatRelativeTime(context, notification.createdAt)}';
 
     return Container(
       decoration: BoxDecoration(
@@ -406,22 +418,21 @@ class _NotificationTile extends StatelessWidget {
   }
 
   // Converts timestamps into normal hours
-  String _formatRelativeTime(DateTime timestamp) {
+  String _formatRelativeTime(BuildContext context, DateTime timestamp) {
+    final l10n = context.l10n;
     final now = DateTime.now();
     final difference = now.difference(timestamp);
     if (difference.inMinutes < 1) {
-      return 'Just now';
+      return l10n.relativeJustNow;
     }
     if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}m ago';
+      return l10n.relativeMinutesAgo(difference.inMinutes);
     }
     if (difference.inHours < 24) {
-      return '${difference.inHours}h ago';
+      return l10n.relativeHoursAgo(difference.inHours);
     }
-    return '${timestamp.year}-${_pad(timestamp.month)}-${_pad(timestamp.day)}';
+    return DateFormat.yMd(l10n.localeName).format(timestamp);
   }
-
-  String _pad(int value) => value.toString().padLeft(2, '0');
 }
 
 /// Shown when there are no notifications to display.
@@ -433,6 +444,7 @@ class _EmptyNotificationsState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -445,9 +457,9 @@ class _EmptyNotificationsState extends StatelessWidget {
               color: AppTheme.gray300,
             ),
             const SizedBox(height: 16),
-            const Text(
-              'No notifications yet',
-              style: TextStyle(
+            Text(
+              l10n.notificationsEmptyTitle,
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: AppTheme.gray700,
@@ -455,7 +467,7 @@ class _EmptyNotificationsState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'You will see new user sign-ups here once they happen.',
+              l10n.notificationsEmptySubtitle,
               style: const TextStyle(fontSize: 13, color: AppTheme.gray500),
               textAlign: TextAlign.center,
             ),
@@ -463,7 +475,7 @@ class _EmptyNotificationsState extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: () => onRefresh(),
               icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('Refresh'),
+              label: Text(l10n.commonRefresh),
             ),
           ],
         ),

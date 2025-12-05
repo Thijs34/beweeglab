@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:my_app/l10n/l10n.dart';
 import 'package:my_app/models/navigation_arguments.dart';
 import 'package:my_app/models/observation_field.dart';
 import 'package:my_app/screens/admin_page/admin_models.dart';
@@ -1223,6 +1224,7 @@ class _AdminPageState extends State<AdminPage> {
   }
 
   Future<void> _handleDownloadObservations(AdminProject project) async {
+    final l10n = context.l10n;
     if (_exportingProjectId != null) {
       return;
     }
@@ -1230,12 +1232,13 @@ class _AdminPageState extends State<AdminPage> {
     try {
       await _observationExportService.exportProjectObservations(
         project: project,
+        l10n: l10n,
       );
-      _showSnackMessage('Excel export saved to your device.');
+      _showSnackMessage(l10n.exportSuccessMessage);
     } catch (error) {
       debugPrint('Failed to export observations: $error');
       _showSnackMessage(
-        'Unable to export observations right now.',
+        l10n.exportErrorMessage,
         isError: true,
       );
     } finally {
@@ -1351,7 +1354,7 @@ class _AdminPageState extends State<AdminPage> {
                         AppPageHeader(
                           profileButtonKey: controller.profileButtonKey,
                           onProfileTap: controller.toggleMenu,
-                          subtitle: 'Admin Panel',
+                          subtitle: context.l10n.adminPanelTitle,
                           subtitleIcon: Icons.shield_outlined,
                           unreadNotificationCount: _isAdmin
                               ? _unreadNotificationCount
@@ -1583,16 +1586,17 @@ class _AdminLoadingState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 80),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        children: const [
-          CircularProgressIndicator(color: AppTheme.primaryOrange),
-          SizedBox(height: 16),
+        children: [
+          const CircularProgressIndicator(color: AppTheme.primaryOrange),
+          const SizedBox(height: 16),
           Text(
-            'Loading projects...',
-            style: TextStyle(
+            l10n.adminLoadingProjects,
+            style: const TextStyle(
               color: AppTheme.gray600,
               fontWeight: FontWeight.w600,
             ),
@@ -1618,6 +1622,7 @@ class _DeleteDialogOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Positioned.fill(
       child: Container(
         color: Colors.black.withValues(alpha: 0.4),
@@ -1655,9 +1660,9 @@ class _DeleteDialogOverlay extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Delete Project?',
-                style: TextStyle(
+              Text(
+                l10n.adminDeleteDialogTitle,
+                style: const TextStyle(
                   fontSize: 24,
                   fontFamily: AppTheme.fontFamilyHeading,
                   fontWeight: FontWeight.w600,
@@ -1688,38 +1693,41 @@ class _DeleteDialogOverlay extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      '⚠️ WARNING: This action cannot be reversed!',
-                      style: TextStyle(
+                    Text(
+                      l10n.adminDeleteWarningHeader,
+                      style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         color: AppTheme.red800,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'You are about to permanently delete this project. This will remove:',
-                      style: TextStyle(fontSize: 13, color: AppTheme.red700),
+                    Text(
+                      l10n.adminDeleteWarningTitle,
+                      style:
+                          const TextStyle(fontSize: 13, color: AppTheme.red700),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '• $observationCount observation${observationCount == 1 ? '' : 's'}',
+                      l10n.adminDeleteRemoveObservations(observationCount),
                       style: const TextStyle(
                         fontSize: 13,
                         color: AppTheme.red700,
                       ),
                     ),
-                    const Text(
-                      '• All assigned observers',
-                      style: TextStyle(fontSize: 13, color: AppTheme.red700),
+                    Text(
+                      l10n.adminDeleteRemoveObservers,
+                      style:
+                          const TextStyle(fontSize: 13, color: AppTheme.red700),
                     ),
-                    const Text(
-                      '• All project data and settings',
-                      style: TextStyle(fontSize: 13, color: AppTheme.red700),
+                    Text(
+                      l10n.adminDeleteRemoveData,
+                      style:
+                          const TextStyle(fontSize: 13, color: AppTheme.red700),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'This data cannot be recovered once deleted.',
-                      style: TextStyle(
+                    Text(
+                      l10n.adminDeleteIrreversible,
+                      style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         color: AppTheme.red800,
                         fontSize: 13,
@@ -1729,9 +1737,9 @@ class _DeleteDialogOverlay extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              const Text(
-                'Are you absolutely sure you want to continue?',
-                style: TextStyle(fontSize: 13, color: AppTheme.gray600),
+              Text(
+                l10n.adminDeleteConfirmQuestion,
+                style: const TextStyle(fontSize: 13, color: AppTheme.gray600),
               ),
               const SizedBox(height: 24),
               Row(
@@ -1744,7 +1752,7 @@ class _DeleteDialogOverlay extends StatelessWidget {
                         side: const BorderSide(color: AppTheme.gray300),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
-                      child: const Text('Cancel'),
+                      child: Text(l10n.commonCancel),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -1755,7 +1763,7 @@ class _DeleteDialogOverlay extends StatelessWidget {
                         backgroundColor: AppTheme.red600,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
-                      child: const Text('Yes, Delete Project'),
+                      child: Text(l10n.adminDeleteConfirmButton),
                     ),
                   ),
                 ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:my_app/l10n/l10n.dart';
 import 'package:my_app/screens/admin_page/admin_models.dart';
 import 'package:my_app/theme/app_theme.dart';
 
@@ -77,6 +78,7 @@ class _ObservationEditDialogState extends State<ObservationEditDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
@@ -93,10 +95,10 @@ class _ObservationEditDialogState extends State<ObservationEditDialog> {
               ),
               child: Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Edit Observation',
-                      style: TextStyle(
+                      l10n.adminEditObservationTitle,
+                      style: const TextStyle(
                         fontSize: 20,
                         fontFamily: AppTheme.fontFamilyHeading,
                         fontWeight: FontWeight.w600,
@@ -118,68 +120,73 @@ class _ObservationEditDialogState extends State<ObservationEditDialog> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _LabeledField(
-                      label: 'Person ID',
+                      label: l10n.adminPersonIdLabel,
                       child: TextField(
                         controller: _personIdController,
                         keyboardType: TextInputType.number,
                         onChanged: (value) => _personId = value,
-                        decoration: const InputDecoration(
-                          hintText: 'Enter person id',
+                        decoration: InputDecoration(
+                          hintText: l10n.adminPersonIdHint,
                         ),
                       ),
                     ),
                     const SizedBox(height: 16),
                     _OptionGroup(
-                      label: 'Gender',
+                      label: l10n.adminFieldGender,
                       options: _genderOptions,
                       selectedValue: _gender,
                       columns: 2,
+                      optionLabelBuilder: (value) => _optionLabel(value, l10n),
                       onSelected: (value) => setState(() => _gender = value),
                     ),
                     const SizedBox(height: 16),
                     _OptionGroup(
-                      label: 'Age Group',
+                      label: l10n.adminAgeGroupLabel,
                       options: _ageOptions,
                       selectedValue: _ageGroup,
                       columns: 2,
+                      optionLabelBuilder: (value) => _optionLabel(value, l10n),
                       onSelected: (value) => setState(() => _ageGroup = value),
                     ),
                     const SizedBox(height: 16),
                     _OptionGroup(
-                      label: 'Social Context',
+                      label: l10n.adminSocialContextLabel,
                       options: _socialOptions,
                       selectedValue: _socialContext,
                       columns: 2,
+                      optionLabelBuilder: (value) => _optionLabel(value, l10n),
                       onSelected: (value) =>
                           setState(() => _socialContext = value),
                     ),
                     const SizedBox(height: 16),
                     _OptionGroup(
-                      label: 'Activity Level',
+                      label: l10n.adminActivityLevelLabel,
                       options: _activityLevelOptions,
                       selectedValue: _activityLevel,
                       columns: 3,
+                      optionLabelBuilder: (value) => _optionLabel(value, l10n),
                       onSelected: (value) =>
                           setState(() => _activityLevel = value),
                     ),
                     const SizedBox(height: 16),
                     _OptionGroup(
-                      label: 'Activity Type',
+                      label: l10n.adminActivityTypeLabel,
                       options: _activityTypeOptions,
                       selectedValue: _activityType,
                       columns: 2,
+                      optionLabelBuilder: (value) => _optionLabel(value, l10n),
                       onSelected: (value) =>
                           setState(() => _activityType = value),
                     ),
                     const SizedBox(height: 16),
                     _LabeledField(
-                      label: 'Notes',
+                      label: l10n.adminFieldNotes,
                       child: TextField(
                         controller: _notesController,
                         minLines: 3,
                         maxLines: 5,
-                        decoration: const InputDecoration(
-                          hintText: 'Additional notes...',
+                        decoration: InputDecoration(
+                          hintText: l10n.adminAdditionalNotesHint,
                         ),
                       ),
                     ),
@@ -205,7 +212,7 @@ class _ObservationEditDialogState extends State<ObservationEditDialog> {
                         side: const BorderSide(color: AppTheme.gray300),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      child: const Text('Cancel'),
+                      child: Text(l10n.commonCancel),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -215,7 +222,7 @@ class _ObservationEditDialogState extends State<ObservationEditDialog> {
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      child: const Text('Save Changes'),
+                      child: Text(l10n.adminSaveChanges),
                     ),
                   ),
                 ],
@@ -259,6 +266,7 @@ class _OptionGroup extends StatelessWidget {
   final List<String> options;
   final String selectedValue;
   final int columns;
+  final String Function(String value)? optionLabelBuilder;
   final ValueChanged<String> onSelected;
 
   const _OptionGroup({
@@ -266,6 +274,7 @@ class _OptionGroup extends StatelessWidget {
     required this.options,
     required this.selectedValue,
     required this.columns,
+    this.optionLabelBuilder,
     required this.onSelected,
   });
 
@@ -297,6 +306,7 @@ class _OptionGroup extends StatelessWidget {
               runSpacing: 12,
               children: options.map((option) {
                 final isSelected = option == selectedValue;
+                final labelBuilder = optionLabelBuilder ?? _formatLabel;
                 return SizedBox(
                   width: buttonWidth,
                   child: OutlinedButton(
@@ -316,7 +326,7 @@ class _OptionGroup extends StatelessWidget {
                         width: 2,
                       ),
                     ),
-                    child: Text(_formatLabel(option)),
+                      child: Text(labelBuilder(option)),
                   ),
                 );
               }).toList(),
@@ -332,5 +342,38 @@ class _OptionGroup extends StatelessWidget {
       return value;
     }
     return value[0].toUpperCase() + value.substring(1);
+  }
+}
+
+String _optionLabel(String value, AppLocalizations l10n) {
+  switch (value) {
+    case 'male':
+      return l10n.adminGenderMale;
+    case 'female':
+      return l10n.adminGenderFemale;
+    case 'child':
+      return l10n.adminAgeChild;
+    case 'teen':
+      return l10n.adminAgeTeen;
+    case 'adult':
+      return l10n.adminAgeAdult;
+    case 'senior':
+      return l10n.adminAgeSenior;
+    case 'alone':
+      return l10n.adminSocialAlone;
+    case 'together':
+      return l10n.adminSocialTogether;
+    case 'sitting':
+      return l10n.adminActivityLevelSitting;
+    case 'moving':
+      return l10n.adminActivityLevelMoving;
+    case 'intense':
+      return l10n.adminActivityLevelIntense;
+    case 'organized':
+      return l10n.adminActivityTypeOrganized;
+    case 'unorganized':
+      return l10n.adminActivityTypeUnorganized;
+    default:
+      return value;
   }
 }
