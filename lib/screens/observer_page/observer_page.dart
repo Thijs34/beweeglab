@@ -713,11 +713,7 @@ class _ObserverPageState extends State<ObserverPage> {
           (option) => _SelectionOption(
             label: option.labelForLocale(locale),
             value: option.id,
-            icon:
-                option.icon ??
-                _inferIconFromLabel(
-                  option.labelForLocale(locale),
-                ), //Function below to map icons to specific labels
+            icon: _resolveOptionIcon(option),
           ),
         )
         .toList(growable: true);
@@ -913,6 +909,13 @@ class _ObserverPageState extends State<ObserverPage> {
       return 'custom-option-${DateTime.now().millisecondsSinceEpoch}';
     }
     return trimmed;
+  }
+
+  IconData? _resolveOptionIcon(ObservationFieldOption option) {
+    return option.icon ??
+        _inferIconFromLabel(option.id) ??
+        _inferIconFromLabel(option.label.en ?? '') ??
+        _inferIconFromLabel(option.label.nl);
   }
 
   //Might be changed if ambigous
