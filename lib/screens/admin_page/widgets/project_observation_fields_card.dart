@@ -224,12 +224,15 @@ class ProjectObservationFieldsCard extends StatelessWidget {
       return;
     }
     final l10n = context.l10n;
+    final localeCode = Localizations.localeOf(context).languageCode;
     final confirmed = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
             title: Text(l10n.adminDeleteFieldTitle),
             content: Text(
-              l10n.adminDeleteFieldMessage(field.label),
+              l10n.adminDeleteFieldMessage(
+                field.labelForLocale(localeCode),
+              ),
             ),
             actions: [
               TextButton(
@@ -317,6 +320,8 @@ class _FieldRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final localeCode = Localizations.localeOf(context).languageCode;
+    final helper = field.helperForLocale(localeCode);
     final chips = <Widget>[
       _buildChip(
         label: _typeLabel(l10n, field.type),
@@ -365,7 +370,7 @@ class _FieldRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      field.label,
+                      field.labelForLocale(localeCode),
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -378,15 +383,15 @@ class _FieldRow extends StatelessWidget {
                       runSpacing: 6,
                       children: chips,
                     ),
-                    if (field.helperText != null &&
-                        field.helperText!.trim().isNotEmpty)
+                    if (helper != null && helper.trim().isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 6),
                         child: Text(
-                          field.helperText!,
+                          helper,
                           style: const TextStyle(
                             fontSize: 12,
-                            color: AppTheme.gray600),
+                            color: AppTheme.gray600,
+                          ),
                         ),
                       ),
                   ],

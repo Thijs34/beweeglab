@@ -1,5 +1,46 @@
 import 'package:flutter/material.dart';
 
+/// Lightweight bilingual text container with Dutch required and English optional.
+class LocalizedText {
+  final String nl;
+  final String? en;
+
+  const LocalizedText({required this.nl, this.en});
+
+  /// Selects best value for locale; falls back to Dutch when English missing.
+  String resolve(String locale) {
+    final normalized = locale.toLowerCase();
+    if (normalized.startsWith('en') && (en != null && en!.trim().isNotEmpty)) {
+      return en!.trim();
+    }
+    return nl.trim();
+  }
+
+  LocalizedText copyWith({String? nl, String? en}) {
+    return LocalizedText(nl: nl ?? this.nl, en: en ?? this.en);
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'nl': nl,
+      if (en != null && en!.trim().isNotEmpty) 'en': en,
+    };
+  }
+
+  static LocalizedText fromJson(dynamic raw) {
+    if (raw is Map<String, dynamic>) {
+      final nlValue = raw['nl'] as String? ?? '';
+      final enValue = raw['en'] as String?;
+      return LocalizedText(nl: nlValue, en: enValue);
+    }
+    if (raw is String) {
+      // Legacy single-language payloads become Dutch primary.
+      return LocalizedText(nl: raw);
+    }
+    return const LocalizedText(nl: '');
+  }
+}
+
 /// Enumerates the supported observation field types.
 enum ObservationFieldType {
   text,
@@ -37,7 +78,7 @@ ObservationFieldAudience _parseObservationFieldAudience(String? raw) {
 /// A selectable option used by dropdown/multi-select fields.
 class ObservationFieldOption {
   final String id;
-  final String label;
+  final LocalizedText label;
   final String? description;
   final IconData? icon;
 
@@ -53,7 +94,7 @@ class ObservationFieldOption {
   factory ObservationFieldOption.fromJson(Map<String, dynamic> json) {
     return ObservationFieldOption(
       id: (json['id'] as String? ?? json['value'] as String?) ?? '',
-      label: json['label'] as String? ?? '',
+      label: LocalizedText.fromJson(json['label'] ?? json['value'] ?? ''),
       description: json['description'] as String?,
     );
   }
@@ -61,10 +102,12 @@ class ObservationFieldOption {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'label': label,
+      'label': label.toJson(),
       if (description != null) 'description': description,
     };
   }
+
+  String labelForLocale(String locale) => label.resolve(locale);
 }
 
 /// Base class for field-type specific configuration payloads.
@@ -263,13 +306,13 @@ class DateTimeObservationFieldConfig extends ObservationFieldConfig {
 /// Field definition that combines the core metadata, type, and configuration.
 class ObservationField {
   final String id;
-  final String label;
+  final LocalizedText label;
   final ObservationFieldType type;
   final ObservationFieldAudience audience;
   final bool isRequired;
   final bool isStandard;
   final bool isEnabled;
-  final String? helperText;
+  final LocalizedText? helperText;
   final int displayOrder;
   final ObservationFieldConfig? config;
 
@@ -288,13 +331,13 @@ class ObservationField {
 
   ObservationField copyWith({
     String? id,
-    String? label,
+    LocalizedText? label,
     ObservationFieldType? type,
     ObservationFieldAudience? audience,
     bool? isRequired,
     bool? isStandard,
     bool? isEnabled,
-    String? helperText,
+    LocalizedText? helperText,
     int? displayOrder,
     ObservationFieldConfig? config,
   }) {
@@ -320,12 +363,14 @@ class ObservationField {
     final rawConfig = json['config'] as Map<String, dynamic>?;
     return ObservationField(
       id: json['id'] as String? ?? '',
-      label: json['label'] as String? ?? '',
+      label: LocalizedText.fromJson(json['label'] ?? ''),
       type: type,
       isRequired: json['isRequired'] as bool? ?? false,
       isStandard: json['isStandard'] as bool? ?? false,
       isEnabled: json['isEnabled'] as bool? ?? true,
-      helperText: json['helperText'] as String?,
+      helperText: json['helperText'] != null
+          ? LocalizedText.fromJson(json['helperText'])
+          : null,
       displayOrder: (json['displayOrder'] as num?)?.toInt() ?? 0,
       config: ObservationFieldConfig.fromJson(type, rawConfig),
       audience: _parseObservationFieldAudience(json['audience'] as String?),
@@ -335,13 +380,13 @@ class ObservationField {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'label': label,
+      'label': label.toJson(),
       'type': type.name,
       'audience': audience.name,
       'isRequired': isRequired,
       'isStandard': isStandard,
       'isEnabled': isEnabled,
-      if (helperText != null) 'helperText': helperText,
+      if (helperText != null) 'helperText': helperText!.toJson(),
       'displayOrder': displayOrder,
       if (config != null) 'config': config!.toJson(),
     };
@@ -362,4 +407,7 @@ class ObservationField {
   static List<Map<String, dynamic>> listToJson(List<ObservationField> fields) {
     return fields.map((field) => field.toJson()).toList(growable: false);
   }
+
+  String labelForLocale(String locale) => label.resolve(locale);
+  String? helperForLocale(String locale) => helperText?.resolve(locale);
 }

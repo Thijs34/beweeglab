@@ -523,12 +523,15 @@ class _ObserverPageState extends State<ObserverPage> {
   }
 
   Widget _buildFieldHeader(ObservationField field) {
+    final locale = Localizations.localeOf(context).languageCode;
+    final label = field.labelForLocale(locale);
+    final helper = field.helperForLocale(locale);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         RichText(
           text: TextSpan(
-            text: field.label,
+            text: label,
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -543,11 +546,11 @@ class _ObserverPageState extends State<ObserverPage> {
             ],
           ),
         ),
-        if (field.helperText != null && field.helperText!.trim().isNotEmpty)
+        if (helper != null && helper.trim().isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 4),
             child: Text(
-              field.helperText!,
+              helper,
               style: const TextStyle(fontSize: 12, color: AppTheme.gray500),
             ),
           ),
@@ -692,6 +695,7 @@ class _ObserverPageState extends State<ObserverPage> {
     OptionObservationFieldConfig? config, {
     required bool isMultiSelect,
   }) {
+    final locale = Localizations.localeOf(context).languageCode;
     final baseOptions = config?.options ?? const <ObservationFieldOption>[];
     final customOptions =
         _customFieldOptions[field.id] ?? const <ObservationFieldOption>[];
@@ -707,12 +711,12 @@ class _ObserverPageState extends State<ObserverPage> {
     final selectionOptions = combinedOptions
         .map(
           (option) => _SelectionOption(
-            label: option.label,
+            label: option.labelForLocale(locale),
             value: option.id,
             icon:
                 option.icon ??
                 _inferIconFromLabel(
-                  option.label,
+                  option.labelForLocale(locale),
                 ), //Function below to map icons to specific labels
           ),
         )
@@ -832,6 +836,7 @@ class _ObserverPageState extends State<ObserverPage> {
     required bool isMultiSelect,
     required List<ObservationFieldOption> existingOptions,
   }) {
+    final locale = Localizations.localeOf(context).languageCode;
     final controller = _ensureOtherOptionController(field.id);
     final rawLabel = controller.text.trim();
     if (rawLabel.isEmpty) {
@@ -843,7 +848,7 @@ class _ObserverPageState extends State<ObserverPage> {
 
     final normalizedLabel = rawLabel.toLowerCase();
     final labelExists = existingOptions.any(
-      (option) => option.label.trim().toLowerCase() == normalizedLabel,
+      (option) => option.labelForLocale(locale).trim().toLowerCase() == normalizedLabel,
     );
     if (labelExists) {
       setState(() {
@@ -861,7 +866,10 @@ class _ObserverPageState extends State<ObserverPage> {
       collisionIndex += 1;
     }
 
-    final newOption = ObservationFieldOption(id: candidateId, label: rawLabel);
+    final newOption = ObservationFieldOption(
+      id: candidateId,
+      label: LocalizedText(nl: rawLabel, en: rawLabel),
+    );
 
     setState(() {
       final bucket = _customFieldOptions.putIfAbsent(field.id, () => []);
@@ -1838,7 +1846,13 @@ class _ObserverPageState extends State<ObserverPage> {
         continue;
       }
       options.add(
-        ObservationFieldOption(id: id, label: _locationLabelForId(id)),
+        ObservationFieldOption(
+          id: id,
+          label: LocalizedText(
+            nl: _locationLabelForId(id),
+            en: _locationLabelForId(id),
+          ),
+        ),
       );
     }
     if (options.isEmpty) {

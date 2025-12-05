@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:my_app/l10n/l10n.dart';
+import 'package:flutter/gestures.dart';
 import 'package:my_app/models/navigation_arguments.dart';
 import 'package:my_app/services/auth_service.dart';
 import 'package:my_app/theme/app_theme.dart';
@@ -23,12 +24,20 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   String? _errorMessage;
   bool _isSubmitting = false;
+  late TapGestureRecognizer _signUpRecognizer;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _signUpRecognizer.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _signUpRecognizer = TapGestureRecognizer()..onTap = _navigateToSignUp;
   }
 
   Future<void> _handleLogin() async {
@@ -313,20 +322,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: const TextStyle(fontSize: 14, color: AppTheme.gray600),
                   children: [
                     TextSpan(text: l10n.loginNoAccountQuestion),
-                    WidgetSpan(
-                      child: MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: GestureDetector(
-                          onTap: _navigateToSignUp,
-                          child: Text(
-                            l10n.loginSignUpCta,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: AppTheme.primaryOrange,
-                            ),
-                          ),
-                        ),
-                      ),
+                    TextSpan(
+                      text: ' ${l10n.loginSignUpCta}',
+                      style: const TextStyle(fontSize: 14, color: AppTheme.primaryOrange),
+                      recognizer: _signUpRecognizer,
                     ),
                   ],
                 ),

@@ -332,13 +332,18 @@ class _ProjectHeaderBar extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Expanded(
-                child: Text(
-                  locationLabel,
-                  style: const TextStyle(
-                    color: AppTheme.gray700,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                child: Builder(builder: (context) {
+                  final singleLine = locationLabel.replaceAll(RegExp(r"\s*\n\s*"), ", ");
+                  return Text(
+                    singleLine,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppTheme.gray700,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  );
+                }),
               ),
             ],
           ),
@@ -346,9 +351,8 @@ class _ProjectHeaderBar extends StatelessWidget {
       );
     }
 
-    return LayoutBuilder(
+        return LayoutBuilder(
       builder: (context, constraints) {
-        final isNarrow = constraints.maxWidth < 520;
         final content = buildInfoColumn();
         final actionBar = buildActionBar();
 
@@ -367,23 +371,14 @@ class _ProjectHeaderBar extends StatelessWidget {
               ),
             ],
           ),
-          child: isNarrow
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    content,
-                    const SizedBox(height: 16),
-                    actionBar,
-                  ],
-                )
-              : Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(child: content),
-                    const SizedBox(width: 16),
-                    actionBar,
-                  ],
-                ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              content,
+              const SizedBox(height: 16),
+              actionBar,
+            ],
+          ),
         );
       },
     );

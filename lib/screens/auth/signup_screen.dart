@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:my_app/models/navigation_arguments.dart';
+import 'package:flutter/gestures.dart';
 import 'package:my_app/services/auth_service.dart';
 import 'package:my_app/theme/app_theme.dart';
 import 'package:my_app/l10n/l10n.dart';
@@ -26,6 +27,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _confirmPasswordController = TextEditingController();
   String? _errorMessage;
   bool _isSubmitting = false;
+  late TapGestureRecognizer _loginRecognizer;
 
   @override
   void dispose() {
@@ -34,7 +36,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _loginRecognizer.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loginRecognizer = TapGestureRecognizer()..onTap = _navigateToLogin;
   }
 
   Future<void> _handleSignUp() async {
@@ -249,20 +258,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   style: const TextStyle(fontSize: 14, color: AppTheme.gray600),
                   children: [
                     TextSpan(text: l10n.signupAlreadyHaveAccountPrefix),
-                    WidgetSpan(
-                      child: MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: GestureDetector(
-                          onTap: _navigateToLogin,
-                          child: Text(
-                            l10n.signupLoginCta,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: AppTheme.primaryOrange,
-                            ),
-                          ),
-                        ),
-                      ),
+                    TextSpan(
+                      text: ' ${l10n.signupLoginCta}',
+                      style: const TextStyle(fontSize: 14, color: AppTheme.primaryOrange),
+                      recognizer: _loginRecognizer,
                     ),
                   ],
                 ),

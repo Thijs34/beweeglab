@@ -111,14 +111,20 @@ class _ProjectCardState extends State<ProjectCard> {
                         ),
                         const SizedBox(width: 6),
                         Expanded(
-                          child: Text(
-                            widget.project.mainLocation,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: AppTheme.gray600,
-                            ),
-                          ),
+                          child: Builder(builder: (context) {
+                            final raw = widget.project.mainLocation;
+                            final singleLine = raw.replaceAll(RegExp(r"\s*\n\s*"), ", ");
+                            return Text(
+                              singleLine,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: AppTheme.gray600,
+                              ),
+                            );
+                          }),
                         ),
                       ],
                     ),

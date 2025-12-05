@@ -50,7 +50,7 @@ class AppLocalizationsNl extends AppLocalizations {
       'Uitloggen lukt nu niet. Probeer het opnieuw.';
 
   @override
-  String get profileSettingsTitle => 'Profiel & instellingen';
+  String get profileSettingsTitle => 'instellingen';
 
   @override
   String get profileSectionTitle => 'Profiel';
@@ -266,7 +266,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get profileLoggedInAs => 'Ingelogd als';
 
   @override
-  String get profileMenuProfileSettings => 'Profiel & instellingen';
+  String get profileMenuProfileSettings => 'instellingen';
 
   @override
   String get profileMenuNotifications => 'Meldingen';

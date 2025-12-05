@@ -34,7 +34,7 @@ class ObservationFieldRegistry {
   _defaultFieldSet = List.unmodifiable(<ObservationField>[
     ObservationField(
       id: genderFieldId,
-      label: 'Gender',
+      label: LocalizedText(nl: 'Geslacht', en: 'Gender'),
       type: ObservationFieldType.multiSelect,
       audience: ObservationFieldAudience.individual,
       isRequired: true,
@@ -43,10 +43,14 @@ class ObservationFieldRegistry {
       displayOrder: 10,
       config: OptionObservationFieldConfig(
         options: <ObservationFieldOption>[
-          ObservationFieldOption(id: 'male', label: 'Male', icon: Icons.male),
+          ObservationFieldOption(
+            id: 'male',
+            label: LocalizedText(nl: 'Man', en: 'Male'),
+            icon: Icons.male,
+          ),
           ObservationFieldOption(
             id: 'female',
-            label: 'Female',
+            label: LocalizedText(nl: 'Vrouw', en: 'Female'),
             icon: Icons.female,
           ),
         ],
@@ -55,7 +59,7 @@ class ObservationFieldRegistry {
     ),
     ObservationField(
       id: ageGroupFieldId,
-      label: 'Age Group',
+      label: LocalizedText(nl: 'Leeftijdsgroep', en: 'Age Group'),
       type: ObservationFieldType.multiSelect,
       audience: ObservationFieldAudience.individual,
       isRequired: true,
@@ -64,19 +68,37 @@ class ObservationFieldRegistry {
       displayOrder: 20,
       config: OptionObservationFieldConfig(
         options: <ObservationFieldOption>[
-          ObservationFieldOption(id: '11-and-younger', label: '11 and younger'),
-          ObservationFieldOption(id: '12-17', label: '12 – 17'),
-          ObservationFieldOption(id: '18-24', label: '18 – 24'),
-          ObservationFieldOption(id: '25-44', label: '25 – 44'),
-          ObservationFieldOption(id: '45-64', label: '45 – 64'),
-          ObservationFieldOption(id: '65-plus', label: '65+'),
+          ObservationFieldOption(
+            id: '11-and-younger',
+            label: LocalizedText(nl: '11 jaar en jonger', en: '11 and younger'),
+          ),
+          ObservationFieldOption(
+            id: '12-17',
+            label: LocalizedText(nl: '12 – 17', en: '12 – 17'),
+          ),
+          ObservationFieldOption(
+            id: '18-24',
+            label: LocalizedText(nl: '18 – 24', en: '18 – 24'),
+          ),
+          ObservationFieldOption(
+            id: '25-44',
+            label: LocalizedText(nl: '25 – 44', en: '25 – 44'),
+          ),
+          ObservationFieldOption(
+            id: '45-64',
+            label: LocalizedText(nl: '45 – 64', en: '45 – 64'),
+          ),
+          ObservationFieldOption(
+            id: '65-plus',
+            label: LocalizedText(nl: '65+', en: '65+'),
+          ),
         ],
         allowMultiple: false,
       ),
     ),
     ObservationField(
       id: socialContextFieldId,
-      label: 'Social Context',
+      label: LocalizedText(nl: 'Sociale context', en: 'Social Context'),
       type: ObservationFieldType.multiSelect,
       audience: ObservationFieldAudience.individual,
       isRequired: true,
@@ -85,22 +107,31 @@ class ObservationFieldRegistry {
       displayOrder: 30,
       config: OptionObservationFieldConfig(
         options: <ObservationFieldOption>[
-          ObservationFieldOption(id: 'alone', label: 'Alone'),
-          ObservationFieldOption(id: 'together', label: 'Together'),
+          ObservationFieldOption(
+            id: 'alone',
+            label: LocalizedText(nl: 'Alleen', en: 'Alone'),
+          ),
+          ObservationFieldOption(
+            id: 'together',
+            label: LocalizedText(nl: 'Samen', en: 'Together'),
+          ),
         ],
         allowMultiple: false,
       ),
     ),
     ObservationField(
       id: groupSizeFieldId,
-      label: 'Group Size',
+      label: LocalizedText(nl: 'Groepsgrootte', en: 'Group Size'),
       type: ObservationFieldType.number,
       audience: ObservationFieldAudience.group,
       isRequired: true,
       isStandard: true,
       isEnabled: true,
       displayOrder: 40,
-      helperText: 'Only required when recording a group entry.',
+      helperText: LocalizedText(
+        nl: 'Alleen nodig bij een groepsmeting.',
+        en: 'Only required when recording a group entry.',
+      ),
       config: NumberObservationFieldConfig(
         minValue: 1,
         maxValue: 60,
@@ -109,63 +140,105 @@ class ObservationFieldRegistry {
     ),
     ObservationField(
       id: groupGenderMixFieldId,
-      label: 'Gender Mix',
+      label: LocalizedText(nl: 'Geslachtsverdeling', en: 'Gender Mix'),
       type: ObservationFieldType.multiSelect,
       audience: ObservationFieldAudience.group,
       isRequired: true,
       isStandard: true,
       isEnabled: true,
       displayOrder: 50,
-      helperText: 'Only required when recording a group entry.',
+      helperText: LocalizedText(
+        nl: 'Alleen nodig bij een groepsmeting.',
+        en: 'Only required when recording a group entry.',
+      ),
       config: OptionObservationFieldConfig(
         options: <ObservationFieldOption>[
-          ObservationFieldOption(id: 'male', label: 'Male'),
-          ObservationFieldOption(id: 'female', label: 'Female'),
-          ObservationFieldOption(id: 'mixed', label: 'Mixed'),
+          ObservationFieldOption(
+            id: 'male',
+            label: LocalizedText(nl: 'Man', en: 'Male'),
+          ),
+          ObservationFieldOption(
+            id: 'female',
+            label: LocalizedText(nl: 'Vrouw', en: 'Female'),
+          ),
+          ObservationFieldOption(
+            id: 'mixed',
+            label: LocalizedText(nl: 'Gemengd', en: 'Mixed'),
+          ),
         ],
         allowMultiple: false,
       ),
     ),
     ObservationField(
       id: groupAgeMixFieldId,
-      label: 'Age Mix',
+      label: LocalizedText(nl: 'Leeftijdsverdeling', en: 'Age Mix'),
       type: ObservationFieldType.multiSelect,
       audience: ObservationFieldAudience.group,
       isRequired: true,
       isStandard: true,
       isEnabled: true,
       displayOrder: 60,
-      helperText: 'Only required when recording a group entry.',
+      helperText: LocalizedText(
+        nl: 'Alleen nodig bij een groepsmeting.',
+        en: 'Only required when recording a group entry.',
+      ),
       config: OptionObservationFieldConfig(
         options: <ObservationFieldOption>[
-          ObservationFieldOption(id: 'child', label: 'Child'),
-          ObservationFieldOption(id: 'teen', label: 'Teen'),
-          ObservationFieldOption(id: 'adult', label: 'Adult'),
-          ObservationFieldOption(id: 'mixed', label: 'Mixed'),
+          ObservationFieldOption(
+            id: 'child',
+            label: LocalizedText(nl: 'Kind', en: 'Child'),
+          ),
+          ObservationFieldOption(
+            id: 'teen',
+            label: LocalizedText(nl: 'Tiener', en: 'Teen'),
+          ),
+          ObservationFieldOption(
+            id: 'adult',
+            label: LocalizedText(nl: 'Volwassene', en: 'Adult'),
+          ),
+          ObservationFieldOption(
+            id: 'mixed',
+            label: LocalizedText(nl: 'Gemengd', en: 'Mixed'),
+          ),
         ],
         allowMultiple: false,
       ),
     ),
     ObservationField(
       id: locationTypeFieldId,
-      label: 'Location Type',
+      label: LocalizedText(nl: 'Locatietype', en: 'Location Type'),
       type: ObservationFieldType.multiSelect,
       audience: ObservationFieldAudience.all,
       isRequired: true,
       isStandard: true,
       isEnabled: true,
       displayOrder: 70,
-      helperText: 'Defaults can be overridden per project.',
+      helperText: LocalizedText(
+        nl: 'Standaardopties kunnen per project worden aangepast.',
+        en: 'Defaults can be overridden per project.',
+      ),
       config: OptionObservationFieldConfig(
         options: <ObservationFieldOption>[
-          ObservationFieldOption(id: 'cruyff-court', label: 'Cruyff Court (C)'),
+          ObservationFieldOption(
+            id: 'cruyff-court',
+            label: LocalizedText(nl: 'Cruyff Court (C)', en: 'Cruyff Court (C)'),
+          ),
           ObservationFieldOption(
             id: 'basketball-field',
-            label: 'Basketball Field (B)',
+            label: LocalizedText(nl: 'Basketbalveld (B)', en: 'Basketball Field (B)'),
           ),
-          ObservationFieldOption(id: 'grass-field', label: 'Grass Field (G)'),
-          ObservationFieldOption(id: 'playground', label: 'Playground (P)'),
-          ObservationFieldOption(id: 'skate-park', label: 'Skate Park (S)'),
+          ObservationFieldOption(
+            id: 'grass-field',
+            label: LocalizedText(nl: 'Grasveld (G)', en: 'Grass Field (G)'),
+          ),
+          ObservationFieldOption(
+            id: 'playground',
+            label: LocalizedText(nl: 'Speelplaats (P)', en: 'Playground (P)'),
+          ),
+          ObservationFieldOption(
+            id: 'skate-park',
+            label: LocalizedText(nl: 'Skatepark (S)', en: 'Skate Park (S)'),
+          ),
         ],
         allowMultiple: true,
         allowOtherOption: true,
@@ -173,13 +246,19 @@ class ObservationFieldRegistry {
     ),
     ObservationField(
       id: customLocationFieldId,
-      label: 'Custom Location Label',
+      label: LocalizedText(
+        nl: 'Aangepaste locatiebeschrijving',
+        en: 'Custom Location Label',
+      ),
       type: ObservationFieldType.text,
       audience: ObservationFieldAudience.all,
       isStandard: true,
       isEnabled: true,
       displayOrder: 80,
-      helperText: 'Shown when "Custom" location type is selected.',
+      helperText: LocalizedText(
+        nl: 'Toont een veld wanneer "Custom" is geselecteerd.',
+        en: 'Shown when "Custom" location type is selected.',
+      ),
       config: TextObservationFieldConfig(
         maxLength: 60,
         placeholder: 'Describe the exact spot',
@@ -187,7 +266,7 @@ class ObservationFieldRegistry {
     ),
     ObservationField(
       id: activityLevelFieldId,
-      label: 'Activity Level',
+      label: LocalizedText(nl: 'Activiteitsniveau', en: 'Activity Level'),
       type: ObservationFieldType.multiSelect,
       audience: ObservationFieldAudience.all,
       isRequired: true,
@@ -196,16 +275,25 @@ class ObservationFieldRegistry {
       displayOrder: 90,
       config: OptionObservationFieldConfig(
         options: <ObservationFieldOption>[
-          ObservationFieldOption(id: 'sedentary', label: 'Sedentary'),
-          ObservationFieldOption(id: 'moving', label: 'Moving'),
-          ObservationFieldOption(id: 'intense', label: 'Intense'),
+          ObservationFieldOption(
+            id: 'sedentary',
+            label: LocalizedText(nl: 'Zittend', en: 'Sedentary'),
+          ),
+          ObservationFieldOption(
+            id: 'moving',
+            label: LocalizedText(nl: 'Bewegen', en: 'Moving'),
+          ),
+          ObservationFieldOption(
+            id: 'intense',
+            label: LocalizedText(nl: 'Intensief', en: 'Intense'),
+          ),
         ],
         allowMultiple: false,
       ),
     ),
     ObservationField(
       id: activityTypeFieldId,
-      label: 'Activity Type',
+      label: LocalizedText(nl: 'Activiteitstype', en: 'Activity Type'),
       type: ObservationFieldType.multiSelect,
       audience: ObservationFieldAudience.all,
       isRequired: true,
@@ -214,15 +302,21 @@ class ObservationFieldRegistry {
       displayOrder: 100,
       config: OptionObservationFieldConfig(
         options: <ObservationFieldOption>[
-          ObservationFieldOption(id: 'organized', label: 'Organized'),
-          ObservationFieldOption(id: 'unorganized', label: 'Unorganized'),
+          ObservationFieldOption(
+            id: 'organized',
+            label: LocalizedText(nl: 'Georganiseerd', en: 'Organized'),
+          ),
+          ObservationFieldOption(
+            id: 'unorganized',
+            label: LocalizedText(nl: 'Ongeregeld', en: 'Unorganized'),
+          ),
         ],
         allowMultiple: false,
       ),
     ),
     ObservationField(
       id: activityNotesFieldId,
-      label: 'Activity Notes',
+      label: LocalizedText(nl: 'Activiteitsnotities', en: 'Activity Notes'),
       type: ObservationFieldType.text,
       audience: ObservationFieldAudience.all,
       isRequired: true,
@@ -236,7 +330,7 @@ class ObservationFieldRegistry {
     ),
     ObservationField(
       id: remarksFieldId,
-      label: 'Additional Remarks',
+      label: LocalizedText(nl: 'Aanvullende opmerkingen', en: 'Additional Remarks'),
       type: ObservationFieldType.text,
       audience: ObservationFieldAudience.all,
       isStandard: true,

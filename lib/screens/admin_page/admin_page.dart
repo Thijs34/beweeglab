@@ -739,7 +739,7 @@ class _AdminPageState extends State<AdminPage> {
   ObservationField _createNewFieldTemplate() {
     return ObservationField(
       id: _generateFieldId(),
-      label: 'New Field',
+      label: const LocalizedText(nl: 'Nieuw veld', en: 'New Field'),
       type: ObservationFieldType.text,
       isStandard: false,
       isRequired: false,

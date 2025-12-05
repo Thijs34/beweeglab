@@ -3,6 +3,8 @@ import 'package:my_app/l10n/l10n.dart';
 import 'package:my_app/models/observation_field.dart';
 import 'package:my_app/theme/app_theme.dart';
 
+enum _FieldLanguage { nl, en }
+
 // this lets you edit a custom observation field in a clean and kinda flexible way
 
 Future<ObservationField?> showObservationFieldEditorSheet(
@@ -49,10 +51,11 @@ class _ObservationFieldEditorSheetState
         ObservationFieldType.multiSelect,
       ];
 
+  _FieldLanguage _language = _FieldLanguage.nl;
   late ObservationFieldType _type;
   late bool _isRequired;
-  late TextEditingController _labelController;
-  late TextEditingController _helperController;
+  late Map<_FieldLanguage, TextEditingController> _labelControllers;
+  late Map<_FieldLanguage, TextEditingController> _helperControllers;
 
   late TextEditingController _textPlaceholderController;
   late TextEditingController _textMaxLengthController;
@@ -82,10 +85,18 @@ class _ObservationFieldEditorSheetState
       _type = ObservationFieldType.text;
     }
     _isRequired = widget.field.isRequired;
-    _labelController = TextEditingController(text: widget.field.label);
-    _helperController = TextEditingController(
-      text: widget.field.helperText ?? '',
-    );
+    _labelControllers = {
+      _FieldLanguage.nl:
+          TextEditingController(text: widget.field.label.nl.trim()),
+      _FieldLanguage.en:
+          TextEditingController(text: widget.field.label.en ?? ''),
+    };
+    _helperControllers = {
+      _FieldLanguage.nl:
+          TextEditingController(text: widget.field.helperText?.nl ?? ''),
+      _FieldLanguage.en:
+          TextEditingController(text: widget.field.helperText?.en ?? ''),
+    };
 
     _textPlaceholderController = TextEditingController();
     _textMaxLengthController = TextEditingController();
@@ -105,8 +116,12 @@ class _ObservationFieldEditorSheetState
 
   @override
   void dispose() {
-    _labelController.dispose();
-    _helperController.dispose();
+    for (final controller in _labelControllers.values) {
+      controller.dispose();
+    }
+    for (final controller in _helperControllers.values) {
+      controller.dispose();
+    }
     _textPlaceholderController.dispose();
     _textMaxLengthController.dispose();
     for (final draft in _optionDrafts) {
@@ -173,11 +188,17 @@ class _ObservationFieldEditorSheetState
     return [
       ObservationFieldOption(
         id: 'option-1',
-        label: _l10n.adminOptionNumber(1),
+        label: LocalizedText(
+          nl: _l10n.adminOptionNumber(1),
+          en: _l10n.adminOptionNumber(1),
+        ),
       ),
       ObservationFieldOption(
         id: 'option-2',
-        label: _l10n.adminOptionNumber(2),
+        label: LocalizedText(
+          nl: _l10n.adminOptionNumber(2),
+          en: _l10n.adminOptionNumber(2),
+        ),
       ),
     ];
   }
@@ -236,9 +257,26 @@ class _ObservationFieldEditorSheetState
                 ),
               ],
             ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              children: _FieldLanguage.values
+                  .map(
+                    (lang) => ChoiceChip(
+                      label: Text(
+                        lang == _FieldLanguage.nl
+                            ? 'Nederlands 🇳🇱'
+                            : 'English 🇬🇧',
+                      ),
+                      selected: _language == lang,
+                      onSelected: (_) => setState(() => _language = lang),
+                    ),
+                  )
+                  .toList(),
+            ),
             const SizedBox(height: 16),
             TextField(
-              controller: _labelController,
+              controller: _labelControllers[_language],
               decoration: InputDecoration(
                 labelText: l10n.adminFieldLabel,
                 border: const OutlineInputBorder(),
@@ -246,7 +284,7 @@ class _ObservationFieldEditorSheetState
             ),
             const SizedBox(height: 12),
             TextField(
-              controller: _helperController,
+              controller: _helperControllers[_language],
               decoration: InputDecoration(
                 labelText: l10n.adminHelperTextOptional,
                 border: const OutlineInputBorder(),
@@ -435,6 +473,7 @@ class _ObservationFieldEditorSheetState
 
   Widget _buildOptionRow(_OptionDraft draft) {
     final isLast = _optionDrafts.last == draft;
+    final controller = draft.labelControllers[_language]!;
     return Padding(
       padding: EdgeInsets.only(bottom: isLast ? 0 : 12),
       child: Row(
@@ -442,7 +481,7 @@ class _ObservationFieldEditorSheetState
         children: [
           Expanded(
             child: TextField(
-              controller: draft.labelController,
+              controller: controller,
               decoration: InputDecoration(
                 labelText: l10n.adminFieldLabel,
                 border: const OutlineInputBorder(),
@@ -511,15 +550,21 @@ class _ObservationFieldEditorSheetState
   }
 
   void _handleSubmit() {
-    final label = _labelController.text.trim();
-    if (label.isEmpty) {
+    final labelNl = _labelControllers[_FieldLanguage.nl]!.text.trim();
+    final labelEn = _labelControllers[_FieldLanguage.en]!.text.trim();
+    if (labelNl.isEmpty) {
       setState(() => _errorText = l10n.adminFieldLabelRequiredError);
       return;
     }
 
-    final helper = _helperController.text.trim().isEmpty
+    final helperNl = _helperControllers[_FieldLanguage.nl]!.text.trim();
+    final helperEn = _helperControllers[_FieldLanguage.en]!.text.trim();
+    final helper = helperNl.isEmpty && helperEn.isEmpty
         ? null
-        : _helperController.text.trim();
+        : LocalizedText(
+            nl: helperNl,
+            en: helperEn.isEmpty ? null : helperEn,
+          );
     ObservationFieldConfig? config;
 
     switch (_type) {
@@ -537,7 +582,7 @@ class _ObservationFieldEditorSheetState
       case ObservationFieldType.multiSelect:
         final options = _optionDrafts
             .map((draft) => draft.toOption())
-            .where((option) => option.label.trim().isNotEmpty)
+            .where((option) => option.label.nl.trim().isNotEmpty)
             .toList();
         if (options.length < 2) {
           setState(() => _errorText = l10n.adminOptionMinimumError);
@@ -562,7 +607,10 @@ class _ObservationFieldEditorSheetState
     }
 
     final updated = widget.field.copyWith(
-      label: label,
+      label: LocalizedText(
+        nl: labelNl,
+        en: labelEn.isEmpty ? null : labelEn,
+      ),
       helperText: helper,
       isRequired: _isRequired,
       audience: _audience,
@@ -574,33 +622,45 @@ class _ObservationFieldEditorSheetState
 }
 
 class _OptionDraft {
-  _OptionDraft({required String id, required String label, required this.l10n})
+  _OptionDraft({required String id, required LocalizedText label, required this.l10n})
     : _id = id,
-      labelController = TextEditingController(text: label);
+      labelControllers = {
+        _FieldLanguage.nl: TextEditingController(text: label.nl),
+        _FieldLanguage.en: TextEditingController(text: label.en ?? ''),
+      };
 
   _OptionDraft.empty(int index, this.l10n)
     : _id = '',
-      labelController = TextEditingController(
-        text: l10n.adminOptionNumber(index + 1),
-      );
+      labelControllers = {
+        _FieldLanguage.nl:
+            TextEditingController(text: l10n.adminOptionNumber(index + 1)),
+        _FieldLanguage.en:
+            TextEditingController(text: l10n.adminOptionNumber(index + 1)),
+      };
 
   final String _id;
-  final TextEditingController labelController;
+  final Map<_FieldLanguage, TextEditingController> labelControllers;
   final AppLocalizations l10n;
 
   ObservationFieldOption toOption() {
-    final label = labelController.text.trim();
-    final slug = _slugify(label);
+    final labelNl = labelControllers[_FieldLanguage.nl]!.text.trim();
+    final labelEn = labelControllers[_FieldLanguage.en]!.text.trim();
+    final slug = _slugify(labelNl.isNotEmpty ? labelNl : labelEn);
     final id = (_id.isNotEmpty ? _id : slug).trim();
     return ObservationFieldOption(
       id: id.isEmpty ? 'option-${DateTime.now().millisecondsSinceEpoch}' : id,
-      label: label.isEmpty ? l10n.adminOptionFallback : label,
+      label: LocalizedText(
+        nl: labelNl.isEmpty ? l10n.adminOptionFallback : labelNl,
+        en: labelEn.isEmpty ? null : labelEn,
+      ),
       description: null,
     );
   }
 
   void dispose() {
-    labelController.dispose();
+    for (final controller in labelControllers.values) {
+      controller.dispose();
+    }
   }
 }
 
