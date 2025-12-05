@@ -803,7 +803,8 @@ class _NewProjectForm extends StatelessWidget {
                     child: ListView.separated(
                       shrinkWrap: true,
                       itemCount: availableObserverOptions.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        separatorBuilder: (_, unused) =>
+                          const SizedBox(height: 8),
                       itemBuilder: (context, index) {
                         final observer = availableObserverOptions[index];
                         return GestureDetector(

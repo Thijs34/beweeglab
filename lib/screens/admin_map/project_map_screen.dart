@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:my_app/config/app_config.dart';
 import 'package:my_app/models/navigation_arguments.dart';
 import 'package:my_app/screens/admin_page/admin_models.dart';
 import 'package:my_app/screens/observer_page/observer_page.dart';
@@ -44,6 +45,7 @@ class _ProjectMapScreenState extends State<ProjectMapScreen> {
   int _unreadNotificationCount = 0;
   bool _isMapSdkReady = !kIsWeb;
   String? _mapSdkError;
+  bool _mapSdkRetryEnabled = true;
 
   GoogleMapController? _mapController;
 
@@ -67,9 +69,25 @@ class _ProjectMapScreenState extends State<ProjectMapScreen> {
 
   Future<void> _bootstrapMap() async {
     if (kIsWeb) {
+      final hasApiKey = AppConfig.googlePlacesApiKey?.isNotEmpty ?? false;
+      if (!hasApiKey) {
+        if (!mounted) return;
+        setState(() {
+          _mapSdkError =
+              'Google Maps is disabled because no API key is configured.'
+              ' Add GOOGLE_PLACES_API_KEY to enable this view.';
+          _mapSdkRetryEnabled = false;
+          _isMapSdkReady = false;
+          _isLoading = false;
+          _hasError = false;
+        });
+        return;
+      }
+
       setState(() {
         _isMapSdkReady = false;
         _mapSdkError = null;
+        _mapSdkRetryEnabled = true;
       });
       try {
         await ensureGoogleMapsSdkInitialized();
@@ -81,6 +99,7 @@ class _ProjectMapScreenState extends State<ProjectMapScreen> {
         setState(() {
           _mapSdkError =
               'Unable to load Google Maps right now. Please check your API key.';
+          _mapSdkRetryEnabled = true;
           _isLoading = false;
           _hasError = true;
         });
@@ -227,6 +246,17 @@ class _ProjectMapScreenState extends State<ProjectMapScreen> {
     );
   }
 
+  void _openProfileSettings() {
+    Navigator.pushNamed(
+      context,
+      '/profile-settings',
+      arguments: ProfileSettingsArguments(
+        userEmail: widget.userEmail,
+        userRole: widget.userRole,
+      ),
+    );
+  }
+
   void _openAdminForProject(AdminProject project) {
     Navigator.pushNamed(
       context,
@@ -256,6 +286,7 @@ class _ProjectMapScreenState extends State<ProjectMapScreen> {
       userEmail: widget.userEmail,
       activeDestination: ProfileMenuDestination.projectMap,
       onLogout: _handleLogout,
+      onProfileSettingsTap: _openProfileSettings,
       onObserverTap: _openObserverPage,
       onAdminTap: _isAdmin ? _openAdminPage : null,
       onProjectsTap: _openProjectsPage,
@@ -329,8 +360,8 @@ class _ProjectMapScreenState extends State<ProjectMapScreen> {
     if (_mapSdkError != null) {
       return _MapStatusView(
         message: _mapSdkError!,
-        actionLabel: 'Retry',
-        onAction: _bootstrapMap,
+        actionLabel: _mapSdkRetryEnabled ? 'Retry' : null,
+        onAction: _mapSdkRetryEnabled ? _bootstrapMap : null,
       );
     }
     if (!_isMapSdkReady) {

@@ -419,6 +419,17 @@ class _AdminPageState extends State<AdminPage> {
     );
   }
 
+  void _openProfileSettings() {
+    Navigator.pushNamed(
+      context,
+      '/profile-settings',
+      arguments: ProfileSettingsArguments(
+        userEmail: widget.userEmail,
+        userRole: widget.userRole,
+      ),
+    );
+  }
+
   void _toggleNewProjectForm() {
     setState(() => _showNewProjectForm = !_showNewProjectForm);
   }
@@ -1314,6 +1325,7 @@ class _AdminPageState extends State<AdminPage> {
       userEmail: widget.userEmail,
       activeDestination: ProfileMenuDestination.admin,
       onLogout: _handleLogout,
+      onProfileSettingsTap: _openProfileSettings,
       onObserverTap: _navigateToObserver,
       onAdminTap: _isAdmin ? _navigateToAdmin : null,
       onProjectsTap: _navigateToProjects,

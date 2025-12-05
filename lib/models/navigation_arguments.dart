@@ -30,3 +30,10 @@ class AdminProjectMapArguments {
 
   const AdminProjectMapArguments({this.userEmail, this.userRole = 'admin'});
 }
+
+class ProfileSettingsArguments {
+  final String? userEmail;
+  final String userRole;
+
+  const ProfileSettingsArguments({this.userEmail, this.userRole = 'observer'});
+}

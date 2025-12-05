@@ -103,6 +103,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage> {
       userEmail: widget.arguments?.userEmail,
       activeDestination: ProfileMenuDestination.notifications,
       onLogout: _handleLogout,
+      onProfileSettingsTap: _openProfileSettings,
       onObserverTap: _openObserverPage,
       onAdminTap: _isAdmin ? _openAdminPage : null,
       onProjectsTap: _openProjectsPage,
@@ -234,7 +235,7 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage> {
           final notification = _notifications[index];
           return _NotificationTile(notification: notification);
         },
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        separatorBuilder: (_, unused) => const SizedBox(height: 12),
         itemCount: _notifications.length,
       ),
     );
@@ -310,6 +311,17 @@ class _AdminNotificationsPageState extends State<AdminNotificationsPage> {
       context,
       '/admin-project-map',
       arguments: AdminProjectMapArguments(
+        userEmail: widget.arguments?.userEmail,
+        userRole: widget.arguments?.userRole ?? 'admin',
+      ),
+    );
+  }
+
+  void _openProfileSettings() {
+    Navigator.pushNamed(
+      context,
+      '/profile-settings',
+      arguments: ProfileSettingsArguments(
         userEmail: widget.arguments?.userEmail,
         userRole: widget.arguments?.userRole ?? 'admin',
       ),

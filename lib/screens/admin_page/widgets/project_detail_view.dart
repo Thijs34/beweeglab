@@ -917,7 +917,8 @@ class _AssignedObserversCard extends StatelessWidget {
                             ),
                           );
                         },
-                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        separatorBuilder: (_, unused) =>
+                          const Divider(height: 1),
                         itemCount: availableObservers.length,
                       ),
                     ),

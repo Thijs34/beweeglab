@@ -88,6 +88,23 @@ class AuthService {
     }
   }
 
+  Future<void> sendPasswordResetEmail({required String email}) async {
+    final trimmed = email.trim();
+    if (trimmed.isEmpty) {
+      throw const AuthException('Please enter your email address first.');
+    }
+
+    try {
+      await _firebaseAuth.sendPasswordResetEmail(email: trimmed);
+    } on FirebaseAuthException catch (error) {
+      throw AuthException(_mapAuthError(error));
+    } catch (_) {
+      throw const AuthException(
+        'Unable to send reset email right now. Please try again.',
+      );
+    }
+  }
+
   Future<String> getUserRole(String uid) {
     return _userService.fetchUserRole(uid);
   }
@@ -100,6 +117,8 @@ class AuthService {
         return 'This account has been disabled. Please contact support.';
       case 'user-not-found':
         return 'No account found for that email.';
+      case 'missing-email':
+        return 'Please provide an email address.';
       case 'wrong-password':
         return 'Incorrect password. Please try again.';
       case 'weak-password':

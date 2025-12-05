@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:my_app/theme/app_theme.dart';
 
 enum ProfileMenuDestination {
+  profile,
   notifications,
   admin,
   projectMap,
@@ -15,12 +16,14 @@ class ProfileMenu extends StatelessWidget {
   final VoidCallback onClose;
   final VoidCallback onLogout;
   final String? userEmail;
+  final VoidCallback? onProfileSettingsTap;
   final VoidCallback? onObserverTap;
   final VoidCallback? onAdminTap;
   final VoidCallback? onProjectsTap;
   final VoidCallback? onNotificationsTap;
   final VoidCallback? onProjectMapTap;
   final ProfileMenuDestination activeDestination;
+  final bool showProfileSettingsOption;
   final bool showAdminOption;
   final bool showNotificationsOption;
   final bool showProjectMapOption;
@@ -32,12 +35,14 @@ class ProfileMenu extends StatelessWidget {
     required this.onClose,
     required this.onLogout,
     this.userEmail,
+    this.onProfileSettingsTap,
     this.onObserverTap,
     this.onAdminTap,
     this.onProjectsTap,
     this.onNotificationsTap,
     this.onProjectMapTap,
     this.activeDestination = ProfileMenuDestination.projects,
+    this.showProfileSettingsOption = true,
     this.showAdminOption = true,
     this.showNotificationsOption = false,
     this.showProjectMapOption = false,
@@ -147,6 +152,17 @@ class ProfileMenu extends StatelessWidget {
         showNotificationsOption && onNotificationsTap != null;
     final showAdmin = showAdminOption && onAdminTap != null;
     final showProjectMap = showProjectMapOption && onProjectMapTap != null;
+    final showProfileSettings =
+        showProfileSettingsOption && onProfileSettingsTap != null;
+
+    if (showProfileSettings) {
+      addButton(
+        icon: Icons.person_outline,
+        label: 'Profile & Settings',
+        destination: ProfileMenuDestination.profile,
+        onTap: onProfileSettingsTap,
+      );
+    }
 
     if (showNotifications) {
       final badgeLabel = unreadNotificationCount > 0
@@ -251,6 +267,8 @@ class _MenuButtonState extends State<_MenuButton> {
                 child: Text(
                   widget.label,
                   style: TextStyle(fontSize: 14, color: textColor),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               if (widget.badgeLabel != null)

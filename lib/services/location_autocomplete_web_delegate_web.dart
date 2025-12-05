@@ -1,3 +1,5 @@
+// ignore_for_file: invalid_runtime_check_with_js_interop_types, unnecessary_nullable_for_final_variable_declarations
+
 import 'dart:async';
 import 'dart:js_interop';
 

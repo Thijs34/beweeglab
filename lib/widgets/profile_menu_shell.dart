@@ -12,11 +12,13 @@ class ProfileMenuShell extends StatefulWidget {
     required this.activeDestination,
     required this.onLogout,
     this.userEmail,
+    this.onProfileSettingsTap,
     this.onObserverTap,
     this.onAdminTap,
     this.onProjectsTap,
     this.onNotificationsTap,
     this.onProjectMapTap,
+    this.showProfileSettingsOption = true,
     this.showAdminOption = false,
     this.showNotificationsOption = false,
     this.showProjectMapOption = false,
@@ -28,11 +30,13 @@ class ProfileMenuShell extends StatefulWidget {
   final ProfileMenuDestination activeDestination;
   final VoidCallback onLogout;
   final String? userEmail;
+  final VoidCallback? onProfileSettingsTap;
   final VoidCallback? onObserverTap;
   final VoidCallback? onAdminTap;
   final VoidCallback? onProjectsTap;
   final VoidCallback? onNotificationsTap;
   final VoidCallback? onProjectMapTap;
+  final bool showProfileSettingsOption;
   final bool showAdminOption;
   final bool showNotificationsOption;
   final bool showProjectMapOption;
@@ -63,12 +67,14 @@ class _ProfileMenuShellState extends State<ProfileMenuShell> {
             userEmail: widget.userEmail,
             onClose: _hideProfileMenu,
             onLogout: _wrapRequiredAction(widget.onLogout),
+            onProfileSettingsTap: _wrapAction(widget.onProfileSettingsTap),
             onObserverTap: _wrapAction(widget.onObserverTap),
             onAdminTap: _wrapAction(widget.onAdminTap),
             onProjectsTap: _wrapAction(widget.onProjectsTap),
             onNotificationsTap: _wrapAction(widget.onNotificationsTap),
             onProjectMapTap: _wrapAction(widget.onProjectMapTap),
             activeDestination: widget.activeDestination,
+            showProfileSettingsOption: widget.showProfileSettingsOption,
             showAdminOption: widget.showAdminOption,
             showNotificationsOption: widget.showNotificationsOption,
             showProjectMapOption: widget.showProjectMapOption,

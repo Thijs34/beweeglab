@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:my_app/services/admin_notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -39,6 +40,7 @@ class UserService {
   static final UserService instance = UserService._();
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   final AdminNotificationService _notificationService =
       AdminNotificationService.instance;
   static const String _collection = 'users';
@@ -140,6 +142,44 @@ class UserService {
       _userCache[uid] = merged;
       await _persistUserRecord(merged);
     }
+  }
+
+  Future<void> updateDisplayName({
+    required String uid,
+    required String displayName,
+  }) async {
+    final trimmedName = displayName.trim();
+    if (trimmedName.isEmpty) {
+      throw ArgumentError('Display name cannot be empty');
+    }
+
+    await _firestore.collection(_collection).doc(uid).set(
+      {
+        'displayName': trimmedName,
+        'updatedAt': FieldValue.serverTimestamp(),
+      },
+      SetOptions(merge: true),
+    );
+
+    final firebaseUser = _auth.currentUser;
+    if (firebaseUser != null && firebaseUser.uid == uid) {
+      try {
+        await firebaseUser.updateDisplayName(trimmedName);
+      } catch (error) {
+        debugPrint('Failed to update auth display name: $error');
+      }
+    }
+
+    final existing = _userCache[uid];
+    final fallbackEmail = existing?.email ?? firebaseUser?.email;
+    final updatedRecord = AppUserRecord(
+      uid: uid,
+      role: existing?.role ?? 'observer',
+      email: fallbackEmail,
+      displayName: trimmedName,
+    );
+    _userCache[uid] = updatedRecord;
+    await _persistUserRecord(updatedRecord);
   }
 
   Future<String> fetchUserRole(String uid) async {

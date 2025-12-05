@@ -306,6 +306,17 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
     );
   }
 
+  void _openProfileSettings() {
+    Navigator.pushNamed(
+      context,
+      '/profile-settings',
+      arguments: ProfileSettingsArguments(
+        userEmail: widget.userEmail,
+        userRole: widget.userRole,
+      ),
+    );
+  }
+
   void _handleLogout() async {
     try {
       await AuthService.instance.signOut();
@@ -336,6 +347,7 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
       userEmail: widget.userEmail,
       activeDestination: ProfileMenuDestination.projects,
       onLogout: _handleLogout,
+      onProfileSettingsTap: _openProfileSettings,
       onObserverTap: _openObserverFromMenu,
       onAdminTap: _isAdmin ? _openAdminPage : null,
       onProjectsTap: () {},

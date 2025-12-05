@@ -162,6 +162,7 @@ class _ObserverPageState extends State<ObserverPage> {
       userEmail: widget.arguments?.userEmail,
       activeDestination: ProfileMenuDestination.observer,
       onLogout: _handleLogout,
+      onProfileSettingsTap: _openProfileSettings,
       onObserverTap: () {},
       onAdminTap: _isAdmin ? _openAdminPage : null,
       onProjectsTap: _navigateToProjects,
@@ -1649,6 +1650,17 @@ class _ObserverPageState extends State<ObserverPage> {
       context,
       '/admin-notifications',
       arguments: AdminNotificationsArguments(
+        userEmail: widget.arguments?.userEmail,
+        userRole: widget.arguments?.userRole ?? 'observer',
+      ),
+    );
+  }
+
+  void _openProfileSettings() {
+    Navigator.pushNamed(
+      context,
+      '/profile-settings',
+      arguments: ProfileSettingsArguments(
         userEmail: widget.arguments?.userEmail,
         userRole: widget.arguments?.userRole ?? 'observer',
       ),

@@ -77,8 +77,145 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _handleForgotPassword() {
-    debugPrint('Forgot password clicked');
+  Future<void> _handleForgotPassword() async {
+    final dialogEmailController =
+        TextEditingController(text: _emailController.text.trim());
+    String? dialogError;
+    bool isSending = false;
+
+    final didSend = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            return AlertDialog(
+              title: const Text('Reset password'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Enter the email linked to your account. We will send a reset link if an account exists.',
+                    style: TextStyle(fontSize: 13, color: AppTheme.gray600),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: dialogEmailController,
+                    autofocus: true,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      labelText: 'Email',
+                    ),
+                  ),
+                  if (dialogError != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      dialogError!,
+                      style: const TextStyle(color: Colors.red, fontSize: 12),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSending
+                      ? null
+                      : () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: isSending
+                      ? null
+                      : () async {
+                          final requestEmail =
+                              dialogEmailController.text.trim();
+                          if (requestEmail.isEmpty) {
+                            setDialogState(
+                              () => dialogError =
+                                  'Please enter the email tied to your account.',
+                            );
+                            return;
+                          }
+
+                          setDialogState(() {
+                            dialogError = null;
+                            isSending = true;
+                          });
+
+                          final navigator = Navigator.of(dialogContext);
+                          try {
+                            await AuthService.instance
+                                .sendPasswordResetEmail(email: requestEmail);
+                            if (!navigator.mounted) return;
+                            navigator.pop(true);
+                          } on AuthException catch (error) {
+                            setDialogState(() {
+                              dialogError = error.message;
+                              isSending = false;
+                            });
+                          } catch (_) {
+                            setDialogState(() {
+                              dialogError =
+                                  'Unable to send reset email. Please try again.';
+                              isSending = false;
+                            });
+                          }
+                        },
+                  child: isSending
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Send link'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    final requestedEmail = dialogEmailController.text.trim();
+    dialogEmailController.dispose();
+
+    if (didSend == true) {
+      _showLoginSnack(
+        'If an account exists for $requestedEmail, a reset link is on the way.',
+      );
+    }
+  }
+
+  void _showLoginSnack(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : AppTheme.primaryOrange,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Widget _buildErrorMessageSlot() {
+    return SizedBox(
+      height: 32,
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 180),
+        switchOutCurve: Curves.easeInOut,
+        switchInCurve: Curves.easeInOut,
+        child: _errorMessage == null
+            ? const SizedBox.shrink(key: ValueKey('login-error-empty'))
+            : Align(
+                key: const ValueKey('login-error-active'),
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  _errorMessage!,
+                  style: const TextStyle(color: Colors.red, fontSize: 13),
+                ),
+              ),
+      ),
+    );
   }
 
   void _navigateToSignUp() {
@@ -162,14 +299,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: _handleLogin,
                     isLoading: _isSubmitting,
                   ),
-                  if (_errorMessage != null) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      _errorMessage!,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.red, fontSize: 13),
-                    ),
-                  ],
+                  const SizedBox(height: 12),
+                  _buildErrorMessageSlot(),
                 ],
               ),
             ),

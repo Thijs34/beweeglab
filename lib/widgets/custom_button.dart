@@ -27,7 +27,7 @@ class _CustomButtonState extends State<CustomButton> {
   Widget build(BuildContext context) {
     return SizedBox(
       width: widget.isFullWidth ? double.infinity : null,
-      height: 48, // h-12 from React (48px)
+      height: 44, // Match TextField height
       child: MouseRegion(
         onEnter: (_) => setState(() => _isHovered = true),
         onExit: (_) => setState(() => _isHovered = false),

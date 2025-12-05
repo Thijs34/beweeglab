@@ -9,6 +9,7 @@ import 'package:my_app/screens/admin_notifications/admin_notifications_page.dart
 import 'package:my_app/screens/auth/auth_gate.dart';
 import 'package:my_app/screens/auth/signup_screen.dart';
 import 'package:my_app/screens/observer_page/observer_page.dart';
+import 'package:my_app/screens/profile/profile_settings_page.dart';
 import 'package:my_app/screens/project_list/project_list_screen.dart';
 import 'package:my_app/services/auth_service.dart';
 import 'package:my_app/theme/app_theme.dart';
@@ -100,6 +101,13 @@ class MyApp extends StatelessWidget {
                   userEmail: args?.userEmail,
                   userRole: args?.userRole ?? 'admin',
                 ),
+              );
+            }
+          case '/profile-settings':
+            {
+              final args = settings.arguments as ProfileSettingsArguments?;
+              return MaterialPageRoute(
+                builder: (_) => ProfileSettingsPage(arguments: args),
               );
             }
           default:
