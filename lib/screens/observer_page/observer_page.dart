@@ -298,6 +298,32 @@ class _ObserverPageState extends State<ObserverPage> {
                 Expanded(
                   child: SizedBox(
                     height: 48,
+                    child: OutlinedButton(
+                      onPressed: _handleFinishSession,
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(
+                          color: AppTheme.gray300,
+                          width: 1,
+                        ),
+                        foregroundColor: AppTheme.gray700,
+                        textStyle: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppTheme.borderRadiusMedium,
+                          ),
+                        ),
+                      ),
+                      child: const Text('Finish Session'),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: SizedBox(
+                    height: 48,
                     child: ElevatedButton(
                       onPressed: _isSubmitting ? null : _handleSubmitEntry,
                       style: ElevatedButton.styleFrom(
@@ -329,32 +355,6 @@ class _ObserverPageState extends State<ObserverPage> {
                                   ? 'Submit Group'
                                   : 'Submit Person',
                             ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: SizedBox(
-                    height: 48,
-                    child: OutlinedButton(
-                      onPressed: _handleFinishSession,
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(
-                          color: AppTheme.gray300,
-                          width: 1,
-                        ),
-                        foregroundColor: AppTheme.gray700,
-                        textStyle: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            AppTheme.borderRadiusMedium,
-                          ),
-                        ),
-                      ),
-                      child: const Text('Finish Session'),
                     ),
                   ),
                 ),

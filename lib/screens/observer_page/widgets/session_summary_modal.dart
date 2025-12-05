@@ -237,24 +237,6 @@ class SessionSummaryModal extends StatelessWidget {
           Expanded(
             child: SizedBox(
               height: 48,
-              child: ElevatedButton(
-                onPressed: entries.isEmpty ? null : onSubmitSession,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryOrange,
-                  foregroundColor: AppTheme.white,
-                  textStyle: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                child: const Text('Submit Session'),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: SizedBox(
-              height: 48,
               child: OutlinedButton(
                 onPressed: onCancel,
                 style: OutlinedButton.styleFrom(
@@ -266,6 +248,24 @@ class SessionSummaryModal extends StatelessWidget {
                   foregroundColor: AppTheme.gray700,
                 ),
                 child: const Text('Cancel'),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: SizedBox(
+              height: 48,
+              child: ElevatedButton(
+                onPressed: entries.isEmpty ? null : onSubmitSession,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryOrange,
+                  foregroundColor: AppTheme.white,
+                  textStyle: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                child: const Text('Submit Session'),
               ),
             ),
           ),
