@@ -16,6 +16,7 @@ class ProjectObservationFieldsCard extends StatelessWidget {
     required this.onDeleteField,
     required this.onResetFields,
     required this.onSaveFields,
+    required this.onDiscardChanges,
   });
 
   final List<ObservationField> fields;
@@ -29,6 +30,7 @@ class ProjectObservationFieldsCard extends StatelessWidget {
   final void Function(String fieldId) onDeleteField;
   final VoidCallback onResetFields;
   final Future<void> Function() onSaveFields;
+  final VoidCallback onDiscardChanges;
 
   @override
   Widget build(BuildContext context) {
@@ -128,6 +130,20 @@ class ProjectObservationFieldsCard extends StatelessWidget {
             style: const TextStyle(color: AppTheme.gray600, fontSize: 13),
           ),
           const SizedBox(height: 16),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            child: hasChanges
+                ? Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: _UnsavedChangesBanner(
+                      key: const ValueKey('fields-unsaved-banner'),
+                      isSaving: isSaving,
+                      onDiscardChanges: onDiscardChanges,
+                      onSaveFields: onSaveFields,
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
           if (fields.isEmpty)
             _EmptyState(onAddField: onAddField)
           else
@@ -295,6 +311,124 @@ class _EmptyState extends StatelessWidget {
             child: Text(l10n.adminAddField),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _UnsavedChangesBanner extends StatelessWidget {
+  const _UnsavedChangesBanner({
+    super.key,
+    required this.isSaving,
+    required this.onSaveFields,
+    required this.onDiscardChanges,
+  });
+
+  final bool isSaving;
+  final Future<void> Function() onSaveFields;
+  final VoidCallback onDiscardChanges;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF6E8),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: AppTheme.primaryOrange.withValues(alpha: 0.35),
+        ),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 520;
+          final message = Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.warning_amber_rounded,
+                color: AppTheme.primaryOrange,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.adminUnsavedFieldsTitle,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.gray900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      l10n.adminUnsavedFieldsSubtitle,
+                      style: const TextStyle(color: AppTheme.gray700),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+
+          final discardButton = TextButton.icon(
+            onPressed: isSaving ? null : onDiscardChanges,
+            icon: const Icon(Icons.undo, size: 18),
+            label: Text(l10n.adminDiscardChanges),
+          );
+
+          final saveButton = FilledButton.icon(
+            onPressed: isSaving ? null : () => onSaveFields(),
+            icon: isSaving
+                ? SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
+                  )
+                : const Icon(Icons.save_outlined, size: 18),
+            label: Text(
+              isSaving ? l10n.adminSaving : l10n.adminSaveChanges,
+            ),
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            ),
+          );
+
+          final actionRow = Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            alignment: isCompact ? WrapAlignment.start : WrapAlignment.end,
+            children: [
+              discardButton,
+              saveButton,
+            ],
+          );
+
+          if (isCompact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                message,
+                const SizedBox(height: 12),
+                actionRow,
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: message),
+              const SizedBox(width: 16),
+              actionRow,
+            ],
+          );
+        },
       ),
     );
   }

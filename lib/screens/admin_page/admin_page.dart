@@ -40,6 +40,8 @@ class AdminPage extends StatefulWidget {
   State<AdminPage> createState() => _AdminPageState();
 }
 
+enum _PendingFieldChangeAction { save, discard }
+
 class _AdminPageState extends State<AdminPage> {
   List<AdminProject> _projects = const [];
   bool _projectsLoading = true;
@@ -351,6 +353,10 @@ class _AdminPageState extends State<AdminPage> {
   }
 
   void _handleLogout() async {
+    if (!await _ensureFieldChangesHandled()) {
+      return;
+    }
+    if (!mounted) return;
     try {
       await AuthService.instance.signOut();
     } on AuthException catch (error) {
@@ -369,7 +375,11 @@ class _AdminPageState extends State<AdminPage> {
     Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
   }
 
-  void _navigateToProjects() {
+  void _navigateToProjects() async {
+    if (!await _ensureFieldChangesHandled()) {
+      return;
+    }
+    if (!mounted) return;
     Navigator.pushNamed(
       context,
       '/projects',
@@ -380,7 +390,11 @@ class _AdminPageState extends State<AdminPage> {
     );
   }
 
-  void _navigateToObserver() {
+  void _navigateToObserver() async {
+    if (!await _ensureFieldChangesHandled()) {
+      return;
+    }
+    if (!mounted) return;
     Navigator.pushNamed(
       context,
       '/observer',
@@ -396,8 +410,12 @@ class _AdminPageState extends State<AdminPage> {
     // Already on the admin page; nothing to do beyond closing the menu.
   }
 
-  void _navigateToProjectMap() {
+  void _navigateToProjectMap() async {
     if (!_isAdmin) return;
+    if (!await _ensureFieldChangesHandled()) {
+      return;
+    }
+    if (!mounted) return;
     Navigator.pushNamed(
       context,
       '/admin-project-map',
@@ -408,8 +426,12 @@ class _AdminPageState extends State<AdminPage> {
     );
   }
 
-  void _openNotificationsPage() {
+  void _openNotificationsPage() async {
     if (!_isAdmin) return;
+    if (!await _ensureFieldChangesHandled()) {
+      return;
+    }
+    if (!mounted) return;
     Navigator.pushNamed(
       context,
       '/admin-notifications',
@@ -420,7 +442,11 @@ class _AdminPageState extends State<AdminPage> {
     );
   }
 
-  void _openProfileSettings() {
+  void _openProfileSettings() async {
+    if (!await _ensureFieldChangesHandled()) {
+      return;
+    }
+    if (!mounted) return;
     Navigator.pushNamed(
       context,
       '/profile-settings',
@@ -678,7 +704,16 @@ class _AdminPageState extends State<AdminPage> {
     }
   }
 
-  void _handleProjectTap(AdminProject project) {
+  void _handleProjectTap(AdminProject project) async {
+    if (_selectedProjectId == project.id) {
+      return;
+    }
+    if (_selectedProjectId != null && !await _ensureFieldChangesHandled()) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
     setState(() {
       _selectedProjectId = project.id;
       _showObserverSelector = false;
@@ -705,7 +740,17 @@ class _AdminPageState extends State<AdminPage> {
     }
   }
 
-  void _handleBackToProjects() {
+  void _handleBackToProjects() async {
+    if (!await _ensureFieldChangesHandled()) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+    _resetProjectDetailState();
+  }
+
+  void _resetProjectDetailState() {
     setState(() {
       _selectedProjectId = null;
       _showDeleteDialog = false;
@@ -724,8 +769,28 @@ class _AdminPageState extends State<AdminPage> {
     _canLoadMoreObservations = true;
   }
 
-  void _handleProjectSectionChanged(ProjectDetailSection section) {
+  Future<bool> _handleWillPop() async {
+    if (_selectedProjectId != null) {
+      if (!await _ensureFieldChangesHandled()) {
+        return false;
+      }
+      _resetProjectDetailState();
+      return false;
+    }
+    return await _ensureFieldChangesHandled();
+  }
+
+  void _handleProjectSectionChanged(ProjectDetailSection section) async {
     if (_projectDetailSection == section) {
+      return;
+    }
+    final leavingFields =
+        _projectDetailSection == ProjectDetailSection.fields &&
+        section != ProjectDetailSection.fields;
+    if (leavingFields && !await _ensureFieldChangesHandled()) {
+      return;
+    }
+    if (!mounted) {
       return;
     }
     setState(() => _projectDetailSection = section);
@@ -787,6 +852,14 @@ class _AdminPageState extends State<AdminPage> {
     setState(() {
       _fieldDrafts = ObservationFieldRegistry.defaultFields();
       _fieldEditsDirty = true;
+    });
+  }
+
+  void _handleDiscardFieldChanges() {
+    final project = _selectedProject;
+    if (project == null) return;
+    setState(() {
+      _hydrateFieldDrafts(project, force: true);
     });
   }
 
@@ -864,6 +937,59 @@ class _AdminPageState extends State<AdminPage> {
     }
   }
 
+  Future<bool> _ensureFieldChangesHandled() async {
+    if (!_fieldEditsDirty) {
+      return true;
+    }
+    final project = _selectedProject;
+    if (project == null) {
+      if (mounted) {
+        setState(() => _fieldEditsDirty = false);
+      }
+      return true;
+    }
+    if (!mounted) {
+      return true;
+    }
+    final l10n = context.l10n;
+    final decision = await showDialog<_PendingFieldChangeAction>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.adminUnsavedFieldsTitle),
+        content: Text(l10n.adminUnsavedFieldsDialogBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context)
+                .pop(_PendingFieldChangeAction.discard),
+            child: Text(l10n.adminDiscardChanges),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(context)
+                .pop(_PendingFieldChangeAction.save),
+            icon: const Icon(Icons.save_outlined, size: 18),
+            label: Text(l10n.adminSaveChanges),
+          ),
+        ],
+      ),
+    );
+
+    switch (decision) {
+      case _PendingFieldChangeAction.save:
+        await _handleSaveFieldEdits();
+        return !_fieldEditsDirty;
+      case _PendingFieldChangeAction.discard:
+        _handleDiscardFieldChanges();
+        return true;
+      case null:
+        return false;
+    }
+  }
+
   void _requestProjectDeletion(String projectId) {
     setState(() {
       _projectPendingDelete = projectId;
@@ -916,11 +1042,16 @@ class _AdminPageState extends State<AdminPage> {
     return _statusUpdatesInFlight.contains(projectId);
   }
 
-  void _handleStatusFilterChanged(ProjectStatus status) {
+  void _handleStatusFilterChanged(ProjectStatus status) async {
     if (_statusFilter == status) return;
-    if (_selectedProjectId != null) {
-      _handleBackToProjects();
+    if (_selectedProjectId != null && !await _ensureFieldChangesHandled()) {
+      return;
     }
+    if (_selectedProjectId != null) {
+      if (!mounted) return;
+      _resetProjectDetailState();
+    }
+    if (!mounted) return;
     setState(() => _statusFilter = status);
     _loadProjects();
   }
@@ -1339,241 +1470,262 @@ class _AdminPageState extends State<AdminPage> {
       showProjectMapOption: _isAdmin,
       unreadNotificationCount: _unreadNotificationCount,
       builder: (context, controller) {
-        return Scaffold(
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) async {
+            if (didPop) {
+              return;
+            }
+            final navigator = Navigator.of(context);
+            final shouldPop = await _handleWillPop();
+            if (shouldPop) {
+              navigator.maybePop(result);
+            }
+          },
+          child: Scaffold(
           backgroundColor: AppTheme.background,
           body: SafeArea(
             child: Stack(
-              children: [
-                Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      maxWidth: AppTheme.maxContentWidth,
-                    ),
-                    child: Column(
-                      children: [
-                        AppPageHeader(
-                          profileButtonKey: controller.profileButtonKey,
-                          onProfileTap: controller.toggleMenu,
-                          subtitle: context.l10n.adminPanelTitle,
-                          subtitleIcon: Icons.shield_outlined,
-                          unreadNotificationCount: _isAdmin
-                              ? _unreadNotificationCount
-                              : 0,
-                        ),
-                        Expanded(
-                          child: SingleChildScrollView(
-                            child: Padding(
-                              padding: EdgeInsets.fromLTRB(
-                                AppTheme.pageGutter,
-                                0,
-                                AppTheme.pageGutter,
-                                32,
-                              ),
-                              child: hydratedProject == null
-                                  ? (_projectsLoading && _projects.isEmpty
-                                        ? const _AdminLoadingState()
-                                        : AdminProjectListView(
-                                            projects: _filteredProjectsByStatus,
-                                            locationOptions: AdminDataRepository
-                                                .locationOptions,
-                                            locationAutocompleteService:
-                                                _locationAutocompleteService,
-                                            showNewProjectForm:
-                                                _showNewProjectForm,
-                                            showProjectSuccess:
-                                                _showProjectSuccess,
-                                            lastCreatedProjectName:
-                                                _lastCreatedProjectName,
-                                            statusFilter: _statusFilter,
-                                            statusCounts: _statusCounts,
-                                            onStatusFilterChanged:
-                                                _handleStatusFilterChanged,
-                                            newProjectNameController:
-                                                _newProjectNameController,
-                                            newProjectMainLocationController:
-                                                _newProjectMainLocationController,
-                                            newProjectDescriptionController:
-                                                _newProjectDescriptionController,
-                                            customLocationController:
-                                                _customLocationController,
-                                            selectedLocationTypeIds:
-                                                _newProjectLocationTypeIds,
-                                            customLocations: _customLocations,
-                                            hiddenDefaultLocationIds:
-                                                _hiddenDefaultLocationIds,
-                                            showObserverSelector:
-                                                _showNewProjectObserverSelector,
-                                            newProjectObserverSearch:
-                                                _newProjectObserverSearch,
-                                            selectedObserverIds:
-                                                _newProjectObserverIds,
-                                            allObservers: _observers,
-                                            availableObserverOptions:
-                                                _availableObserversForNewProject,
-                                            newProjectErrors: _newProjectErrors,
-                                            isCreatingProject:
-                                                _isCreatingProject,
-                                            onProjectNameChanged: () =>
-                                                _clearNewProjectError('name'),
-                                            onMainLocationChanged: () =>
-                                                _clearNewProjectError(
-                                                  'mainLocation',
-                                                ),
-                                            onToggleForm: _toggleNewProjectForm,
-                                            onAddCustomLocation:
-                                                _handleAddCustomLocation,
-                                            onRemoveCustomLocation:
-                                                _removeCustomLocation,
-                                            onToggleLocationType:
-                                                _toggleLocationTypeInNewProject,
-                                            onHideDefaultLocation:
-                                                _hideDefaultLocation,
-                                            onRestoreDefaultLocation:
-                                                _restoreDefaultLocation,
-                                            onObserverSelectorToggle:
-                                                _toggleNewProjectObserverSelector,
-                                            onObserverSearchChanged: (value) =>
-                                                setState(
-                                                  () =>
-                                                      _newProjectObserverSearch =
-                                                          value,
-                                                ),
-                                            onAddObserver:
-                                                _addObserverToNewProject,
-                                            onRemoveObserver:
-                                                _removeObserverFromNewProject,
-                                            onSubmitProject:
-                                                _handleCreateProject,
-                                            onCancelForm: _resetNewProjectForm,
-                                            onProjectTap: _handleProjectTap,
-                                          ))
-                                  : ProjectDetailView(
-                                      project: hydratedProject,
-                                      observers: _observers,
-                                      locationOptions:
-                                          AdminDataRepository.locationOptions,
-                                      locationAutocompleteService:
-                                          _locationAutocompleteService,
-                                      activeSection: _projectDetailSection,
-                                      onSectionChange:
-                                          _handleProjectSectionChanged,
-                                      mainLocationController:
-                                          _projectMainLocationController,
-                                      mainLocationError:
-                                          _projectMainLocationError,
-                                      onMainLocationChanged:
-                                          _handleDetailMainLocationChanged,
-                                      onSaveMainLocation:
-                                          _handleSaveMainLocation,
-                                      isSavingMainLocation:
-                                          _isSavingMainLocation,
-                                      hasMainLocationChanges:
-                                          mainLocationHasChanges,
-                                      filters: _filters,
-                                      showObserverSelector:
-                                          _showObserverSelector,
-                                      observerSearchQuery: _observerSearchQuery,
-                                      showAddLocationField:
-                                          _showAddLocationField,
-                                      addLocationController:
-                                          _addLocationController,
-                                      availableObservers:
-                                          _availableObserversForProject,
-                                      entriesPageSize: _observationPageSize,
-                                      pageSizeOptions:
-                                          _observationPageSizeOptions,
-                                      onPageSizeChange:
-                                          _handleObservationPageSizeChange,
-                                      onBack: _handleBackToProjects,
-                                      onDelete: () => _requestProjectDeletion(
-                                        hydratedProject.id,
-                                      ),
-                                      onStatusChange: (status) =>
-                                          _handleProjectStatusChange(
-                                            hydratedProject,
-                                            status,
-                                          ),
-                                      isStatusUpdating: _isStatusUpdating(
-                                        hydratedProject.id,
-                                      ),
-                                      onToggleAddLocation:
-                                          _toggleAddLocationField,
-                                      onAddLocation:
-                                          _handleAddLocationToProject,
-                                      onRemoveLocation:
-                                          _removeLocationFromProject,
-                                      onToggleObserverSelector:
-                                          _toggleObserverSelector,
-                                      onObserverSearchChanged: (value) =>
-                                          setState(
-                                            () => _observerSearchQuery = value,
-                                          ),
-                                      onAddObserver: _addObserverToProject,
-                                      onRemoveObserver:
-                                          _removeObserverFromProject,
-                                      onDownload: () =>
-                                          _handleDownloadObservations(
-                                            hydratedProject,
-                                          ),
-                                      fieldDrafts: _fieldDrafts,
-                                      fieldEditsDirty: _fieldEditsDirty,
-                                      isSavingFieldEdits: _isSavingFieldEdits,
-                                      onAddField: (context) =>
-                                          _handleAddField(context),
-                                      onEditField: (context, field) =>
-                                          _handleEditField(context, field),
-                                      onReorderField: _handleFieldReorder,
-                                      onToggleField: _handleFieldEnabledChange,
-                                      onDeleteField: _handleDeleteField,
-                                      onResetFields:
-                                          _handleResetFieldsToDefaults,
-                                      onSaveFields: _handleSaveFieldEdits,
-                                      onFilterChanged: _updateFilter,
-                                      onClearFilters: _clearFilters,
-                                      filteredObservations:
-                                          filteredObservationList,
-                                      isExportingObservations:
-                                          _exportingProjectId ==
-                                          hydratedProject.id,
-                                      onEditObservation: _openObservationEditor,
-                                      onRefreshObservations: () =>
-                                          _handleRefreshObservations(
-                                            hydratedProject,
-                                          ),
-                                      canLoadMoreObservations:
-                                          _canLoadMoreObservations,
-                                      isLoadingMoreObservations:
-                                          _isLoadingMoreObservations,
-                                      onLoadMoreObservations:
-                                          _handleLoadMoreObservations,
-                                    ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+            children: [
+              Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                maxWidth: AppTheme.maxContentWidth,
                 ),
-                if (_showDeleteDialog && _projectPendingDelete != null)
-                  Builder(
-                    builder: (context) {
-                      final projectForDialog = _findProjectById(
-                        _projectPendingDelete!,
-                      );
-                      if (projectForDialog == null) {
-                        return const SizedBox.shrink();
-                      }
-                      return _DeleteDialogOverlay(
-                        project: projectForDialog,
-                        observationCount:
-                            projectForDialog.totalObservationCount,
-                        onCancel: _cancelProjectDeletion,
-                        onConfirm: () => _confirmProjectDeletion(),
-                      );
-                    },
+                child: Column(
+                children: [
+                  AppPageHeader(
+                  profileButtonKey: controller.profileButtonKey,
+                  onProfileTap: controller.toggleMenu,
+                  subtitle: context.l10n.adminPanelTitle,
+                  subtitleIcon: Icons.shield_outlined,
+                  unreadNotificationCount:
+                    _isAdmin ? _unreadNotificationCount : 0,
                   ),
-              ],
+                  Expanded(
+                  child: SingleChildScrollView(
+                    child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      AppTheme.pageGutter,
+                      0,
+                      AppTheme.pageGutter,
+                      32,
+                    ),
+                    child: hydratedProject == null
+                      ? (_projectsLoading && _projects.isEmpty
+                        ? const _AdminLoadingState()
+                        : AdminProjectListView(
+                          projects:
+                            _filteredProjectsByStatus,
+                          locationOptions:
+                            AdminDataRepository
+                              .locationOptions,
+                          locationAutocompleteService:
+                            _locationAutocompleteService,
+                          showNewProjectForm:
+                            _showNewProjectForm,
+                          showProjectSuccess:
+                            _showProjectSuccess,
+                          lastCreatedProjectName:
+                            _lastCreatedProjectName,
+                          statusFilter: _statusFilter,
+                          statusCounts: _statusCounts,
+                          onStatusFilterChanged:
+                            _handleStatusFilterChanged,
+                          newProjectNameController:
+                            _newProjectNameController,
+                          newProjectMainLocationController:
+                            _newProjectMainLocationController,
+                          newProjectDescriptionController:
+                            _newProjectDescriptionController,
+                          customLocationController:
+                            _customLocationController,
+                          selectedLocationTypeIds:
+                            _newProjectLocationTypeIds,
+                          customLocations: _customLocations,
+                          hiddenDefaultLocationIds:
+                            _hiddenDefaultLocationIds,
+                          showObserverSelector:
+                            _showNewProjectObserverSelector,
+                          newProjectObserverSearch:
+                            _newProjectObserverSearch,
+                          selectedObserverIds:
+                            _newProjectObserverIds,
+                          allObservers: _observers,
+                          availableObserverOptions:
+                            _availableObserversForNewProject,
+                          newProjectErrors: _newProjectErrors,
+                          isCreatingProject:
+                            _isCreatingProject,
+                          onProjectNameChanged: () =>
+                            _clearNewProjectError('name'),
+                          onMainLocationChanged: () =>
+                            _clearNewProjectError(
+                              'mainLocation',
+                            ),
+                          onToggleForm: _toggleNewProjectForm,
+                          onAddCustomLocation:
+                            _handleAddCustomLocation,
+                          onRemoveCustomLocation:
+                            _removeCustomLocation,
+                          onToggleLocationType:
+                            _toggleLocationTypeInNewProject,
+                          onHideDefaultLocation:
+                            _hideDefaultLocation,
+                          onRestoreDefaultLocation:
+                            _restoreDefaultLocation,
+                          onObserverSelectorToggle:
+                            _toggleNewProjectObserverSelector,
+                          onObserverSearchChanged: (value) =>
+                            setState(
+                              () =>
+                                _newProjectObserverSearch =
+                                  value,
+                            ),
+                          onAddObserver:
+                            _addObserverToNewProject,
+                          onRemoveObserver:
+                            _removeObserverFromNewProject,
+                          onSubmitProject:
+                            _handleCreateProject,
+                          onCancelForm: _resetNewProjectForm,
+                          onProjectTap: _handleProjectTap,
+                          ))
+                      : ProjectDetailView(
+                        project: hydratedProject,
+                        observers: _observers,
+                        locationOptions:
+                          AdminDataRepository
+                            .locationOptions,
+                        locationAutocompleteService:
+                          _locationAutocompleteService,
+                        activeSection: _projectDetailSection,
+                        onSectionChange:
+                          _handleProjectSectionChanged,
+                        mainLocationController:
+                          _projectMainLocationController,
+                        mainLocationError:
+                          _projectMainLocationError,
+                        onMainLocationChanged:
+                          _handleDetailMainLocationChanged,
+                        onSaveMainLocation:
+                          _handleSaveMainLocation,
+                        isSavingMainLocation:
+                          _isSavingMainLocation,
+                        hasMainLocationChanges:
+                          mainLocationHasChanges,
+                        filters: _filters,
+                        showObserverSelector:
+                          _showObserverSelector,
+                        observerSearchQuery:
+                          _observerSearchQuery,
+                        showAddLocationField:
+                          _showAddLocationField,
+                        addLocationController:
+                          _addLocationController,
+                        availableObservers:
+                          _availableObserversForProject,
+                        entriesPageSize: _observationPageSize,
+                        pageSizeOptions:
+                          _observationPageSizeOptions,
+                        onPageSizeChange:
+                          _handleObservationPageSizeChange,
+                        onBack: _handleBackToProjects,
+                        onDelete: () => _requestProjectDeletion(
+                          hydratedProject.id,
+                        ),
+                        onStatusChange: (status) =>
+                          _handleProjectStatusChange(
+                            hydratedProject,
+                            status,
+                          ),
+                        isStatusUpdating: _isStatusUpdating(
+                          hydratedProject.id,
+                        ),
+                        onToggleAddLocation:
+                          _toggleAddLocationField,
+                        onAddLocation:
+                          _handleAddLocationToProject,
+                        onRemoveLocation:
+                          _removeLocationFromProject,
+                        onToggleObserverSelector:
+                          _toggleObserverSelector,
+                        onObserverSearchChanged: (value) =>
+                          setState(
+                            () =>
+                              _observerSearchQuery = value,
+                          ),
+                        onAddObserver: _addObserverToProject,
+                        onRemoveObserver:
+                          _removeObserverFromProject,
+                        onDownload: () =>
+                          _handleDownloadObservations(
+                            hydratedProject,
+                          ),
+                        fieldDrafts: _fieldDrafts,
+                        fieldEditsDirty: _fieldEditsDirty,
+                        isSavingFieldEdits: _isSavingFieldEdits,
+                        onAddField: (context) =>
+                          _handleAddField(context),
+                        onEditField: (context, field) =>
+                          _handleEditField(context, field),
+                        onReorderField: _handleFieldReorder,
+                        onToggleField:
+                          _handleFieldEnabledChange,
+                        onDeleteField: _handleDeleteField,
+                        onResetFields:
+                          _handleResetFieldsToDefaults,
+                        onSaveFields: _handleSaveFieldEdits,
+                        onDiscardFieldChanges:
+                          _handleDiscardFieldChanges,
+                        onFilterChanged: _updateFilter,
+                        onClearFilters: _clearFilters,
+                        filteredObservations:
+                          filteredObservationList,
+                        isExportingObservations:
+                          _exportingProjectId ==
+                          hydratedProject.id,
+                        onEditObservation:
+                          _openObservationEditor,
+                        onRefreshObservations: () =>
+                          _handleRefreshObservations(
+                            hydratedProject,
+                          ),
+                        canLoadMoreObservations:
+                          _canLoadMoreObservations,
+                        isLoadingMoreObservations:
+                          _isLoadingMoreObservations,
+                        onLoadMoreObservations:
+                          _handleLoadMoreObservations,
+                        ),
+                    ),
+                  ),
+                  ),
+                ],
+                ),
+              ),
+              ),
+              if (_showDeleteDialog && _projectPendingDelete != null)
+              Builder(
+                builder: (context) {
+                final projectForDialog = _findProjectById(
+                  _projectPendingDelete!,
+                );
+                if (projectForDialog == null) {
+                  return const SizedBox.shrink();
+                }
+                return _DeleteDialogOverlay(
+                  project: projectForDialog,
+                  observationCount:
+                    projectForDialog.totalObservationCount,
+                  onCancel: _cancelProjectDeletion,
+                  onConfirm: _confirmProjectDeletion,
+                );
+                },
+              ),
+            ],
             ),
+          ),
           ),
         );
       },

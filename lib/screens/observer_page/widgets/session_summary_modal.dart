@@ -32,16 +32,56 @@ class SessionSummaryModal extends StatelessWidget {
       child: Material(
         color: AppTheme.white,
         child: SafeArea(
-          child: Column(
-            children: [
-              _buildHeader(l10n),
-              Expanded(
-                child: entries.isEmpty
-                    ? _buildEmptyState(l10n)
-                    : _buildSummaryContent(l10n),
-              ),
-              _buildBottomButtons(l10n),
-            ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return Align(
+                alignment: Alignment.topCenter,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppTheme.pageGutter,
+                  ),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: AppTheme.maxContentWidth,
+                    ),
+                    child: SizedBox(
+                      height: constraints.maxHeight,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: AppTheme.white,
+                          borderRadius:
+                              BorderRadius.circular(AppTheme.borderRadiusXL),
+                          border:
+                              Border.all(color: AppTheme.gray200, width: 1),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x14000000),
+                              blurRadius: 24,
+                              offset: Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius:
+                              BorderRadius.circular(AppTheme.borderRadiusXL),
+                          child: Column(
+                            children: [
+                              _buildHeader(l10n),
+                              Expanded(
+                                child: entries.isEmpty
+                                    ? _buildEmptyState(l10n)
+                                    : _buildSummaryContent(l10n),
+                              ),
+                              _buildBottomButtons(l10n),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ),

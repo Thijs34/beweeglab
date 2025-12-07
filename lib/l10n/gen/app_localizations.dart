@@ -1700,6 +1700,30 @@ abstract class AppLocalizations {
   /// **'Add your first custom field or restore the default template.'**
   String get adminNoFieldsSubtitle;
 
+  /// No description provided for @adminUnsavedFieldsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsaved field changes'**
+  String get adminUnsavedFieldsTitle;
+
+  /// No description provided for @adminUnsavedFieldsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You made edits that are not saved yet.'**
+  String get adminUnsavedFieldsSubtitle;
+
+  /// No description provided for @adminUnsavedFieldsDialogBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Save your changes before leaving this page or discard them.'**
+  String get adminUnsavedFieldsDialogBody;
+
+  /// No description provided for @adminDiscardChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard changes'**
+  String get adminDiscardChanges;
+
   /// No description provided for @adminFieldStandard.
   ///
   /// In en, this message translates to:

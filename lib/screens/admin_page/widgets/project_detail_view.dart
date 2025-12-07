@@ -63,6 +63,7 @@ class ProjectDetailView extends StatelessWidget {
   final void Function(String fieldId) onDeleteField;
   final VoidCallback onResetFields;
   final Future<void> Function() onSaveFields;
+  final VoidCallback onDiscardFieldChanges;
 
   const ProjectDetailView({
     super.key,
@@ -118,6 +119,7 @@ class ProjectDetailView extends StatelessWidget {
     required this.onDeleteField,
     required this.onResetFields,
     required this.onSaveFields,
+    required this.onDiscardFieldChanges,
   });
 
   @override
@@ -222,6 +224,7 @@ class ProjectDetailView extends StatelessWidget {
             onDeleteField: onDeleteField,
             onResetFields: onResetFields,
             onSaveFields: onSaveFields,
+            onDiscardChanges: onDiscardFieldChanges,
           ),
         ];
       case ProjectDetailSection.data:

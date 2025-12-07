@@ -923,6 +923,20 @@ class AppLocalizationsNl extends AppLocalizations {
       'Voeg je eerste aangepaste veld toe of herstel het standaard sjabloon.';
 
   @override
+  String get adminUnsavedFieldsTitle => 'Niet-opgeslagen veldwijzigingen';
+
+  @override
+  String get adminUnsavedFieldsSubtitle =>
+      'Je hebt wijzigingen gemaakt die nog niet zijn opgeslagen.';
+
+  @override
+  String get adminUnsavedFieldsDialogBody =>
+      'Sla je wijzigingen op voordat je deze pagina verlaat of gooi ze weg.';
+
+  @override
+  String get adminDiscardChanges => 'Wijzigingen verwerpen';
+
+  @override
   String get adminFieldStandard => 'Standaard';
 
   @override

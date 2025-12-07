@@ -920,6 +920,20 @@ class AppLocalizationsEn extends AppLocalizations {
       'Add your first custom field or restore the default template.';
 
   @override
+  String get adminUnsavedFieldsTitle => 'Unsaved field changes';
+
+  @override
+  String get adminUnsavedFieldsSubtitle =>
+      'You made edits that are not saved yet.';
+
+  @override
+  String get adminUnsavedFieldsDialogBody =>
+      'Save your changes before leaving this page or discard them.';
+
+  @override
+  String get adminDiscardChanges => 'Discard changes';
+
+  @override
   String get adminFieldStandard => 'Standard';
 
   @override
