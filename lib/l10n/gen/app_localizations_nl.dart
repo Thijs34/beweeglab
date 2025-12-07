@@ -652,6 +652,18 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get projectMapLegendTitle => 'Legenda';
+
+  @override
+  String get projectMapLegendActive => 'Actieve projecten';
+
+  @override
+  String get projectMapLegendFinished => 'Afgeronde projecten';
+
+  @override
+  String get projectMapLegendArchived => 'Gearchiveerde projecten';
+
+  @override
   String get projectsLoading => 'Projecten laden...';
 
   @override
@@ -783,6 +795,22 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get adminProjectMainLocationUnset => 'Hoofdlocatie niet ingesteld';
+
+  @override
+  String get adminMainLocationTitle => 'Hoofdlocatie';
+
+  @override
+  String get adminMainLocationDescription =>
+      'Beschrijf de hoofdlocatie die dit project dekt. De locatietypen hieronder moeten specifieke plekken binnen deze locatie voorstellen.';
+
+  @override
+  String get adminMainLocationHint => 'bijv. Parkstraat, Amsterdam Noord';
+
+  @override
+  String get adminMainLocationSave => 'Wijzigingen opslaan';
+
+  @override
+  String get adminMainLocationSaving => 'Bezig met opslaan...';
 
   @override
   String adminProjectObservationCount(int count) {

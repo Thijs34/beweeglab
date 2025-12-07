@@ -650,6 +650,18 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get projectMapLegendTitle => 'Legend';
+
+  @override
+  String get projectMapLegendActive => 'Active projects';
+
+  @override
+  String get projectMapLegendFinished => 'Finished projects';
+
+  @override
+  String get projectMapLegendArchived => 'Archived projects';
+
+  @override
   String get projectsLoading => 'Loading projects...';
 
   @override
@@ -782,6 +794,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get adminProjectMainLocationUnset => 'Main location not set';
+
+  @override
+  String get adminMainLocationTitle => 'Main Location';
+
+  @override
+  String get adminMainLocationDescription =>
+      'Specify the main site this project covers. Individual location types below should describe areas inside this location.';
+
+  @override
+  String get adminMainLocationHint => 'e.g., Parkstraat, Amsterdam Noord';
+
+  @override
+  String get adminMainLocationSave => 'Save Changes';
+
+  @override
+  String get adminMainLocationSaving => 'Saving...';
 
   @override
   String adminProjectObservationCount(int count) {

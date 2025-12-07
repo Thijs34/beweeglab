@@ -102,6 +102,7 @@ class MyApp extends StatelessWidget {
                         userEmail: args.userEmail,
                         userRole: args.userRole,
                         initialProjectId: args.initialProjectId,
+                        initialProjectStatus: args.initialProjectStatus,
                       ),
                     );
                   }

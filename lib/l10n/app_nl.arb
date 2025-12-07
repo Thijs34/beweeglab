@@ -258,6 +258,10 @@
       }
     }
   },
+  "projectMapLegendTitle": "Legenda",
+  "projectMapLegendActive": "Actieve projecten",
+  "projectMapLegendFinished": "Afgeronde projecten",
+  "projectMapLegendArchived": "Gearchiveerde projecten",
   "projectsLoading": "Projecten laden...",
   "projectsLoadErrorTitle": "Projecten konden niet worden geladen",
   "projectsRefreshTooltip": "Projecten verversen",
@@ -319,6 +323,11 @@
   "adminDone": "Klaar",
   "adminNoObserversAssigned": "Nog geen observatoren toegewezen. Je kunt ze later toevoegen.",
   "adminProjectMainLocationUnset": "Hoofdlocatie niet ingesteld",
+  "adminMainLocationTitle": "Hoofdlocatie",
+  "adminMainLocationDescription": "Beschrijf de hoofdlocatie die dit project dekt. De locatietypen hieronder moeten specifieke plekken binnen deze locatie voorstellen.",
+  "adminMainLocationHint": "bijv. Parkstraat, Amsterdam Noord",
+  "adminMainLocationSave": "Wijzigingen opslaan",
+  "adminMainLocationSaving": "Bezig met opslaan...",
   "adminProjectObservationCount": "{count, plural, one {{count} observatie} other {{count} observaties}}",
   "@adminProjectObservationCount": {
     "placeholders": {

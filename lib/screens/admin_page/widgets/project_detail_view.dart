@@ -627,8 +627,9 @@ class _MainLocationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return _SectionCard(
-      title: 'Main Location',
+      title: l10n.adminMainLocationTitle,
       trailing: ElevatedButton.icon(
         onPressed: (!hasChanges || isSaving) ? null : onSave,
         style: ElevatedButton.styleFrom(
@@ -645,14 +646,16 @@ class _MainLocationCard extends StatelessWidget {
                 ),
               )
             : const Icon(Icons.save_outlined, size: 18),
-        label: Text(isSaving ? 'Saving...' : 'Save Changes'),
+        label: Text(
+          isSaving ? l10n.adminMainLocationSaving : l10n.adminMainLocationSave,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Specify the main site this project covers. Individual location types below should describe areas inside this location.',
-            style: TextStyle(color: AppTheme.gray600, fontSize: 13),
+          Text(
+            l10n.adminMainLocationDescription,
+            style: const TextStyle(color: AppTheme.gray600, fontSize: 13),
           ),
           const SizedBox(height: 12),
           TypeAheadField<LocationPrediction>(
@@ -676,7 +679,7 @@ class _MainLocationCard extends StatelessWidget {
               controller: fieldController,
               focusNode: focusNode,
               decoration: InputDecoration(
-                hintText: 'e.g., Parkstraat, Amsterdam Noord',
+                hintText: l10n.adminMainLocationHint,
                 errorText: errorText,
               ),
               onChanged: onChanged,
@@ -1384,11 +1387,19 @@ class _ObservationCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              CircleAvatar(
-                backgroundColor: AppTheme.primaryOrange,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryOrange,
+                  borderRadius: BorderRadius.circular(999),
+                ),
                 child: Text(
                   '#${record.personId}',
-                  style: const TextStyle(color: AppTheme.white, fontSize: 12),
+                  style: const TextStyle(
+                    color: AppTheme.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -1535,15 +1546,19 @@ class _ObservationRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 80,
+          Flexible(
+            flex: 2,
             child: Text(
               '$label:',
               style: const TextStyle(fontSize: 12, color: AppTheme.gray500),
+              softWrap: true,
             ),
           ),
-          Expanded(
+          const SizedBox(width: 8),
+          Flexible(
+            flex: 3,
             child: Text(
               value,
               style: const TextStyle(

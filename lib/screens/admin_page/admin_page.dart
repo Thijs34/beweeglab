@@ -28,12 +28,14 @@ class AdminPage extends StatefulWidget {
   final String? userEmail;
   final String userRole;
   final String? initialProjectId;
+  final ProjectStatus? initialProjectStatus;
 
   const AdminPage({
     super.key,
     this.userEmail,
     this.userRole = 'admin',
     this.initialProjectId,
+    this.initialProjectStatus,
   });
 
   @override
@@ -128,6 +130,9 @@ class _AdminPageState extends State<AdminPage> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialProjectStatus != null) {
+      _statusFilter = widget.initialProjectStatus!;
+    }
     _selectedProjectId = widget.initialProjectId;
     _loadStatusCounts();
     _loadProjects();

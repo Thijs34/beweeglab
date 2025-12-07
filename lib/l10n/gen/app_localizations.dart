@@ -1274,6 +1274,30 @@ abstract class AppLocalizations {
   /// **'{count, plural, one {{count} project} other {{count} projects}}'**
   String projectMapProjectCount(int count);
 
+  /// No description provided for @projectMapLegendTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Legend'**
+  String get projectMapLegendTitle;
+
+  /// No description provided for @projectMapLegendActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active projects'**
+  String get projectMapLegendActive;
+
+  /// No description provided for @projectMapLegendFinished.
+  ///
+  /// In en, this message translates to:
+  /// **'Finished projects'**
+  String get projectMapLegendFinished;
+
+  /// No description provided for @projectMapLegendArchived.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived projects'**
+  String get projectMapLegendArchived;
+
   /// No description provided for @projectsLoading.
   ///
   /// In en, this message translates to:
@@ -1513,6 +1537,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Main location not set'**
   String get adminProjectMainLocationUnset;
+
+  /// No description provided for @adminMainLocationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Main Location'**
+  String get adminMainLocationTitle;
+
+  /// No description provided for @adminMainLocationDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Specify the main site this project covers. Individual location types below should describe areas inside this location.'**
+  String get adminMainLocationDescription;
+
+  /// No description provided for @adminMainLocationHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g., Parkstraat, Amsterdam Noord'**
+  String get adminMainLocationHint;
+
+  /// No description provided for @adminMainLocationSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Changes'**
+  String get adminMainLocationSave;
+
+  /// No description provided for @adminMainLocationSaving.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving...'**
+  String get adminMainLocationSaving;
 
   /// No description provided for @adminProjectObservationCount.
   ///

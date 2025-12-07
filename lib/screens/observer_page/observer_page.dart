@@ -63,6 +63,7 @@ class _ObserverPageState extends State<ObserverPage> {
   final TextEditingController _personIdController = TextEditingController(
     text: '1',
   );
+  final ScrollController _scrollController = ScrollController();
 
   ObservationMode _mode = ObservationMode.individual;
   bool _showSuccessOverlay = false;
@@ -134,6 +135,7 @@ class _ObserverPageState extends State<ObserverPage> {
   @override
   void dispose() {
     _personIdController.dispose();
+    _scrollController.dispose();
     _disposeFieldControllers();
     _notificationCountSubscription?.cancel();
     if (_projectSelectionListener != null) {
@@ -224,6 +226,7 @@ class _ObserverPageState extends State<ObserverPage> {
               children: [
                 Expanded(
                   child: CustomScrollView(
+                    controller: _scrollController,
                     slivers: [
                       SliverPersistentHeader(
                         pinned: true,
@@ -1174,6 +1177,7 @@ class _ObserverPageState extends State<ObserverPage> {
     if (!mounted) return;
     setState(() => _showSuccessOverlay = false);
     _resetInputs(preservePersonId: false);
+    _scrollToTop();
   }
 
   Future<void> _handleFinishSession() async {
@@ -1216,9 +1220,23 @@ class _ObserverPageState extends State<ObserverPage> {
         return;
       }
       _resetInputs(preservePersonId: false);
+      _scrollToTop();
     }
     if (!mounted) return;
     setState(() => _showSummary = true);
+  }
+
+  void _scrollToTop() {
+    if (!_scrollController.hasClients) {
+      return;
+    }
+    unawaited(
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOutCubic,
+      ),
+    );
   }
 
   void _handleCancelSummary() {

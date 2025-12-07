@@ -258,6 +258,10 @@
       }
     }
   },
+  "projectMapLegendTitle": "Legend",
+  "projectMapLegendActive": "Active projects",
+  "projectMapLegendFinished": "Finished projects",
+  "projectMapLegendArchived": "Archived projects",
   "projectsLoading": "Loading projects...",
   "projectsLoadErrorTitle": "Couldn't load projects",
   "projectsRefreshTooltip": "Refresh projects",
@@ -319,6 +323,11 @@
   "adminDone": "Done",
   "adminNoObserversAssigned": "No observers assigned yet. You can add them later.",
   "adminProjectMainLocationUnset": "Main location not set",
+  "adminMainLocationTitle": "Main Location",
+  "adminMainLocationDescription": "Specify the main site this project covers. Individual location types below should describe areas inside this location.",
+  "adminMainLocationHint": "e.g., Parkstraat, Amsterdam Noord",
+  "adminMainLocationSave": "Save Changes",
+  "adminMainLocationSaving": "Saving...",
   "adminProjectObservationCount": "{count, plural, one {{count} observation} other {{count} observations}}",
   "@adminProjectObservationCount": {
     "placeholders": {

@@ -1,5 +1,10 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_svg/svg.dart' as svg;
+import 'package:vector_graphics/vector_graphics.dart' as vector;
 import 'package:my_app/l10n/l10n.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:my_app/config/app_config.dart';
@@ -31,6 +36,7 @@ class _ProjectMapScreenState extends State<ProjectMapScreen> {
     zoom: 6.2,
   );
   static const int _projectFetchLimit = 100;
+  static const double _markerIconTargetHeight = 48;
 
   final ProjectService _projectService = ProjectService.instance;
   final LocationAutocompleteService _locationService =
@@ -39,6 +45,7 @@ class _ProjectMapScreenState extends State<ProjectMapScreen> {
       AdminNotificationService.instance;
 
   final Map<String, LatLng> _locationCache = {};
+  final Map<ProjectStatus, BitmapDescriptor> _markerIcons = {};
   List<_ProjectMapPin> _pins = const [];
   _ProjectMapPin? _selectedPin;
   bool _isLoading = true;
@@ -120,6 +127,7 @@ class _ProjectMapScreenState extends State<ProjectMapScreen> {
       _selectedPin = null;
     });
     try {
+      await _loadMarkerIcons();
       final projects = await _projectService.fetchProjects(
         limit: _projectFetchLimit,
       );
@@ -137,6 +145,82 @@ class _ProjectMapScreenState extends State<ProjectMapScreen> {
         _hasError = true;
       });
     }
+  }
+
+  Future<void> _loadMarkerIcons() async {
+    if (_markerIcons.length == ProjectStatus.values.length) {
+      return;
+    }
+    try {
+      final icons = await Future.wait<BitmapDescriptor>([
+        _bitmapDescriptorFromAsset('assets/map/marker_active.svg'),
+        _bitmapDescriptorFromAsset('assets/map/marker_finished.png'),
+        _bitmapDescriptorFromAsset('assets/map/marker_archived.png'),
+      ]);
+      if (!mounted) return;
+      _markerIcons
+        ..[ProjectStatus.active] = icons[0]
+        ..[ProjectStatus.finished] = icons[1]
+        ..[ProjectStatus.archived] = icons[2];
+    } catch (error) {
+      debugPrint('Failed to load custom map markers: $error');
+    }
+  }
+
+  Future<BitmapDescriptor> _bitmapDescriptorFromAsset(String assetPath) async {
+    if (assetPath.toLowerCase().endsWith('.svg')) {
+      return _bitmapDescriptorFromSvg(assetPath);
+    }
+    return _bitmapDescriptorFromRasterAsset(assetPath);
+  }
+
+  Future<BitmapDescriptor> _bitmapDescriptorFromSvg(String assetPath) async {
+    final loader = svg.SvgAssetLoader(assetPath);
+    final pictureInfo = await vector.vg.loadPicture(loader, null);
+    final double viewBoxWidth =
+        pictureInfo.size.width == 0 ? 1 : pictureInfo.size.width;
+    final double viewBoxHeight =
+        pictureInfo.size.height == 0 ? 1 : pictureInfo.size.height;
+    final double targetHeight = _markerIconTargetHeight;
+    final double targetWidth = targetHeight * (viewBoxWidth / viewBoxHeight);
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder);
+    canvas.scale(targetWidth / viewBoxWidth, targetHeight / viewBoxHeight);
+    canvas.drawPicture(pictureInfo.picture);
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(
+      targetWidth.ceil(),
+      targetHeight.ceil(),
+    );
+    pictureInfo.picture.dispose();
+    picture.dispose();
+    final byteData =
+        await image.toByteData(format: ui.ImageByteFormat.png);
+    image.dispose();
+    if (byteData == null) {
+      throw Exception('Failed to convert $assetPath to image bytes');
+    }
+    return BitmapDescriptor.bytes(byteData.buffer.asUint8List());
+  }
+
+  Future<BitmapDescriptor> _bitmapDescriptorFromRasterAsset(
+    String assetPath,
+  ) async {
+    final byteData = await rootBundle.load(assetPath);
+    final codec = await ui.instantiateImageCodec(
+      byteData.buffer.asUint8List(),
+      targetHeight: _markerIconTargetHeight.toInt(),
+    );
+    final frame = await codec.getNextFrame();
+    codec.dispose();
+    final image = frame.image;
+    final converted =
+        await image.toByteData(format: ui.ImageByteFormat.png);
+    image.dispose();
+    if (converted == null) {
+      throw Exception('Failed to convert $assetPath to image bytes');
+    }
+    return BitmapDescriptor.bytes(converted.buffer.asUint8List());
   }
 
   Future<List<_ProjectMapPin>> _buildPins(List<AdminProject> projects) async {
@@ -266,6 +350,7 @@ class _ProjectMapScreenState extends State<ProjectMapScreen> {
         userEmail: widget.userEmail,
         userRole: widget.userRole,
         initialProjectId: project.id,
+        initialProjectStatus: project.status,
       ),
     );
   }
@@ -409,6 +494,11 @@ class _ProjectMapScreenState extends State<ProjectMapScreen> {
           left: 16,
           child: _MapSummaryChip(projectCount: _pins.length),
         ),
+        Positioned(
+          top: 16,
+          right: 16,
+          child: _MapLegend(),
+        ),
         if (_selectedPin != null)
           Positioned(
             bottom: 24,
@@ -430,10 +520,32 @@ class _ProjectMapScreenState extends State<ProjectMapScreen> {
           (pin) => Marker(
             markerId: MarkerId(pin.project.id),
             position: pin.position,
+            icon: _markerIconForStatus(pin.project.status),
             onTap: () => setState(() => _selectedPin = pin),
           ),
         )
         .toSet();
+  }
+
+  BitmapDescriptor _markerIconForStatus(ProjectStatus status) {
+    final customIcon = _markerIcons[status];
+    if (customIcon != null) {
+      return customIcon;
+    }
+    switch (status) {
+      case ProjectStatus.active:
+        return BitmapDescriptor.defaultMarkerWithHue(
+          BitmapDescriptor.hueOrange,
+        );
+      case ProjectStatus.finished:
+        return BitmapDescriptor.defaultMarkerWithHue(
+          BitmapDescriptor.hueGreen,
+        );
+      case ProjectStatus.archived:
+        return BitmapDescriptor.defaultMarkerWithHue(
+          BitmapDescriptor.hueAzure,
+        );
+    }
   }
 }
 
@@ -617,4 +729,116 @@ class _MapSummaryChip extends StatelessWidget {
       ),
     );
   }
+}
+
+class _MapLegend extends StatelessWidget {
+  const _MapLegend();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final items = [
+      _LegendItem(
+        label: l10n.projectMapLegendActive,
+        assetPath: 'assets/map/marker_active.svg',
+      ),
+      _LegendItem(
+        label: l10n.projectMapLegendFinished,
+        assetPath: 'assets/map/marker_finished.png',
+      ),
+      _LegendItem(
+        label: l10n.projectMapLegendArchived,
+        assetPath: 'assets/map/marker_archived.png',
+      ),
+    ];
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(AppTheme.borderRadiusLarge),
+        border: Border.all(color: AppTheme.gray200),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x11000000),
+            blurRadius: 12,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            l10n.projectMapLegendTitle,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.gray700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...items.map((item) => _LegendRow(item: item)),
+        ],
+      ),
+    );
+  }
+}
+
+class _LegendRow extends StatelessWidget {
+  final _LegendItem item;
+
+  const _LegendRow({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _LegendIcon(assetPath: item.assetPath),
+          const SizedBox(width: 8),
+          Text(
+            item.label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.gray700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LegendIcon extends StatelessWidget {
+  final String assetPath;
+
+  const _LegendIcon({required this.assetPath});
+
+  @override
+  Widget build(BuildContext context) {
+    if (assetPath.toLowerCase().endsWith('.svg')) {
+      return svg.SvgPicture.asset(
+        assetPath,
+        width: 20,
+        height: 20,
+      );
+    }
+    return Image.asset(
+      assetPath,
+      width: 20,
+      height: 20,
+      fit: BoxFit.contain,
+    );
+  }
+}
+
+class _LegendItem {
+  final String label;
+  final String assetPath;
+
+  const _LegendItem({required this.label, required this.assetPath});
 }

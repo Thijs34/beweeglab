@@ -1,3 +1,5 @@
+import 'package:my_app/screens/admin_page/admin_models.dart';
+
 class ProjectListArguments {
   final String? userEmail;
   final String userRole;
@@ -9,11 +11,13 @@ class AdminPageArguments {
   final String? userEmail;
   final String userRole;
   final String? initialProjectId;
+  final ProjectStatus? initialProjectStatus;
 
   const AdminPageArguments({
     this.userEmail,
     this.userRole = 'admin',
     this.initialProjectId,
+    this.initialProjectStatus,
   });
 }
 
