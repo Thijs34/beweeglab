@@ -53,6 +53,9 @@ class ProjectDetailView extends StatelessWidget {
   final bool isLoadingMoreObservations;
   final VoidCallback onLoadMoreObservations;
   final List<ObservationField> fieldDrafts;
+  final ObservationFieldAudience fieldAudienceFilter;
+  final Map<ObservationFieldAudience, int> fieldCounts;
+  final ValueChanged<ObservationFieldAudience> onFieldAudienceChanged;
   final bool fieldEditsDirty;
   final bool isSavingFieldEdits;
   final Future<void> Function(BuildContext context) onAddField;
@@ -110,6 +113,9 @@ class ProjectDetailView extends StatelessWidget {
     required this.isLoadingMoreObservations,
     required this.onLoadMoreObservations,
     required this.fieldDrafts,
+    required this.fieldAudienceFilter,
+    required this.fieldCounts,
+    required this.onFieldAudienceChanged,
     required this.fieldEditsDirty,
     required this.isSavingFieldEdits,
     required this.onAddField,
@@ -215,6 +221,9 @@ class ProjectDetailView extends StatelessWidget {
         return [
           ProjectObservationFieldsCard(
             fields: fieldDrafts,
+            activeAudience: fieldAudienceFilter,
+            fieldCounts: fieldCounts,
+            onAudienceChanged: onFieldAudienceChanged,
             hasChanges: fieldEditsDirty,
             isSaving: isSavingFieldEdits,
             onAddField: onAddField,

@@ -7,6 +7,9 @@ class ProjectObservationFieldsCard extends StatelessWidget {
   const ProjectObservationFieldsCard({
     super.key,
     required this.fields,
+    required this.activeAudience,
+    required this.fieldCounts,
+    required this.onAudienceChanged,
     required this.hasChanges,
     required this.isSaving,
     required this.onAddField,
@@ -20,6 +23,9 @@ class ProjectObservationFieldsCard extends StatelessWidget {
   });
 
   final List<ObservationField> fields;
+  final ObservationFieldAudience activeAudience;
+  final Map<ObservationFieldAudience, int> fieldCounts;
+  final ValueChanged<ObservationFieldAudience> onAudienceChanged;
   final bool hasChanges;
   final bool isSaving;
   final Future<void> Function(BuildContext context) onAddField;
@@ -35,6 +41,7 @@ class ProjectObservationFieldsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final visibleCount = fields.length;
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -82,7 +89,7 @@ class ProjectObservationFieldsCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
-                      l10n.adminObservationFieldsCount(fields.length),
+                      l10n.adminObservationFieldsCount(visibleCount),
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppTheme.gray600,
@@ -129,6 +136,12 @@ class ProjectObservationFieldsCard extends StatelessWidget {
             l10n.adminObservationFieldsSubtitle,
             style: const TextStyle(color: AppTheme.gray600, fontSize: 13),
           ),
+          const SizedBox(height: 12),
+          _AudienceSegmentedControl(
+            activeAudience: activeAudience,
+            fieldCounts: fieldCounts,
+            onAudienceChanged: onAudienceChanged,
+          ),
           const SizedBox(height: 16),
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 250),
@@ -145,7 +158,11 @@ class ProjectObservationFieldsCard extends StatelessWidget {
                 : const SizedBox.shrink(),
           ),
           if (fields.isEmpty)
-            _EmptyState(onAddField: onAddField)
+            _EmptyState(
+              onAddField: onAddField,
+              audienceLabel: _audienceLabel(l10n, activeAudience),
+              audienceIcon: _audienceIcon(activeAudience),
+            )
           else
             ReorderableListView.builder(
               shrinkWrap: true,
@@ -273,9 +290,15 @@ class ProjectObservationFieldsCard extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.onAddField});
+  const _EmptyState({
+    required this.onAddField,
+    required this.audienceLabel,
+    required this.audienceIcon,
+  });
 
   final Future<void> Function(BuildContext context) onAddField;
+  final String audienceLabel;
+  final IconData audienceIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -291,6 +314,20 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         children: [
           const Icon(Icons.ballot_outlined, size: 36, color: AppTheme.gray400),
+          const SizedBox(height: 10),
+          Chip(
+            avatar: Icon(
+              audienceIcon,
+              size: 16,
+              color: AppTheme.primaryOrange,
+            ),
+            label: Text(
+              audienceLabel,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            side: const BorderSide(color: AppTheme.gray200),
+            backgroundColor: Colors.white,
+          ),
           const SizedBox(height: 12),
           Text(
             l10n.adminNoFieldsTitle,
@@ -312,6 +349,51 @@ class _EmptyState extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _AudienceSegmentedControl extends StatelessWidget {
+  const _AudienceSegmentedControl({
+    required this.activeAudience,
+    required this.fieldCounts,
+    required this.onAudienceChanged,
+  });
+
+  final ObservationFieldAudience activeAudience;
+  final Map<ObservationFieldAudience, int> fieldCounts;
+  final ValueChanged<ObservationFieldAudience> onAudienceChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    const options = <ObservationFieldAudience>[
+      ObservationFieldAudience.individual,
+      ObservationFieldAudience.group,
+    ];
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: options.map((audience) {
+        final isActive = audience == activeAudience;
+        final count = fieldCounts[audience] ?? 0;
+        return ChoiceChip(
+          label: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                _audienceIcon(audience),
+                size: 16,
+                color: isActive ? AppTheme.primaryOrange : AppTheme.gray700,
+              ),
+              const SizedBox(width: 6),
+              Text('${_audienceLabel(l10n, audience)} ($count)'),
+            ],
+          ),
+          selected: isActive,
+          onSelected: (_) => onAudienceChanged(audience),
+        );
+      }).toList(),
     );
   }
 }
@@ -612,5 +694,30 @@ class _FieldRow extends StatelessWidget {
       case ObservationFieldType.rating:
         return l10n.adminFieldTypeRating;
     }
+  }
+}
+
+String _audienceLabel(
+  AppLocalizations l10n,
+  ObservationFieldAudience value,
+) {
+  switch (value) {
+    case ObservationFieldAudience.individual:
+      return l10n.adminAudienceIndividual;
+    case ObservationFieldAudience.group:
+      return l10n.adminAudienceGroup;
+    case ObservationFieldAudience.all:
+      return l10n.adminAudienceBoth;
+  }
+}
+
+IconData _audienceIcon(ObservationFieldAudience value) {
+  switch (value) {
+    case ObservationFieldAudience.individual:
+      return Icons.person_outline;
+    case ObservationFieldAudience.group:
+      return Icons.groups_outlined;
+    case ObservationFieldAudience.all:
+      return Icons.all_inclusive;
   }
 }

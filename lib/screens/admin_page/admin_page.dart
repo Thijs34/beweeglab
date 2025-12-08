@@ -125,6 +125,8 @@ class _AdminPageState extends State<AdminPage> {
   List<ObservationField> _fieldDrafts = const [];
   String? _fieldDraftProjectId;
   bool _fieldEditsDirty = false;
+  ObservationFieldAudience _fieldAudienceFilter =
+      ObservationFieldAudience.individual;
   bool _isSavingFieldEdits = false;
 
   @override
@@ -160,6 +162,39 @@ class _AdminPageState extends State<AdminPage> {
   }
 
   bool get _isAdmin => widget.userRole == 'admin';
+
+  List<ObservationField> get _visibleFieldDrafts {
+    return _fieldDrafts
+        .where((field) => _fieldMatchesAudience(field, _fieldAudienceFilter))
+        .toList(growable: false);
+  }
+
+  Map<ObservationFieldAudience, int> get _fieldCountsByAudience {
+    return {
+      ObservationFieldAudience.individual: _fieldDrafts
+          .where(
+            (field) =>
+                _fieldMatchesAudience(field, ObservationFieldAudience.individual),
+          )
+          .length,
+      ObservationFieldAudience.group: _fieldDrafts
+          .where(
+            (field) =>
+                _fieldMatchesAudience(field, ObservationFieldAudience.group),
+          )
+          .length,
+    };
+  }
+
+  bool _fieldMatchesAudience(
+    ObservationField field,
+    ObservationFieldAudience audience,
+  ) {
+    if (field.audience == ObservationFieldAudience.all) {
+      return true;
+    }
+    return field.audience == audience;
+  }
 
   AdminProject? _findProjectById(String projectId) {
     for (final project in _projects) {
@@ -766,6 +801,7 @@ class _AdminPageState extends State<AdminPage> {
       _fieldDrafts = const [];
       _fieldEditsDirty = false;
       _fieldDraftProjectId = null;
+      _fieldAudienceFilter = ObservationFieldAudience.individual;
       _projectDetailSection = ProjectDetailSection.general;
     });
     _observationsProjectId = null;
@@ -801,6 +837,13 @@ class _AdminPageState extends State<AdminPage> {
     setState(() => _projectDetailSection = section);
   }
 
+  void _handleFieldAudienceChanged(ObservationFieldAudience audience) {
+    if (_fieldAudienceFilter == audience) {
+      return;
+    }
+    setState(() => _fieldAudienceFilter = audience);
+  }
+
   String _generateFieldId() {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     return 'custom-field-$timestamp';
@@ -811,6 +854,7 @@ class _AdminPageState extends State<AdminPage> {
       id: _generateFieldId(),
       label: const LocalizedText(nl: 'Nieuw veld', en: 'New Field'),
       type: ObservationFieldType.text,
+      audience: _fieldAudienceFilter,
       isStandard: false,
       isRequired: false,
       isEnabled: true,
@@ -820,13 +864,43 @@ class _AdminPageState extends State<AdminPage> {
   }
 
   void _handleFieldReorder(int oldIndex, int newIndex) {
-    if (oldIndex == newIndex) return;
+    final visibleFields = _visibleFieldDrafts;
+    if (oldIndex < 0 || oldIndex >= visibleFields.length) {
+      return;
+    }
+
+    var targetIndex = newIndex;
+    if (targetIndex > visibleFields.length) {
+      targetIndex = visibleFields.length;
+    }
+    if (targetIndex > oldIndex) {
+      targetIndex -= 1;
+    }
+    if (targetIndex < 0) {
+      targetIndex = 0;
+    }
+    if (targetIndex >= visibleFields.length) {
+      targetIndex = visibleFields.length - 1;
+    }
+    if (oldIndex == targetIndex) {
+      return;
+    }
+
     setState(() {
-      final drafts = List<ObservationField>.from(_fieldDrafts);
-      if (newIndex > oldIndex) newIndex -= 1;
-      final item = drafts.removeAt(oldIndex);
-      drafts.insert(newIndex, item);
-      _fieldDrafts = drafts;
+      final reorderedSubset = List<ObservationField>.from(visibleFields);
+      final movedField = reorderedSubset.removeAt(oldIndex);
+      reorderedSubset.insert(targetIndex, movedField);
+
+      final List<ObservationField> nextDrafts = [];
+      int subsetCursor = 0;
+      for (final field in _fieldDrafts) {
+        if (_fieldMatchesAudience(field, _fieldAudienceFilter)) {
+          nextDrafts.add(reorderedSubset[subsetCursor++]);
+        } else {
+          nextDrafts.add(field);
+        }
+      }
+      _fieldDrafts = nextDrafts;
       _fieldEditsDirty = true;
     });
   }
@@ -1667,7 +1741,11 @@ class _AdminPageState extends State<AdminPage> {
                           _handleDownloadObservations(
                             hydratedProject,
                           ),
-                        fieldDrafts: _fieldDrafts,
+                        fieldDrafts: _visibleFieldDrafts,
+                        fieldAudienceFilter: _fieldAudienceFilter,
+                        fieldCounts: _fieldCountsByAudience,
+                        onFieldAudienceChanged:
+                          _handleFieldAudienceChanged,
                         fieldEditsDirty: _fieldEditsDirty,
                         isSavingFieldEdits: _isSavingFieldEdits,
                         onAddField: (context) =>
