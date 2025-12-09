@@ -106,10 +106,10 @@ class ProjectsPanel extends StatelessWidget {
       height: 44,
       child: TextField(
         controller: searchController,
-        style: const TextStyle(fontSize: 14, color: AppTheme.gray900),
+        style: AppTheme.formFieldTextStyle,
         decoration: InputDecoration(
           hintText: context.l10n.observerProjectsSearchPlaceholder,
-          hintStyle: const TextStyle(fontSize: 14, color: AppTheme.gray400),
+          hintStyle: AppTheme.formFieldHintStyle,
           prefixIcon: const Icon(
             Icons.search,
             size: 16,

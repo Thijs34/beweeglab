@@ -391,10 +391,10 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
                                             child: TextField(
                                               controller: _nameController,
                                               onChanged: (_) => setState(() {}),
-                                              style: const TextStyle(fontSize: 14, color: AppTheme.gray900),
+                                              style: AppTheme.formFieldTextStyle,
                                               decoration: InputDecoration(
                                                 hintText: context.l10n.profileNameHint,
-                                                hintStyle: const TextStyle(fontSize: 14, color: AppTheme.gray400),
+                                                hintStyle: AppTheme.formFieldHintStyle,
                                                 filled: true,
                                                 fillColor: AppTheme.gray50,
                                                 contentPadding: const EdgeInsets.symmetric(

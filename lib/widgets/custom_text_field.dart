@@ -101,11 +101,10 @@ class _CustomTextFieldState extends State<CustomTextField> {
                   field.didChange(value);
                   widget.onChanged?.call(value);
                 },
-                style: const TextStyle(fontSize: 14, color: AppTheme.gray900),
+                style: AppTheme.formFieldTextStyle,
                 decoration: InputDecoration(
                   hintText: widget.placeholder,
-                  hintStyle:
-                      const TextStyle(fontSize: 14, color: AppTheme.gray400),
+                  hintStyle: AppTheme.formFieldHintStyle,
                   filled: true,
                   fillColor: AppTheme.gray50,
                   contentPadding: const EdgeInsets.symmetric(

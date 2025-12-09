@@ -42,6 +42,17 @@ class AppTheme {
   static const String fontFamilyPrimary = 'Arial'; // Fallback to system Arial
   static const String fontFamilyHeading = 'Trebuchet MS';
 
+  // Form field text sizing (>=16 to prevent mobile browsers from auto-zooming)
+  static const double formFieldFontSize = 16.0;
+  static const TextStyle formFieldTextStyle = TextStyle(
+    fontSize: formFieldFontSize,
+    color: gray900,
+  );
+  static const TextStyle formFieldHintStyle = TextStyle(
+    fontSize: formFieldFontSize,
+    color: gray400,
+  );
+
   static TextTheme get textTheme => const TextTheme(
     headlineMedium: TextStyle(
       fontFamily: fontFamilyHeading,
@@ -124,11 +135,7 @@ class AppTheme {
       fontWeight: FontWeight.w400,
       color: gray700,
     ),
-    hintStyle: TextStyle(
-      fontSize: 14,
-      fontWeight: FontWeight.w400,
-      color: gray400,
-    ),
+    hintStyle: formFieldHintStyle,
   );
 
   // Main app theme
