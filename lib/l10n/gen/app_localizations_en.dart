@@ -505,6 +505,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get observerEnterNumber => 'Please enter a number';
 
   @override
+  String get observerPleaseSelectOption => 'Please select an option';
+
+  @override
   String get observerProjectsTitle => 'Your Projects';
 
   @override

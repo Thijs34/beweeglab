@@ -1306,7 +1306,7 @@ class _ObserverPageState extends State<ObserverPage> {
           } else {
             final selected = value as String?;
             if (field.isRequired && (selected == null || selected.isEmpty)) {
-              errors[field.id] = 'Please select an option';
+              errors[field.id] = context.l10n.observerPleaseSelectOption;
             } else {
               _validateOtherOptionText(field, selected, errors);
             }

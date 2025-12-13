@@ -507,6 +507,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get observerEnterNumber => 'Vul een getal in';
 
   @override
+  String get observerPleaseSelectOption => 'Selecteer een optie';
+
+  @override
   String get observerProjectsTitle => 'Jouw projecten';
 
   @override

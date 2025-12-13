@@ -1028,6 +1028,12 @@ abstract class AppLocalizations {
   /// **'Please enter a number'**
   String get observerEnterNumber;
 
+  /// No description provided for @observerPleaseSelectOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select an option'**
+  String get observerPleaseSelectOption;
+
   /// No description provided for @observerProjectsTitle.
   ///
   /// In en, this message translates to:

@@ -191,6 +191,7 @@
   "observerSelectProject": "Kies eerst een project voordat je observaties registreert.",
   "observerPleaseSignIn": "Meld je opnieuw aan om door te gaan.",
   "observerEnterNumber": "Vul een getal in",
+  "observerPleaseSelectOption": "Selecteer een optie",
   "observerProjectsTitle": "Jouw projecten",
   "observerProjectsAvailable": "{count, plural, one {{count} project beschikbaar} other {{count} projecten beschikbaar}}",
   "@observerProjectsAvailable": {

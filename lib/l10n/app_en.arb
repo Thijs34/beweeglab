@@ -191,6 +191,7 @@
   "observerSelectProject": "Select a project before recording observations.",
   "observerPleaseSignIn": "Please sign in again to continue.",
   "observerEnterNumber": "Please enter a number",
+  "observerPleaseSelectOption": "Please select an option",
   "observerProjectsTitle": "Your Projects",
   "observerProjectsAvailable": "{count, plural, one {{count} project available} other {{count} projects available}}",
   "@observerProjectsAvailable": {
