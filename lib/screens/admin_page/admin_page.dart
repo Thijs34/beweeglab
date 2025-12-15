@@ -1459,14 +1459,6 @@ class _AdminPageState extends State<AdminPage> {
   }
 
   Future<void> _openObservationEditor(ObservationRecord record) async {
-    if (record.isGroup) {
-      _showSnackMessage(
-        'Editing group observations is not supported yet.',
-        isError: true,
-      );
-      return;
-    }
-
     final project = _selectedProject;
     if (project == null && record.projectId.isEmpty) {
       return;

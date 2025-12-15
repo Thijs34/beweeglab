@@ -1185,69 +1185,116 @@ class _ObservationDataCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      _FilterDropdown(
-                        value: filters['gender']!,
-                        onChanged: (value) => onFilterChanged('gender', value),
-                        options: const ['all', 'male', 'female'],
-                        label: l10n.adminFilterGender,
-                      ),
-                      _FilterDropdown(
-                        value: filters['ageGroup']!,
-                        onChanged: (value) =>
-                            onFilterChanged('ageGroup', value),
-                        options: const [
-                          'all',
-                          '11-and-younger',
-                          '12-17',
-                          '18-24',
-                          '25-44',
-                          '45-64',
-                          '65-plus',
-                        ],
-                        label: l10n.adminFilterAge,
-                      ),
-                      _FilterDropdown(
-                        value: filters['socialContext']!,
-                        onChanged: (value) =>
-                            onFilterChanged('socialContext', value),
-                        options: const ['all', 'alone', 'together'],
-                        label: l10n.adminFilterSocial,
-                      ),
-                      _FilterDropdown(
-                        value: filters['activityLevel']!,
-                        onChanged: (value) =>
-                            onFilterChanged('activityLevel', value),
-                        options: const [
-                          'all',
-                          'sedentary',
-                          'moving',
-                          'intense',
-                        ],
-                        label: l10n.adminFilterLevel,
-                      ),
-                      _FilterDropdown(
-                        value: filters['locationType']!,
-                        onChanged: (value) =>
-                            onFilterChanged('locationType', value),
-                        options: ['all', ...locationFilterOptions],
-                        label: l10n.adminFilterLocation,
-                        optionBuilder: (value) => value == 'all'
-                          ? l10n.adminFilterLocation
-                            : resolveLocationDisplay(
-                                value,
-                                locationOptions,
-                              ).label,
-                      ),
-                      _PageSizeDropdown(
-                        value: entriesPageSize,
-                        options: pageSizeOptions,
-                        onChanged: onPageSizeChange,
-                      ),
-                    ],
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      const double spacing = 12;
+                      const double minColumnWidth = 171;
+                      final double maxWidth = constraints.maxWidth;
+                      final bool stack =
+                          maxWidth < (minColumnWidth * 2 + spacing);
+                      final double columnWidth = stack
+                          ? maxWidth
+                          : (maxWidth - spacing) / 2;
+
+                      Widget span(Widget child) {
+                        return SizedBox(width: columnWidth, child: child);
+                      }
+
+                      final controls = [
+                        span(
+                          _FilterDropdown(
+                            value: filters['gender']!,
+                            onChanged: (value) =>
+                                onFilterChanged('gender', value),
+                            options: const ['all', 'male', 'female'],
+                            label: l10n.adminFilterGender,
+                          ),
+                        ),
+                        span(
+                          _FilterDropdown(
+                            value: filters['ageGroup']!,
+                            onChanged: (value) =>
+                                onFilterChanged('ageGroup', value),
+                            options: const [
+                              'all',
+                              '11-and-younger',
+                              '12-17',
+                              '18-24',
+                              '25-44',
+                              '45-64',
+                              '65-plus',
+                            ],
+                            label: l10n.adminFilterAge,
+                          ),
+                        ),
+                        span(
+                          _FilterDropdown(
+                            value: filters['socialContext']!,
+                            onChanged: (value) =>
+                                onFilterChanged('socialContext', value),
+                            options: const ['all', 'alone', 'together'],
+                            label: l10n.adminFilterSocial,
+                          ),
+                        ),
+                        span(
+                          _FilterDropdown(
+                            value: filters['activityLevel']!,
+                            onChanged: (value) =>
+                                onFilterChanged('activityLevel', value),
+                            options: const [
+                              'all',
+                              'sedentary',
+                              'moving',
+                              'intense',
+                            ],
+                            label: l10n.adminFilterLevel,
+                          ),
+                        ),
+                        span(
+                          _FilterDropdown(
+                            value: filters['locationType']!,
+                            onChanged: (value) =>
+                                onFilterChanged('locationType', value),
+                            options: ['all', ...locationFilterOptions],
+                            label: l10n.adminFilterLocation,
+                            optionBuilder: (value) => value == 'all'
+                                ? l10n.adminFilterLocation
+                                : resolveLocationDisplay(
+                                    value,
+                                    locationOptions,
+                                  ).label,
+                          ),
+                        ),
+                        span(
+                          _PageSizeDropdown(
+                            value: entriesPageSize,
+                            options: pageSizeOptions,
+                            onChanged: onPageSizeChange,
+                          ),
+                        ),
+                      ];
+
+                      if (stack) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            for (int i = 0; i < controls.length; i++)
+                              Padding(
+                                padding: EdgeInsets.only(
+                                  bottom: i == controls.length - 1 ? 0 : spacing,
+                                ),
+                                child: controls[i],
+                              ),
+                          ],
+                        );
+                      }
+
+                      return Wrap(
+                        spacing: spacing,
+                        runSpacing: spacing,
+                        children: controls,
+                      );
+                    },
                   ),
                 ],
               ),
@@ -1321,9 +1368,7 @@ class _ObservationDataCard extends StatelessWidget {
                     (record) => _ObservationCard(
                       record: record,
                       locationOptions: locationOptions,
-                      onEdit: record.isGroup
-                          ? null
-                          : () => onEditObservation(record),
+                      onEdit: () => onEditObservation(record),
                     ),
                   )
                   .toList(),
@@ -1394,68 +1439,116 @@ class _ObservationCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryOrange,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  '#${record.personId}',
-                  style: const TextStyle(
-                    color: AppTheme.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isCompact = constraints.maxWidth < 480;
+              final editButton = onEdit == null
+                  ? null
+                  : OutlinedButton.icon(
+                      onPressed: onEdit,
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                          color: AppTheme.primaryOrange.withValues(alpha: 0.3),
+                        ),
+                        foregroundColor: AppTheme.primaryOrange,
+                        minimumSize: const Size(0, 32),
+                      ),
+                      icon: const Icon(Icons.edit, size: 16),
+                      label: Text(l10n.adminEdit),
+                    );
+
+              Widget buildTypeChip() {
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
                   ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                record.timestamp,
-                style: const TextStyle(fontSize: 12, color: AppTheme.gray500),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: record.isGroup
-                      ? AppTheme.gray200
-                      : AppTheme.primaryOrange.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  record.isGroup
-                      ? l10n.adminRecordGroup
-                      : l10n.adminRecordIndividual,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
+                  decoration: BoxDecoration(
                     color: record.isGroup
-                        ? AppTheme.gray700
-                        : AppTheme.primaryOrange,
+                        ? AppTheme.gray200
+                        : AppTheme.primaryOrange.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(999),
                   ),
-                ),
-              ),
-              const Spacer(),
-              if (onEdit != null)
-                OutlinedButton.icon(
-                  onPressed: onEdit,
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(
-                      color: AppTheme.primaryOrange.withValues(alpha: 0.3),
+                  child: Text(
+                    record.isGroup
+                        ? l10n.adminRecordGroup
+                        : l10n.adminRecordIndividual,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: record.isGroup
+                          ? AppTheme.gray700
+                          : AppTheme.primaryOrange,
                     ),
-                    foregroundColor: AppTheme.primaryOrange,
-                    minimumSize: const Size(0, 32),
                   ),
-                  icon: const Icon(Icons.edit, size: 16),
-                  label: Text(l10n.adminEdit),
-                ),
-            ],
+                );
+              }
+
+              Widget buildPersonChip() {
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryOrange,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '#${record.personId}',
+                    style: const TextStyle(
+                      color: AppTheme.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                );
+              }
+
+              Text buildTimestamp() {
+                return Text(
+                  record.timestamp,
+                  style: const TextStyle(fontSize: 12, color: AppTheme.gray500),
+                );
+              }
+
+              Widget buildWideRow() {
+                return Row(
+                  children: [
+                    buildPersonChip(),
+                    const SizedBox(width: 12),
+                    buildTimestamp(),
+                    const SizedBox(width: 8),
+                    buildTypeChip(),
+                    const Spacer(),
+                    if (editButton != null) editButton,
+                  ],
+                );
+              }
+
+              if (!isCompact) {
+                return buildWideRow();
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      buildPersonChip(),
+                      const SizedBox(width: 12),
+                      Expanded(child: buildTimestamp()),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      buildTypeChip(),
+                      const Spacer(),
+                      if (editButton != null)
+                        editButton,
+                    ],
+                  ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 12),
           _ObservationRow(label: l10n.adminFieldGender, value: record.gender),
@@ -1712,35 +1805,32 @@ class _FilterDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 150,
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 8,
-          ),
+    return InputDecorator(
+      decoration: InputDecoration(
+        labelText: label,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 8,
         ),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<String>(
-            value: value,
-            isExpanded: true,
-            isDense: true,
-            items: options
-                .map(
-                  (option) => DropdownMenuItem(
-                    value: option,
-                    child: Text(
-                      optionBuilder?.call(option) ?? _formatLabel(option),
-                    ),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: value,
+          isExpanded: true,
+          isDense: true,
+          items: options
+              .map(
+                (option) => DropdownMenuItem(
+                  value: option,
+                  child: Text(
+                    optionBuilder?.call(option) ?? _formatLabel(option),
                   ),
-                )
-                .toList(),
-            onChanged: (val) {
-              if (val != null) onChanged(val);
-            },
-          ),
+                ),
+              )
+              .toList(),
+          onChanged: (val) {
+            if (val != null) onChanged(val);
+          },
         ),
       ),
     );
@@ -1766,31 +1856,28 @@ class _PageSizeDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    return SizedBox(
-      width: 140,
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: l10n.adminEntriesLabel,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        ),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<int>(
-            value: value,
-            isExpanded: true,
-            isDense: true,
-            items: options
-                .map(
-                  (option) => DropdownMenuItem(
-                    value: option,
-                    child: Text(l10n.adminEntriesOption(option)),
-                  ),
-                )
-                .toList(),
-            onChanged: (val) {
-              if (val != null) onChanged(val);
-            },
-          ),
+    return InputDecorator(
+      decoration: InputDecoration(
+        labelText: l10n.adminEntriesLabel,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<int>(
+          value: value,
+          isExpanded: true,
+          isDense: true,
+          items: options
+              .map(
+                (option) => DropdownMenuItem(
+                  value: option,
+                  child: Text(l10n.adminEntriesOption(option)),
+                ),
+              )
+              .toList(),
+          onChanged: (val) {
+            if (val != null) onChanged(val);
+          },
         ),
       ),
     );
