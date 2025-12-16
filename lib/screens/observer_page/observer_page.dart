@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:my_app/l10n/l10n.dart';
@@ -103,6 +104,8 @@ class _ObserverPageState extends State<ObserverPage> {
   bool _isWeatherLoading = false;
 
   bool get _isAdmin => (widget.arguments?.userRole ?? 'observer') == 'admin';
+  bool get _isAndroidWeb =>
+      kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
   @override
   void initState() {
@@ -146,6 +149,68 @@ class _ObserverPageState extends State<ObserverPage> {
     super.dispose();
   }
 
+  void _deferScrollFieldIntoView(BuildContext fieldContext) {
+    // On Android Web, the keyboard overlays the content. When a text field is
+    // tapped, nudge the scroll position so the field sits just above the
+    // keyboard, avoiding a small overlap.
+    const int attempts = 2;
+    const Duration stepDelay = Duration(milliseconds: 140);
+
+    for (int i = 1; i <= attempts; i++) {
+      Future.delayed(stepDelay * i, () {
+        if (!mounted) return;
+        _scrollFieldIntoView(fieldContext);
+      });
+    }
+  }
+
+  void _scrollFieldIntoView(BuildContext fieldContext) {
+    if (!_scrollController.hasClients) return;
+
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    if (bottomInset <= 0) return;
+
+    final renderObject = fieldContext.findRenderObject();
+    if (renderObject is! RenderBox) return;
+
+    final fieldBox = renderObject;
+    final fieldOffset = fieldBox.localToGlobal(Offset.zero);
+    final fieldHeight = fieldBox.size.height;
+    final fieldBottom = fieldOffset.dy + fieldHeight;
+
+    final mediaQuery = MediaQuery.of(context);
+    final screenHeight = mediaQuery.size.height;
+
+    // The visible area ends at the top of the keyboard. Keep a tiny
+    // margin so the field is just above it with minimal movement.
+    const double margin = 4;
+    final double keyboardTop = screenHeight - bottomInset;
+    final double safeBottom = keyboardTop - margin;
+
+    if (fieldBottom <= safeBottom) {
+      // Already fully visible above the keyboard.
+      return;
+    }
+
+    final double rawDelta = fieldBottom - safeBottom;
+    if (rawDelta <= 0) return;
+
+    // Cap the adjustment so we only nudge the content a little.
+    // This targets your ~30px overlap case without visible jumps.
+    const double maxDelta = 40;
+    final double scrollDelta = rawDelta.clamp(0.0, maxDelta);
+
+    final position = _scrollController.position;
+    final targetOffset = (position.pixels + scrollDelta)
+        .clamp(0.0, position.maxScrollExtent);
+
+    _scrollController.animateTo(
+      targetOffset,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
+    );
+  }
+
   void _startNotificationWatcher() {
     _notificationCountSubscription = _notificationService
         .watchUnreadCount()
@@ -178,6 +243,9 @@ class _ObserverPageState extends State<ObserverPage> {
       builder: (context, controller) {
         return Scaffold(
           backgroundColor: _pageBackground,
+          // On Android Web, let the keyboard overlay the content instead of
+          // shrinking the layout. We'll handle extra scroll space ourselves.
+          resizeToAvoidBottomInset: !_isAndroidWeb,
           body: Stack(
             children: [
               SafeArea(child: _buildBaseContent(controller)),
@@ -216,6 +284,9 @@ class _ObserverPageState extends State<ObserverPage> {
   }
 
   Widget _buildScrollArea(ProfileMenuController menuController) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final double extraScrollPadding =
+        _isAndroidWeb && bottomInset > 0 ? 300 : 120;
     return Align(
       alignment: Alignment.topCenter,
       child: LayoutBuilder(
@@ -261,7 +332,7 @@ class _ObserverPageState extends State<ObserverPage> {
                               ),
                               const SizedBox(height: 8),
                               ObserverSectionCard(child: _buildFormCard()),
-                              const SizedBox(height: 120),
+                              SizedBox(height: extraScrollPadding),
                             ],
                           ),
                         ),
@@ -587,19 +658,28 @@ class _ObserverPageState extends State<ObserverPage> {
     final isMultiline = config?.multiline ?? false;
     final maxLines = isMultiline ? null : 1;
     final minLines = isMultiline ? 3 : 1;
-    return TextField(
-      controller: controller,
-      maxLines: maxLines,
-      minLines: minLines,
-      maxLength: config?.maxLength,
-      decoration: _inputDecoration().copyWith(
-        hintText: config?.placeholder,
-        counterText: config?.maxLength != null ? '' : null,
-      ),
-      onChanged: (value) => setState(() {
-        _fieldValues[field.id] = value;
-        _fieldErrors.remove(field.id);
-      }),
+    return Builder(
+      builder: (fieldContext) {
+        return TextField(
+          controller: controller,
+          maxLines: maxLines,
+          minLines: minLines,
+          maxLength: config?.maxLength,
+          decoration: _inputDecoration().copyWith(
+            hintText: config?.placeholder,
+            counterText: config?.maxLength != null ? '' : null,
+          ),
+          onTap: () {
+            if (_isAndroidWeb) {
+              _deferScrollFieldIntoView(fieldContext);
+            }
+          },
+          onChanged: (value) => setState(() {
+            _fieldValues[field.id] = value;
+            _fieldErrors.remove(field.id);
+          }),
+        );
+      },
     );
   }
 
