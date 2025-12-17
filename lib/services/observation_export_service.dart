@@ -1,9 +1,12 @@
 import 'dart:typed_data';
 
 import 'package:file_saver/file_saver.dart';
+import 'package:flutter/widgets.dart';
 import 'package:my_app/l10n/gen/app_localizations.dart';
+import 'package:my_app/models/observation_field.dart';
 import 'package:syncfusion_flutter_xlsio/xlsio.dart' as xlsio;
 
+import 'package:my_app/models/observation_field_registry.dart';
 import 'package:my_app/screens/admin_page/admin_models.dart';
 import 'package:my_app/services/observation_service.dart';
 
@@ -30,7 +33,7 @@ class ObservationExportService {
 
     _buildMetadataSection(sheet, project, records.length, l10n);
     final headerCount = _buildTableHeaders(l10n).length;
-    _buildTable(sheet, records, l10n);
+    _buildTable(sheet, records, l10n, project.fields);
     _autoFitColumns(sheet, records.length, headerCount);
     _freezeHeaderRows(sheet);
 
@@ -86,8 +89,11 @@ class ObservationExportService {
     xlsio.Worksheet sheet,
     List<ObservationRecord> records,
     AppLocalizations l10n,
+    List<ObservationField> fields,
   ) {
-    final headers = _buildTableHeaders(l10n);
+    final dutchLocale = const Locale('nl');
+    final dutchStrings = lookupAppLocalizations(dutchLocale);
+    final headers = _buildTableHeaders(dutchStrings);
     for (var column = 0; column < headers.length; column++) {
       sheet
           .getRangeByIndex(_tableHeaderRowIndex, column + 1)
@@ -109,22 +115,83 @@ class ObservationExportService {
     for (var index = 0; index < records.length; index++) {
       final rowIndex = _tableHeaderRowIndex + 1 + index;
       final record = records[index];
+      final genderValue = localizeObservationOption(
+        fields: fields,
+        fieldId: ObservationFieldRegistry.genderFieldId,
+        rawValue: record.gender,
+        locale: dutchLocale,
+      );
+      final ageGroupValue = localizeObservationOption(
+        fields: fields,
+        fieldId: ObservationFieldRegistry.ageGroupFieldId,
+        rawValue: record.ageGroup,
+        locale: dutchLocale,
+      );
+      final socialContextValue = localizeObservationOption(
+        fields: fields,
+        fieldId: ObservationFieldRegistry.socialContextFieldId,
+        rawValue: record.socialContext,
+        locale: dutchLocale,
+      );
+      final activityLevelValue = localizeObservationOption(
+        fields: fields,
+        fieldId: ObservationFieldRegistry.activityLevelFieldId,
+        rawValue: record.activityLevel,
+        locale: dutchLocale,
+      );
+      final activityTypeValue = localizeObservationOption(
+        fields: fields,
+        fieldId: ObservationFieldRegistry.activityTypeFieldId,
+        rawValue: record.activityType,
+        locale: dutchLocale,
+      );
+      final genderMixValue = record.genderMix == null
+          ? '—'
+          : localizeObservationOption(
+              fields: fields,
+              fieldId: ObservationFieldRegistry.groupGenderMixFieldId,
+              rawValue: record.genderMix!,
+              locale: dutchLocale,
+            );
+      final ageMixValue = record.ageMix == null
+          ? '—'
+          : localizeObservationOption(
+              fields: fields,
+              fieldId: ObservationFieldRegistry.groupAgeMixFieldId,
+              rawValue: record.ageMix!,
+              locale: dutchLocale,
+            );
+      final locationLabel = localizeObservationLocation(
+        record: record,
+        fields: fields,
+        locale: dutchLocale,
+      );
+      final locationTypeLabel = localizeObservationOption(
+        fields: fields,
+        fieldId: ObservationFieldRegistry.locationTypeFieldId,
+        rawValue: record.locationTypeId,
+        locale: dutchLocale,
+      );
+      final modeValue = record.mode == 'group'
+          ? dutchStrings.adminRecordGroup
+          : dutchStrings.adminRecordIndividual;
+
       final values = [
         record.personId,
-        record.mode,
+        modeValue,
         record.timestamp,
         record.observerEmail ?? '—',
         record.observerUid ?? '—',
-        record.gender,
-        record.ageGroup,
-        record.socialContext,
-        record.activityLevel,
-        record.activityType,
-        _resolveLocationLabel(record),
-        record.locationTypeId,
+        genderValue,
+        ageGroupValue,
+        socialContextValue,
+        activityLevelValue,
+        activityTypeValue,
+        locationLabel,
+        locationTypeLabel,
         record.groupSize?.toString() ?? '—',
-        record.genderMix ?? '—',
-        record.ageMix ?? '—',
+        genderMixValue,
+        ageMixValue,
         record.notes.isEmpty ? '—' : record.notes,
       ];
 
@@ -145,16 +212,6 @@ class ObservationExportService {
 
   void _freezeHeaderRows(xlsio.Worksheet sheet) {
     sheet.getRangeByIndex(_tableHeaderRowIndex + 1, 1).freezePanes();
-  }
-
-  String _resolveLocationLabel(ObservationRecord record) {
-    if (record.locationLabel != null && record.locationLabel!.isNotEmpty) {
-      return record.locationLabel!;
-    }
-    if (record.locationTypeId.startsWith('custom:')) {
-      return record.locationTypeId.replaceFirst('custom:', '').trim();
-    }
-    return record.locationTypeId;
   }
 
   String _formatDateTime(DateTime value) {

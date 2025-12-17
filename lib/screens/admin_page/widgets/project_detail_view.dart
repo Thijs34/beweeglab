@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:my_app/l10n/l10n.dart';
 import 'package:my_app/models/observation_field.dart';
+import 'package:my_app/models/observation_field_registry.dart';
 import 'package:my_app/screens/admin_page/admin_models.dart';
 import 'package:my_app/screens/admin_page/widgets/project_detail_section_selector.dart';
 import 'package:my_app/screens/admin_page/widgets/project_observation_fields_card.dart';
@@ -1095,45 +1096,70 @@ class _ObservationDataCard extends StatelessWidget {
                 filteredObservations.length,
                 totalRecords,
               );
+    final refreshButton = OutlinedButton.icon(
+      onPressed: isLoadingMoreObservations ? null : onRefreshObservations,
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(0, 46),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      ),
+      icon: isLoadingMoreObservations
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.refresh, size: 18),
+      label: Text(l10n.adminRefreshData),
+    );
+
+    final exportButton = ElevatedButton.icon(
+      onPressed: isExporting ? null : onDownload,
+      style: ElevatedButton.styleFrom(
+        minimumSize: const Size(0, 46),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 14,
+        ),
+        textStyle: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(
+            AppTheme.borderRadiusMedium,
+          ),
+        ),
+      ),
+      icon: isExporting
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  AppTheme.white,
+                ),
+              ),
+            )
+          : const Icon(Icons.download, size: 18),
+      label: Text(
+        isExporting ? l10n.adminExporting : l10n.adminExport,
+      ),
+    );
+
+    final trailingButtons = <Widget>[
+      refreshButton,
+      if (project.observations.isNotEmpty) exportButton,
+    ];
+
     return _SectionCard(
       title: l10n.adminObservationDataTitle,
       subtitle: subtitle,
-      trailing: project.observations.isEmpty
-          ? null
-          : ElevatedButton.icon(
-              onPressed: isExporting ? null : onDownload,
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size(0, 46),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 14,
-                ),
-                textStyle: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(
-                    AppTheme.borderRadiusMedium,
-                  ),
-                ),
-              ),
-              icon: isExporting
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          AppTheme.white,
-                        ),
-                      ),
-                    )
-                  : const Icon(Icons.download, size: 18),
-              label: Text(
-                isExporting ? l10n.adminExporting : l10n.adminExport,
-              ),
-            ),
+      trailing: Wrap(
+        spacing: 12,
+        runSpacing: 8,
+        children: trailingButtons,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1162,18 +1188,6 @@ class _ObservationDataCard extends StatelessWidget {
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                           color: AppTheme.gray900,
-                        ),
-                      ),
-                      IconButton(
-                        tooltip: l10n.adminRefreshData,
-                        splashRadius: 18,
-                        iconSize: 18,
-                        onPressed: isLoadingMoreObservations
-                            ? null
-                            : onRefreshObservations,
-                        icon: const Icon(
-                          Icons.refresh,
-                          color: AppTheme.primaryOrange,
                         ),
                       ),
                       const Spacer(),
@@ -1367,6 +1381,7 @@ class _ObservationDataCard extends StatelessWidget {
                   .map(
                     (record) => _ObservationCard(
                       record: record,
+                      fields: project.fields,
                       locationOptions: locationOptions,
                       onEdit: () => onEditObservation(record),
                     ),
@@ -1410,11 +1425,13 @@ class _ObservationDataCard extends StatelessWidget {
 
 class _ObservationCard extends StatelessWidget {
   final ObservationRecord record;
+  final List<ObservationField> fields;
   final List<AdminLocationOption> locationOptions;
   final VoidCallback? onEdit;
 
   const _ObservationCard({
     required this.record,
+    required this.fields,
     required this.locationOptions,
     this.onEdit,
   });
@@ -1422,11 +1439,65 @@ class _ObservationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final locale = Localizations.localeOf(context);
     final locationDisplay = resolveLocationDisplay(
       record.locationTypeId,
       locationOptions,
     );
     final locationLabel = record.locationLabel ?? locationDisplay.label;
+    final genderValue = localizeObservationOption(
+      fields: fields,
+      fieldId: ObservationFieldRegistry.genderFieldId,
+      rawValue: record.gender,
+      locale: locale,
+    );
+    final ageGroupValue = localizeObservationOption(
+      fields: fields,
+      fieldId: ObservationFieldRegistry.ageGroupFieldId,
+      rawValue: record.ageGroup,
+      locale: locale,
+    );
+    final socialContextValue = localizeObservationOption(
+      fields: fields,
+      fieldId: ObservationFieldRegistry.socialContextFieldId,
+      rawValue: record.socialContext,
+      locale: locale,
+    );
+    final activityLevelValue = localizeObservationOption(
+      fields: fields,
+      fieldId: ObservationFieldRegistry.activityLevelFieldId,
+      rawValue: record.activityLevel,
+      locale: locale,
+    );
+    final activityTypeValue = localizeObservationOption(
+      fields: fields,
+      fieldId: ObservationFieldRegistry.activityTypeFieldId,
+      rawValue: record.activityType,
+      locale: locale,
+    );
+    final String? genderMixValue =
+        record.genderMix == null || record.genderMix!.trim().isEmpty
+            ? null
+            : localizeObservationOption(
+                fields: fields,
+                fieldId: ObservationFieldRegistry.groupGenderMixFieldId,
+                rawValue: record.genderMix!,
+                locale: locale,
+              );
+    final String? ageMixValue =
+        record.ageMix == null || record.ageMix!.trim().isEmpty
+            ? null
+            : localizeObservationOption(
+                fields: fields,
+                fieldId: ObservationFieldRegistry.groupAgeMixFieldId,
+                rawValue: record.ageMix!,
+                locale: locale,
+              );
+    final locationRowValue = localizeObservationLocation(
+      record: record,
+      fields: fields,
+      locale: locale,
+    );
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 12),
@@ -1551,30 +1622,33 @@ class _ObservationCard extends StatelessWidget {
             },
           ),
           const SizedBox(height: 12),
-          _ObservationRow(label: l10n.adminFieldGender, value: record.gender),
-          _ObservationRow(label: l10n.adminFieldAge, value: record.ageGroup),
+          _ObservationRow(label: l10n.adminFieldGender, value: genderValue),
+          _ObservationRow(label: l10n.adminFieldAge, value: ageGroupValue),
           _ObservationRow(
             label: l10n.adminFieldSocial,
-            value: record.socialContext,
+            value: socialContextValue,
           ),
           if (record.isGroup && record.groupSize != null)
             _ObservationRow(
               label: l10n.adminFieldGroupSize,
               value: record.groupSize.toString(),
             ),
-          if (record.isGroup && record.genderMix != null)
+          if (record.isGroup && genderMixValue != null)
             _ObservationRow(
               label: l10n.adminFieldGenderMix,
-              value: record.genderMix!,
+              value: genderMixValue,
             ),
-          if (record.isGroup && record.ageMix != null)
-            _ObservationRow(label: l10n.adminFieldAgeMix, value: record.ageMix!),
+          if (record.isGroup && ageMixValue != null)
+            _ObservationRow(label: l10n.adminFieldAgeMix, value: ageMixValue),
           _ObservationRow(
             label: l10n.adminFieldActivity,
-            value: record.activityLevel,
+            value: activityLevelValue,
           ),
-          _ObservationRow(label: l10n.adminFieldType, value: record.activityType),
-          _ObservationRow(label: l10n.adminFieldLocation, value: locationLabel),
+          _ObservationRow(label: l10n.adminFieldType, value: activityTypeValue),
+          _ObservationRow(
+            label: l10n.adminFieldLocation,
+            value: locationRowValue.isEmpty ? locationLabel : locationRowValue,
+          ),
           if (record.observerEmail?.isNotEmpty ?? false) ...[
             const SizedBox(height: 8),
             Row(
@@ -1691,52 +1765,87 @@ class _SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppTheme.white,
-        borderRadius: BorderRadius.circular(AppTheme.borderRadiusLarge),
-        border: Border.all(color: AppTheme.gray200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontFamily: AppTheme.fontFamilyHeading,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    if (subtitle != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle!,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppTheme.gray500,
-                        ),
-                      ),
-                    ],
-                  ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isCompact = constraints.maxWidth < 520;
+        final titleContent = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontFamily: AppTheme.fontFamilyHeading,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (subtitle != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                subtitle!,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.gray500,
                 ),
               ),
-              if (trailing != null) trailing!,
+            ],
+          ],
+        );
+
+        Widget buildHeader() {
+          if (isCompact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                titleContent,
+                if (trailing != null) ...[
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: Wrap(
+                        alignment: WrapAlignment.start,
+                        children: [trailing!],
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: titleContent),
+              if (trailing != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 12),
+                  child: trailing!,
+                ),
+            ],
+          );
+        }
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppTheme.white,
+            borderRadius: BorderRadius.circular(AppTheme.borderRadiusLarge),
+            border: Border.all(color: AppTheme.gray200),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              buildHeader(),
+              const SizedBox(height: 16),
+              child,
             ],
           ),
-          const SizedBox(height: 16),
-          child,
-        ],
-      ),
+        );
+      },
     );
   }
 }

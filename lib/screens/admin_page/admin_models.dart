@@ -1,5 +1,7 @@
+import 'package:flutter/widgets.dart';
 import 'package:my_app/l10n/gen/app_localizations.dart';
 import 'package:my_app/models/observation_field.dart';
+import 'package:my_app/models/observation_field_registry.dart';
 
 enum ProjectStatus { active, finished, archived }
 
@@ -299,4 +301,53 @@ class AdminDataRepository {
       abbreviation: 'S',
     ),
   ];
+}
+
+ObservationField? _findFieldById(
+  List<ObservationField> fields,
+  String fieldId,
+) {
+  for (final field in fields) {
+    if (field.id == fieldId) return field;
+  }
+  return null;
+}
+
+String localizeObservationOption({
+  required List<ObservationField> fields,
+  required String fieldId,
+  required String rawValue,
+  required Locale locale,
+}) {
+  if (rawValue.trim().isEmpty || rawValue == '—') return rawValue;
+  final field = _findFieldById(fields, fieldId);
+  if (field == null) return rawValue;
+  final config = field.config;
+  if (config is OptionObservationFieldConfig) {
+    for (final option in config.options) {
+      if (option.id == rawValue) {
+        return option.labelForLocale(locale.languageCode);
+      }
+    }
+  }
+  return rawValue;
+}
+
+String localizeObservationLocation({
+  required ObservationRecord record,
+  required List<ObservationField> fields,
+  required Locale locale,
+}) {
+  if (record.locationLabel != null && record.locationLabel!.trim().isNotEmpty) {
+    return record.locationLabel!;
+  }
+  if (record.locationTypeId.startsWith('custom:')) {
+    return record.locationTypeId.replaceFirst('custom:', '').trim();
+  }
+  return localizeObservationOption(
+    fields: fields,
+    fieldId: ObservationFieldRegistry.locationTypeFieldId,
+    rawValue: record.locationTypeId,
+    locale: locale,
+  );
 }
