@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:my_app/l10n/l10n.dart';
 import 'package:my_app/models/navigation_arguments.dart';
@@ -35,6 +36,11 @@ const Map<String, String> _kDefaultLocationLabels = {
   'playground': 'Playground (P)',
   'skate-park': 'Skate Park (S)',
 };
+
+typedef _Coordinates = ({double latitude, double longitude});
+
+const double _kFallbackLatitude = 51.4416;
+const double _kFallbackLongitude = 5.4697;
 
 class ObserverPageArguments {
   final Project? project;
@@ -449,8 +455,9 @@ class _ObserverPageState extends State<ObserverPage> {
 
   Future<void> _fetchWeather() async {
     setState(() => _isWeatherLoading = true);
-    const double latitude = 51.4416;
-    const double longitude = 5.4697;
+    final coordinates = await _resolveCurrentCoordinates();
+    final double latitude = coordinates?.latitude ?? _kFallbackLatitude;
+    final double longitude = coordinates?.longitude ?? _kFallbackLongitude;
     final uri = Uri.parse(
       'https://api.open-meteo.com/v1/forecast?latitude=$latitude&longitude=$longitude&current_weather=true',
     );
@@ -486,6 +493,36 @@ class _ObserverPageState extends State<ObserverPage> {
       debugPrint('Failed to fetch weather: $error');
       if (!mounted) return;
       setState(() => _isWeatherLoading = false);
+    }
+  }
+
+  Future<_Coordinates?> _resolveCurrentCoordinates() async {
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        debugPrint('Location services disabled; using fallback weather.');
+        return null;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever ||
+          permission == LocationPermission.unableToDetermine) {
+        debugPrint('Location permission unavailable ($permission).');
+        return null;
+      }
+
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.low,
+      );
+      return (latitude: position.latitude, longitude: position.longitude);
+    } catch (error) {
+      debugPrint('Failed to resolve current location: $error');
+      return null;
     }
   }
 
