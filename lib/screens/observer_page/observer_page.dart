@@ -58,7 +58,7 @@ class ObserverPage extends StatefulWidget {
 }
 
 class _ObserverPageState extends State<ObserverPage> {
-  static const Color _pageBackground = Color(0xFFF8FAFC);
+  static const Color _pageBackground = AppTheme.background;
   static const String _kOtherOptionValue = '__other__';
 
   final TextEditingController _personIdController = TextEditingController(
@@ -159,15 +159,17 @@ class _ObserverPageState extends State<ObserverPage> {
     for (int i = 1; i <= attempts; i++) {
       Future.delayed(stepDelay * i, () {
         if (!mounted) return;
+        if (!fieldContext.mounted) return;
         _scrollFieldIntoView(fieldContext);
       });
     }
   }
 
   void _scrollFieldIntoView(BuildContext fieldContext) {
-    if (!_scrollController.hasClients) return;
+    if (!fieldContext.mounted || !_scrollController.hasClients) return;
 
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final mediaQuery = MediaQuery.of(fieldContext);
+    final bottomInset = mediaQuery.viewInsets.bottom;
     if (bottomInset <= 0) return;
 
     final renderObject = fieldContext.findRenderObject();
@@ -177,8 +179,6 @@ class _ObserverPageState extends State<ObserverPage> {
     final fieldOffset = fieldBox.localToGlobal(Offset.zero);
     final fieldHeight = fieldBox.size.height;
     final fieldBottom = fieldOffset.dy + fieldHeight;
-
-    final mediaQuery = MediaQuery.of(context);
     final screenHeight = mediaQuery.size.height;
 
     // The visible area ends at the top of the keyboard. Keep a tiny
@@ -292,7 +292,7 @@ class _ObserverPageState extends State<ObserverPage> {
       child: LayoutBuilder(
         builder: (context, constraints) {
           return ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 672),
+            constraints: const BoxConstraints(maxWidth: AppTheme.maxContentWidth),
             child: Column(
               children: [
                 Expanded(
@@ -321,8 +321,8 @@ class _ObserverPageState extends State<ObserverPage> {
                         child: Container(
                           color: AppTheme.gray50,
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 8,
+                            horizontal: AppTheme.pageGutter,
+                            vertical: AppTheme.spacing12,
                           ),
                           child: Column(
                             children: [
@@ -330,7 +330,7 @@ class _ObserverPageState extends State<ObserverPage> {
                                 padding: const EdgeInsets.all(12),
                                 child: _buildModeToggle(),
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 12),
                               ObserverSectionCard(child: _buildFormCard()),
                               SizedBox(height: extraScrollPadding),
                             ],
@@ -353,88 +353,93 @@ class _ObserverPageState extends State<ObserverPage> {
       left: 0,
       right: 0,
       bottom: 0,
-      child: Container(
-        decoration: const BoxDecoration(
-          color: AppTheme.white,
-          border: Border(top: BorderSide(color: AppTheme.gray200, width: 1)),
-          boxShadow: [
-            BoxShadow(
-              color: Color(0x14000000),
-              blurRadius: 12,
-              offset: Offset(0, -2),
-            ),
-          ],
-        ),
-        padding: const EdgeInsets.all(12),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 672),
-            child: Row(
-              children: [
-                Expanded(
-                  child: SizedBox(
-                    height: 48,
-                    child: OutlinedButton(
-                      onPressed: _handleFinishSession,
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(
-                          color: AppTheme.gray300,
-                          width: 1,
-                        ),
-                        foregroundColor: AppTheme.gray700,
-                        textStyle: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            AppTheme.borderRadiusMedium,
+      child: SafeArea(
+        top: false,
+        child: Container(
+          decoration: const BoxDecoration(
+            color: AppTheme.white,
+            border: Border(top: BorderSide(color: AppTheme.gray200, width: 1)),
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x14000000),
+                blurRadius: 12,
+                offset: Offset(0, -2),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(12),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: AppTheme.maxContentWidth,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: OutlinedButton(
+                        onPressed: _handleFinishSession,
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(
+                            color: AppTheme.gray300,
+                            width: 1,
+                          ),
+                          foregroundColor: AppTheme.gray700,
+                          textStyle: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              AppTheme.borderRadiusMedium,
+                            ),
                           ),
                         ),
+                        child: Text(context.l10n.observerFinishSession),
                       ),
-                      child: Text(context.l10n.observerFinishSession),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: SizedBox(
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: _isSubmitting ? null : _handleSubmitEntry,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryOrange,
-                        foregroundColor: AppTheme.white,
-                        textStyle: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            AppTheme.borderRadiusMedium,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: _isSubmitting ? null : _handleSubmitEntry,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryOrange,
+                          foregroundColor: AppTheme.white,
+                          textStyle: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              AppTheme.borderRadiusMedium,
+                            ),
                           ),
                         ),
-                      ),
-                      child: _isSubmitting
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  AppTheme.white,
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    AppTheme.white,
+                                  ),
                                 ),
-                              ),
-                            )
+                              )
                             : Text(
-                              _mode == ObservationMode.group
+                                _mode == ObservationMode.group
                                 ? context.l10n.observerSubmitGroup
                                 : context.l10n.observerSubmitPerson,
-                            ),
+                              ),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -565,7 +570,7 @@ class _ObserverPageState extends State<ObserverPage> {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: AppTheme.gray50,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppTheme.borderRadiusLarge),
           border: Border.all(color: AppTheme.gray200, width: 1),
         ),
         child: Text(
@@ -658,6 +663,7 @@ class _ObserverPageState extends State<ObserverPage> {
     final isMultiline = config?.multiline ?? false;
     final maxLines = isMultiline ? null : 1;
     final minLines = isMultiline ? 3 : 1;
+    final hintText = _localizedPlaceholderForField(field, config);
     return Builder(
       builder: (fieldContext) {
         return TextField(
@@ -666,7 +672,7 @@ class _ObserverPageState extends State<ObserverPage> {
           minLines: minLines,
           maxLength: config?.maxLength,
           decoration: _inputDecoration().copyWith(
-            hintText: config?.placeholder,
+            hintText: hintText,
             counterText: config?.maxLength != null ? '' : null,
           ),
           onTap: () {
@@ -681,6 +687,19 @@ class _ObserverPageState extends State<ObserverPage> {
         );
       },
     );
+  }
+
+  String? _localizedPlaceholderForField(
+    ObservationField field,
+    TextObservationFieldConfig? config,
+  ) {
+    if (field.id == ObservationFieldRegistry.activityNotesFieldId) {
+      return context.l10n.observerActivityNotesPlaceholder;
+    }
+    if (field.id == ObservationFieldRegistry.remarksFieldId) {
+      return context.l10n.observerRemarksPlaceholder;
+    }
+    return config?.placeholder;
   }
 
   Widget _buildGroupSizeField(ObservationField field) {
@@ -1195,23 +1214,8 @@ class _ObserverPageState extends State<ObserverPage> {
   }
 
   InputDecoration _inputDecoration() {
-    return InputDecoration(
-      filled: true,
-      fillColor: AppTheme.gray50,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppTheme.gray300, width: 1),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppTheme.gray300, width: 1),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppTheme.primaryOrange, width: 1),
-      ),
-    );
+    final decorationTheme = Theme.of(context).inputDecorationTheme;
+    return const InputDecoration().applyDefaults(decorationTheme);
   }
 
   Future<void> _handleSubmitEntry() async {

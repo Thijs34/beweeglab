@@ -182,6 +182,8 @@
   "observerNoProjectSubtitle": "Choose a project from the list to start recording observations.",
   "observerBackToProjectList": "Back to projects",
   "observerAdditionalNotesHint": "Additional notes...",
+  "observerActivityNotesPlaceholder": "Describe what is happening",
+  "observerRemarksPlaceholder": "Any extra remarks?",
   "observerDateLabel": "Date",
   "observerTimeLabel": "Time",
   "observerModeLabel": "Observation Mode",

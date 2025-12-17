@@ -37,24 +37,17 @@ class ObserverHeader extends StatelessWidget {
 
   Color _iconColor() => switch (weatherCondition) {
     WeatherCondition.cloudy => AppTheme.gray500,
-    WeatherCondition.rainy => const Color(0xFF2563EB),
-    WeatherCondition.sunny => const Color(0xFFF59E0B),
+    WeatherCondition.rainy => AppTheme.gray700,
+    WeatherCondition.sunny => AppTheme.primaryOrange,
   };
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppTheme.white,
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x14000000),
-            blurRadius: 4,
-            offset: Offset(0, 1),
-          ),
-        ],
-      ),
+    return Material(
+      color: AppTheme.white,
+      elevation: 1,
+      shadowColor: Colors.black.withValues(alpha: 0.08),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -69,12 +62,18 @@ class ObserverHeader extends StatelessWidget {
                     children: [
                       Text(
                         siteLabel,
-                        style: const TextStyle(
-                          fontFamily: AppTheme.fontFamilyHeading,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.gray900,
-                        ),
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontFamily: AppTheme.fontFamilyHeading,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.gray900,
+                            ) ??
+                            const TextStyle(
+                              fontFamily: AppTheme.fontFamilyHeading,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.gray900,
+                            ),
                       ),
                       const SizedBox(height: 6),
                       Row(
@@ -120,7 +119,7 @@ class ObserverHeader extends StatelessWidget {
               left: 20,
               right: 20,
               top: 10,
-              bottom: 6,
+              bottom: 10,
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -129,24 +128,32 @@ class ObserverHeader extends StatelessWidget {
                 Row(
                   children: [
                     _InfoChip(label: l10n.observerDateLabel, value: dateLabel),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 12),
                     _InfoChip(label: l10n.observerTimeLabel, value: timeLabel),
                   ],
                 ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(_iconForWeather(), size: 20, color: _iconColor()),
-                    const SizedBox(width: 8),
-                    Text(
-                      temperatureLabel,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.gray700,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppTheme.white,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: AppTheme.gray200, width: 1),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(_iconForWeather(), size: 18, color: _iconColor()),
+                      const SizedBox(width: 8),
+                      Text(
+                        temperatureLabel,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.gray700,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -165,22 +172,31 @@ class _InfoChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(
-          '$label:',
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: AppTheme.gray700,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppTheme.white,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppTheme.gray200, width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$label:',
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.gray700,
+            ),
           ),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 14, color: AppTheme.gray700),
-        ),
-      ],
+          const SizedBox(width: 6),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 13, color: AppTheme.gray700),
+          ),
+        ],
+      ),
     );
   }
 }

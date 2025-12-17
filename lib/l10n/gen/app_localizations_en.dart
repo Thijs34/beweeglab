@@ -476,6 +476,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get observerAdditionalNotesHint => 'Additional notes...';
 
   @override
+  String get observerActivityNotesPlaceholder => 'Describe what is happening';
+
+  @override
+  String get observerRemarksPlaceholder => 'Any extra remarks?';
+
+  @override
   String get observerDateLabel => 'Date';
 
   @override

@@ -182,6 +182,8 @@
   "observerNoProjectSubtitle": "Kies een project uit de lijst om observaties te starten.",
   "observerBackToProjectList": "Terug naar projecten",
   "observerAdditionalNotesHint": "Extra notities...",
+    "observerActivityNotesPlaceholder": "Beschrijf wat er gebeurt",
+    "observerRemarksPlaceholder": "Aanvullende opmerkingen?",
   "observerDateLabel": "Datum",
   "observerTimeLabel": "Tijd",
   "observerModeLabel": "Observatiemodus",

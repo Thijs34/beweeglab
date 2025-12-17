@@ -325,7 +325,7 @@ class ObservationFieldRegistry {
       displayOrder: 110,
       config: TextObservationFieldConfig(
         maxLength: 200,
-        placeholder: 'Describe what is happening',
+        placeholder: 'Any extra remarks?',
       ),
     ),
     ObservationField(

@@ -10,19 +10,19 @@ class LocaleService extends ChangeNotifier {
   static final LocaleService instance = LocaleService._();
 
   static const supportedLocales = <Locale>[
-    Locale('en'),
     Locale('nl'),
+    Locale('en'),
   ];
 
   Locale? _selectedLocale;
 
-  /// The locale currently used by the app. Falls back to device or English.
+  /// The locale currently used by the app. Falls back to device or Dutch.
   Locale get locale => _selectedLocale ?? _deviceLocale;
 
   /// Returns the explicitly selected locale, if any.
   Locale? get selectedLocale => _selectedLocale;
 
-  Locale get _fallbackLocale => supportedLocales.first;
+  Locale get _fallbackLocale => const Locale('nl');
 
   Locale get _deviceLocale {
     final device = WidgetsBinding.instance.platformDispatcher.locale;
@@ -32,11 +32,12 @@ class LocaleService extends ChangeNotifier {
   Future<void> loadSavedLocale() async {
     final prefs = await SharedPreferences.getInstance();
     final savedCode = prefs.getString(_preferenceKey);
-    if (savedCode == null || savedCode.isEmpty) return;
-    final savedLocale = _localeFromCode(savedCode);
-    if (savedLocale != null) {
-      _selectedLocale = savedLocale;
+    if (savedCode == null || savedCode.isEmpty) {
+      _selectedLocale = _fallbackLocale;
+      return;
     }
+    final savedLocale = _localeFromCode(savedCode);
+    _selectedLocale = savedLocale ?? _fallbackLocale;
   }
 
   Future<void> setLocale(Locale locale) async {
@@ -50,7 +51,7 @@ class LocaleService extends ChangeNotifier {
   }
 
   Future<void> clearSavedLocale() async {
-    _selectedLocale = null;
+    _selectedLocale = _fallbackLocale;
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_preferenceKey);

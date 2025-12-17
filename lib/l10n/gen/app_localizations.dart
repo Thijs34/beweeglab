@@ -974,6 +974,18 @@ abstract class AppLocalizations {
   /// **'Additional notes...'**
   String get observerAdditionalNotesHint;
 
+  /// No description provided for @observerActivityNotesPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe what is happening'**
+  String get observerActivityNotesPlaceholder;
+
+  /// No description provided for @observerRemarksPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Any extra remarks?'**
+  String get observerRemarksPlaceholder;
+
   /// No description provided for @observerDateLabel.
   ///
   /// In en, this message translates to:

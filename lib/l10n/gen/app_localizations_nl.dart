@@ -478,6 +478,12 @@ class AppLocalizationsNl extends AppLocalizations {
   String get observerAdditionalNotesHint => 'Extra notities...';
 
   @override
+  String get observerActivityNotesPlaceholder => 'Beschrijf wat er gebeurt';
+
+  @override
+  String get observerRemarksPlaceholder => 'Aanvullende opmerkingen?';
+
+  @override
   String get observerDateLabel => 'Datum';
 
   @override

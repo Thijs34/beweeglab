@@ -20,13 +20,13 @@ class ObserverSectionCard extends StatelessWidget {
       margin: margin,
       decoration: BoxDecoration(
         color: AppTheme.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppTheme.borderRadiusLarge),
         border: Border.all(color: AppTheme.gray200, width: 1),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x0D000000),
-            blurRadius: 3,
-            offset: Offset(0, 1),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
