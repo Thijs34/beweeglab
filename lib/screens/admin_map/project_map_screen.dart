@@ -54,6 +54,7 @@ class _ProjectMapScreenState extends State<ProjectMapScreen> {
   bool _isMapSdkReady = !kIsWeb;
   String? _mapSdkError;
   bool _mapSdkRetryEnabled = true;
+  bool _isLegendExpanded = false;
 
   GoogleMapController? _mapController;
 
@@ -490,20 +491,38 @@ class _ProjectMapScreenState extends State<ProjectMapScreen> {
           ),
         ),
         Positioned(
-          top: 16,
-          left: 16,
-          child: _MapSummaryChip(projectCount: _pins.length),
+          top: 12,
+          right: 12,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              _LegendToggleButton(
+                isExpanded: _isLegendExpanded,
+                onTap: () => setState(
+                  () => _isLegendExpanded = !_isLegendExpanded,
+                ),
+              ),
+              if (_isLegendExpanded)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: _MapLegend(),
+                ),
+            ],
+          ),
         ),
         Positioned(
-          top: 16,
-          right: 16,
-          child: _MapLegend(),
+          top: 12,
+          left: 12,
+          child: _ProjectCountChip(
+            projectCount: _pins.length,
+            isLoading: _isLoading,
+          ),
         ),
         if (_selectedPin != null)
           Positioned(
-            bottom: 24,
-            left: 16,
-            right: 16,
+            bottom: 12,
+            left: 12,
+            right: 12,
             child: _ProjectPreviewCard(
               pin: _selectedPin!,
               onClose: () => setState(() => _selectedPin = null),
@@ -619,7 +638,7 @@ class _ProjectPreviewCard extends StatelessWidget {
       elevation: 8,
       borderRadius: BorderRadius.circular(AppTheme.borderRadiusLarge),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: AppTheme.white,
           borderRadius: BorderRadius.circular(AppTheme.borderRadiusLarge),
@@ -698,19 +717,33 @@ class _StatusPill extends StatelessWidget {
   }
 }
 
-class _MapSummaryChip extends StatelessWidget {
+class _ProjectCountChip extends StatelessWidget {
   final int projectCount;
+  final bool isLoading;
 
-  const _MapSummaryChip({required this.projectCount});
+  const _ProjectCountChip({
+    required this.projectCount,
+    required this.isLoading,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final label = isLoading
+        ? 'Loading projects...'
+        : context.l10n.projectMapProjectCount(projectCount);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.9),
+        color: Colors.white.withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: AppTheme.gray200),
+        border: Border.all(color: AppTheme.gray200, width: 1.5),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x11000000),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -718,7 +751,7 @@ class _MapSummaryChip extends StatelessWidget {
           const Icon(Icons.place_outlined, size: 16, color: AppTheme.gray600),
           const SizedBox(width: 6),
           Text(
-            context.l10n.projectMapProjectCount(projectCount),
+            label,
             style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
@@ -841,4 +874,58 @@ class _LegendItem {
   final String assetPath;
 
   const _LegendItem({required this.label, required this.assetPath});
+}
+
+class _LegendToggleButton extends StatelessWidget {
+  final bool isExpanded;
+  final VoidCallback onTap;
+
+  const _LegendToggleButton({
+    required this.isExpanded,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppTheme.gray200, width: 1.5),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x11000000),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isExpanded ? Icons.close : Icons.menu_book_outlined,
+                size: 18,
+                color: AppTheme.gray700,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                context.l10n.projectMapLegendTitle,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.gray700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

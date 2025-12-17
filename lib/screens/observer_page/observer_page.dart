@@ -517,7 +517,9 @@ class _ObserverPageState extends State<ObserverPage> {
       }
 
       final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.low,
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.low,
+        ),
       );
       return (latitude: position.latitude, longitude: position.longitude);
     } catch (error) {
