@@ -1,6 +1,7 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:my_app/models/navigation_arguments.dart';
-import 'package:flutter/gestures.dart';
 import 'package:my_app/services/auth_service.dart';
 import 'package:my_app/theme/app_theme.dart';
 import 'package:my_app/l10n/l10n.dart';
@@ -19,15 +20,21 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
+  static const double _androidKeyboardSpacerHeight = 300;
   final _formKey = GlobalKey<FormState>();
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final FocusNode _passwordFocusNode = FocusNode();
+  final FocusNode _confirmPasswordFocusNode = FocusNode();
   String? _errorMessage;
   bool _isSubmitting = false;
   late TapGestureRecognizer _loginRecognizer;
+
+  bool get _isAndroidWeb =>
+      kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
   @override
   void dispose() {
@@ -36,6 +43,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _passwordFocusNode.removeListener(_handlePasswordFocusChange);
+    _confirmPasswordFocusNode.removeListener(_handlePasswordFocusChange);
+    _passwordFocusNode.dispose();
+    _confirmPasswordFocusNode.dispose();
     _loginRecognizer.dispose();
     super.dispose();
   }
@@ -44,6 +55,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
   void initState() {
     super.initState();
     _loginRecognizer = TapGestureRecognizer()..onTap = _navigateToLogin;
+    _passwordFocusNode.addListener(_handlePasswordFocusChange);
+    _confirmPasswordFocusNode.addListener(_handlePasswordFocusChange);
+  }
+
+  void _handlePasswordFocusChange() {
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  double _extraBottomPadding(BuildContext context) {
+    if (!_isAndroidWeb) return 0;
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    if (bottomInset <= 0) return 0;
+    if (!_passwordFocusNode.hasFocus && !_confirmPasswordFocusNode.hasFocus) {
+      return 0;
+    }
+    return _androidKeyboardSpacerHeight;
   }
 
   Future<void> _handleSignUp() async {
@@ -111,8 +139,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    const EdgeInsets basePadding = EdgeInsets.symmetric(vertical: 32, horizontal: 8);
+    final double spacer = _extraBottomPadding(context);
+    final EdgeInsetsGeometry layoutPadding = spacer > 0
+        ? basePadding.add(EdgeInsets.only(bottom: spacer))
+        : basePadding;
     return AuthFormLayout(
-      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 8),
+      padding: layoutPadding,
+      overlayAndroidWebKeyboard: _isAndroidWeb,
       child: Form(
         key: _formKey,
         child: Column(
@@ -168,6 +202,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     label: l10n.signupPasswordLabel,
                     placeholder: l10n.signupPasswordPlaceholder,
                     controller: _passwordController,
+                    focusNode: _passwordFocusNode,
                     isPassword: true,
                     validator: (value) {
                       final text = value?.trim() ?? '';
@@ -185,6 +220,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     label: l10n.signupPasswordConfirmLabel,
                     placeholder: l10n.signupPasswordConfirmPlaceholder,
                     controller: _confirmPasswordController,
+                    focusNode: _confirmPasswordFocusNode,
                     isPassword: true,
                     validator: (value) {
                       if ((value ?? '').trim().isEmpty) {

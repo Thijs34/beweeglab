@@ -6,6 +6,7 @@ class CustomTextField extends StatefulWidget {
   final String label;
   final String placeholder;
   final TextEditingController? controller;
+  final FocusNode? focusNode;
   final bool isPassword;
   final TextInputType keyboardType;
   final String? Function(String?)? validator;
@@ -16,6 +17,7 @@ class CustomTextField extends StatefulWidget {
     required this.label,
     required this.placeholder,
     this.controller,
+    this.focusNode,
     this.isPassword = false,
     this.keyboardType = TextInputType.text,
     this.validator,
@@ -28,11 +30,12 @@ class CustomTextField extends StatefulWidget {
 
 class _CustomTextFieldState extends State<CustomTextField> {
   bool _obscureText = true;
-  final FocusNode _focusNode = FocusNode();
   TextEditingController? _internalController;
+  FocusNode? _internalFocusNode;
 
   TextEditingController get _controller =>
       widget.controller ?? _internalController!;
+  FocusNode get _focusNode => widget.focusNode ?? _internalFocusNode!;
 
   @override
   void initState() {
@@ -40,6 +43,9 @@ class _CustomTextFieldState extends State<CustomTextField> {
     _obscureText = widget.isPassword;
     if (widget.controller == null) {
       _internalController = TextEditingController();
+    }
+    if (widget.focusNode == null) {
+      _internalFocusNode = FocusNode();
     }
   }
 
@@ -58,11 +64,23 @@ class _CustomTextFieldState extends State<CustomTextField> {
         _internalController = null;
       }
     }
+    if (oldWidget.focusNode != widget.focusNode) {
+      if (oldWidget.focusNode == null) {
+        _internalFocusNode?.dispose();
+      }
+      if (widget.focusNode == null) {
+        _internalFocusNode = FocusNode();
+      } else {
+        _internalFocusNode = null;
+      }
+    }
   }
 
   @override
   void dispose() {
-    _focusNode.dispose();
+    if (widget.focusNode == null) {
+      _internalFocusNode?.dispose();
+    }
     if (widget.controller == null) {
       _internalController?.dispose();
     }

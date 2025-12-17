@@ -1,6 +1,7 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:my_app/l10n/l10n.dart';
-import 'package:flutter/gestures.dart';
 import 'package:my_app/models/navigation_arguments.dart';
 import 'package:my_app/services/auth_service.dart';
 import 'package:my_app/theme/app_theme.dart';
@@ -19,17 +20,24 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  static const double _androidKeyboardSpacerHeight = 300;
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final FocusNode _passwordFocusNode = FocusNode();
   String? _errorMessage;
   bool _isSubmitting = false;
   late TapGestureRecognizer _signUpRecognizer;
+
+  bool get _isAndroidWeb =>
+      kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _passwordFocusNode.removeListener(_handlePasswordFocusChange);
+    _passwordFocusNode.dispose();
     _signUpRecognizer.dispose();
     super.dispose();
   }
@@ -38,6 +46,20 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     _signUpRecognizer = TapGestureRecognizer()..onTap = _navigateToSignUp;
+    _passwordFocusNode.addListener(_handlePasswordFocusChange);
+  }
+
+  void _handlePasswordFocusChange() {
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  double _extraBottomPadding(BuildContext context) {
+    if (!_isAndroidWeb) return 0;
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    if (bottomInset <= 0) return 0;
+    if (!_passwordFocusNode.hasFocus) return 0;
+    return _androidKeyboardSpacerHeight;
   }
 
   Future<void> _handleLogin() async {
@@ -235,7 +257,14 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    const basePadding = EdgeInsets.symmetric(horizontal: 8, vertical: 16);
+    final double spacer = _extraBottomPadding(context);
+    final EdgeInsetsGeometry layoutPadding = spacer > 0
+        ? basePadding.add(EdgeInsets.only(bottom: spacer))
+        : basePadding;
     return AuthFormLayout(
+      padding: layoutPadding,
+      overlayAndroidWebKeyboard: _isAndroidWeb,
       child: Form(
         key: _formKey,
         child: Column(
@@ -279,6 +308,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     label: l10n.commonPasswordLabel,
                     placeholder: l10n.loginPasswordPlaceholder,
                     controller: _passwordController,
+                    focusNode: _passwordFocusNode,
                     isPassword: true,
                     validator: (value) {
                       if ((value ?? '').trim().isEmpty) {
