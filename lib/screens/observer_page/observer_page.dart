@@ -1201,17 +1201,36 @@ class _ObserverPageState extends State<ObserverPage> {
     int columns = 2,
     double gap = 8,
     double height = 40,
+    double minItemWidth = 140,
   }) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final double totalGap = gap * (columns - 1);
-        final double itemWidth = (constraints.maxWidth - totalGap) / columns;
+        final mediaWidth = MediaQuery.of(context).size.width;
+        final double availableWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : mediaWidth;
+        int maxColumns = options.isEmpty ? 1 : columns.clamp(1, options.length);
+        double widthFor(int count) {
+          if (count <= 1) {
+            return availableWidth;
+          }
+          final double totalGap = gap * (count - 1);
+          return (availableWidth - totalGap) / count;
+        }
+
+        int resolvedColumns = maxColumns;
+        while (resolvedColumns > 1 && widthFor(resolvedColumns) < minItemWidth) {
+          resolvedColumns -= 1;
+        }
+
+        final double itemWidth = widthFor(resolvedColumns);
+
         return Wrap(
           spacing: gap,
           runSpacing: gap,
           children: options.map((option) {
             return SizedBox(
-              width: itemWidth,
+              width: itemWidth.isFinite ? itemWidth : null,
               child: ObserverOptionButton(
                 label: option.label,
                 selected: selectedValues.contains(option.value),

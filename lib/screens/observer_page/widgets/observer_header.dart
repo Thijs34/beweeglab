@@ -108,55 +108,107 @@ class ObserverHeader extends StatelessWidget {
               ],
             ),
           ),
-          Container(
-            decoration: const BoxDecoration(
-              color: AppTheme.gray50,
-              border: Border(
-                bottom: BorderSide(color: AppTheme.primaryOrange, width: 4),
-              ),
-            ),
-            padding: const EdgeInsets.only(
-              left: 20,
-              right: 20,
-              top: 10,
-              bottom: 10,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Row(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final double width = constraints.maxWidth.isFinite
+                  ? constraints.maxWidth
+                  : MediaQuery.of(context).size.width;
+
+              final bool compactChips = width < 380;
+              double horizontalPadding;
+              double chipSpacing;
+              double weatherPadding;
+              double weatherGap;
+
+              if (width < 285) {
+                horizontalPadding = 4;
+                chipSpacing = 0;
+                weatherPadding = 3;
+                weatherGap = 1;
+              } else if (width < 305) {
+                horizontalPadding = 6;
+                chipSpacing = 2;
+                weatherPadding = 5;
+                weatherGap = 3;
+              } else if (width < 330) {
+                horizontalPadding = 10;
+                chipSpacing = 4;
+                weatherPadding = 6;
+                weatherGap = 4;
+              } else if (width < 360) {
+                horizontalPadding = 12;
+                chipSpacing = 6;
+                weatherPadding = 8;
+                weatherGap = 6;
+              } else {
+                horizontalPadding = 20;
+                chipSpacing = 12;
+                weatherPadding = 10;
+                weatherGap = 8;
+              }
+
+              return Container(
+                decoration: const BoxDecoration(
+                  color: AppTheme.gray50,
+                  border: Border(
+                    bottom: BorderSide(color: AppTheme.primaryOrange, width: 4),
+                  ),
+                ),
+                padding: EdgeInsets.only(
+                  left: horizontalPadding,
+                  right: horizontalPadding,
+                  top: 10,
+                  bottom: 10,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    _InfoChip(label: l10n.observerDateLabel, value: dateLabel),
-                    const SizedBox(width: 12),
-                    _InfoChip(label: l10n.observerTimeLabel, value: timeLabel),
+                    Row(
+                      children: [
+                        _InfoChip(
+                          label: l10n.observerDateLabel,
+                          value: dateLabel,
+                          compact: compactChips,
+                        ),
+                        SizedBox(width: chipSpacing),
+                        _InfoChip(
+                          label: l10n.observerTimeLabel,
+                          value: timeLabel,
+                          compact: compactChips,
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: weatherPadding,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.white,
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: AppTheme.gray200, width: 1),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(_iconForWeather(), size: 18, color: _iconColor()),
+                          SizedBox(width: weatherGap),
+                          Text(
+                            temperatureLabel,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.gray700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppTheme.white,
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: AppTheme.gray200, width: 1),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(_iconForWeather(), size: 18, color: _iconColor()),
-                      const SizedBox(width: 8),
-                      Text(
-                        temperatureLabel,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.gray700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              );
+            },
           ),
         ],
       ),
@@ -167,13 +219,21 @@ class ObserverHeader extends StatelessWidget {
 class _InfoChip extends StatelessWidget {
   final String label;
   final String value;
+  final bool compact;
 
-  const _InfoChip({required this.label, required this.value});
+  const _InfoChip({
+    required this.label,
+    required this.value,
+    this.compact = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 8 : 10,
+        vertical: 6,
+      ),
       decoration: BoxDecoration(
         color: AppTheme.white,
         borderRadius: BorderRadius.circular(999),
@@ -190,7 +250,7 @@ class _InfoChip extends StatelessWidget {
               color: AppTheme.gray700,
             ),
           ),
-          const SizedBox(width: 6),
+          SizedBox(width: compact ? 4 : 6),
           Text(
             value,
             style: const TextStyle(fontSize: 13, color: AppTheme.gray700),
