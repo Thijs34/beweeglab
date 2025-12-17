@@ -119,6 +119,7 @@ class ObserverHeader extends StatelessWidget {
               double chipSpacing;
               double weatherPadding;
               double weatherGap;
+              double weatherFontSize = 14;
 
               if (width < 285) {
                 horizontalPadding = 4;
@@ -145,6 +146,15 @@ class ObserverHeader extends StatelessWidget {
                 chipSpacing = 12;
                 weatherPadding = 10;
                 weatherGap = 8;
+              }
+
+              final bool isWeatherLoadingLabel =
+                  temperatureLabel.toLowerCase().startsWith('loading');
+              if (isWeatherLoadingLabel) {
+                if (weatherPadding > 4) weatherPadding -= 2;
+                if (weatherGap > 4) weatherGap -= 2;
+                weatherFontSize = 13;
+                horizontalPadding = 0;
               }
 
               return Container(
@@ -196,8 +206,8 @@ class ObserverHeader extends StatelessWidget {
                           SizedBox(width: weatherGap),
                           Text(
                             temperatureLabel,
-                            style: const TextStyle(
-                              fontSize: 14,
+                            style: TextStyle(
+                              fontSize: weatherFontSize,
                               fontWeight: FontWeight.w600,
                               color: AppTheme.gray700,
                             ),
