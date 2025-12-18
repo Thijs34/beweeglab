@@ -253,6 +253,7 @@
   "commonClose": "Close",
   "projectMapLocationUnavailable": "Location unavailable",
   "projectMapOpenInAdmin": "Open in Admin",
+  "projectMapNoMappableProjects": "No projects with mappable locations yet.",
   "projectMapProjectCount": "{count, plural, one {{count} project} other {{count} projects}}",
   "@projectMapProjectCount": {
     "placeholders": {

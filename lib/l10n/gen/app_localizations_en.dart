@@ -648,6 +648,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get projectMapOpenInAdmin => 'Open in Admin';
 
   @override
+  String get projectMapNoMappableProjects =>
+      'No projects with mappable locations yet.';
+
+  @override
   String projectMapProjectCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

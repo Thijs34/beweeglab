@@ -1286,6 +1286,12 @@ abstract class AppLocalizations {
   /// **'Open in Admin'**
   String get projectMapOpenInAdmin;
 
+  /// No description provided for @projectMapNoMappableProjects.
+  ///
+  /// In en, this message translates to:
+  /// **'No projects with mappable locations yet.'**
+  String get projectMapNoMappableProjects;
+
   /// No description provided for @projectMapProjectCount.
   ///
   /// In en, this message translates to:

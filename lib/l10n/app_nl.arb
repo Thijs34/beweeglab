@@ -253,6 +253,7 @@
   "commonClose": "Sluiten",
   "projectMapLocationUnavailable": "Locatie niet beschikbaar",
   "projectMapOpenInAdmin": "Openen in admin",
+  "projectMapNoMappableProjects": "Nog geen projecten met kaartlocaties beschikbaar.",
   "projectMapProjectCount": "{count, plural, one {{count} project} other {{count} projecten}}",
   "@projectMapProjectCount": {
     "placeholders": {

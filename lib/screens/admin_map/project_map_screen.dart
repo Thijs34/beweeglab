@@ -471,8 +471,8 @@ class _ProjectMapScreenState extends State<ProjectMapScreen> {
       );
     }
     if (_pins.isEmpty) {
-      return const _MapStatusView(
-        message: 'No projects with mappable locations yet.',
+      return _MapStatusView(
+        message: context.l10n.projectMapNoMappableProjects,
       );
     }
 
