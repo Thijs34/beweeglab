@@ -364,7 +364,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get observerSummaryEmptySubtitle =>
-      'Noteer minimaal één persoon of groep voordat je een sessie indient.';
+      'Geen observaties deze sessie. Dien in om terug te keren naar je projecten.';
 
   @override
   String get observerSummaryTotalRecorded => 'Totaal vastgelegd';
@@ -514,6 +514,44 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get observerPleaseSelectOption => 'Selecteer een optie';
+
+  @override
+  String get observerGenderDistribution => 'Geslachtsverdeling';
+
+  @override
+  String get observerGenderDistributionHelper =>
+      'Hoeveel personen van elk geslacht?';
+
+  @override
+  String get observerAgeDistribution => 'Leeftijdsverdeling';
+
+  @override
+  String get observerAgeDistributionHelper =>
+      'Hoeveel personen per leeftijdscategorie?';
+
+  @override
+  String get observerGenderMale => 'Man';
+
+  @override
+  String get observerGenderFemale => 'Vrouw';
+
+  @override
+  String get observerAge11AndYounger => '11 jaar en jonger';
+
+  @override
+  String get observerAge12to17 => '12 – 17';
+
+  @override
+  String get observerAge18to24 => '18 – 24';
+
+  @override
+  String get observerAge25to44 => '25 – 44';
+
+  @override
+  String get observerAge45to64 => '45 – 64';
+
+  @override
+  String get observerAge65Plus => '65+';
 
   @override
   String get observerProjectsTitle => 'Jouw projecten';

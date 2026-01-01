@@ -145,22 +145,8 @@ class ObservationExportService {
         rawValue: record.activityType,
         locale: dutchLocale,
       );
-      final genderMixValue = record.genderMix == null
-          ? '—'
-          : localizeObservationOption(
-              fields: fields,
-              fieldId: ObservationFieldRegistry.groupGenderMixFieldId,
-              rawValue: record.genderMix!,
-              locale: dutchLocale,
-            );
-      final ageMixValue = record.ageMix == null
-          ? '—'
-          : localizeObservationOption(
-              fields: fields,
-              fieldId: ObservationFieldRegistry.groupAgeMixFieldId,
-              rawValue: record.ageMix!,
-              locale: dutchLocale,
-            );
+      final genderMixValue = record.genderMix ?? '—';
+      final ageMixValue = record.ageMix ?? '—';
       final locationLabel = localizeObservationLocation(
         record: record,
         fields: fields,

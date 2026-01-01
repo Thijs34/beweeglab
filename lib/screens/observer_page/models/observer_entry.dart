@@ -26,7 +26,8 @@ class ObserverEntry {
   }
 
   factory ObserverEntry.fromJson(Map<String, dynamic> json) {
-    final modeValue = json['mode'] as String? ?? ObservationMode.individual.name;
+    final modeValue =
+        json['mode'] as String? ?? ObservationMode.individual.name;
     final parsedMode = ObservationMode.values.firstWhere(
       (candidate) => candidate.name == modeValue,
       orElse: () => ObservationMode.individual,
@@ -42,7 +43,8 @@ class ObserverEntry {
             : const <String, dynamic>{},
       ),
       timestamp:
-          DateTime.tryParse(json['timestamp'] as String? ?? '') ?? DateTime.now(),
+          DateTime.tryParse(json['timestamp'] as String? ?? '') ??
+          DateTime.now(),
       individual: individualRaw is Map<String, dynamic>
           ? IndividualSnapshot.fromJson(individualRaw)
           : null,
@@ -87,28 +89,45 @@ class IndividualSnapshot {
 
 class GroupSnapshot {
   final int groupSize;
-  final String genderMix;
-  final String ageMix;
+  final Map<String, int> genderCounts;
+  final Map<String, int> ageCounts;
 
   const GroupSnapshot({
     required this.groupSize,
-    required this.genderMix,
-    required this.ageMix,
+    required this.genderCounts,
+    required this.ageCounts,
   });
 
   Map<String, dynamic> toJson() {
     return {
       'groupSize': groupSize,
-      'genderMix': genderMix,
-      'ageMix': ageMix,
+      'genderCounts': genderCounts,
+      'ageCounts': ageCounts,
     };
   }
 
   factory GroupSnapshot.fromJson(Map<String, dynamic> json) {
+    final genderCountsRaw = json['genderCounts'];
+    final ageCountsRaw = json['ageCounts'];
+
     return GroupSnapshot(
       groupSize: (json['groupSize'] as num?)?.toInt() ?? 0,
-      genderMix: json['genderMix'] as String? ?? '',
-      ageMix: json['ageMix'] as String? ?? '',
+      genderCounts: genderCountsRaw is Map
+          ? Map<String, int>.from(
+              genderCountsRaw.map(
+                (key, value) =>
+                    MapEntry(key.toString(), (value as num).toInt()),
+              ),
+            )
+          : {},
+      ageCounts: ageCountsRaw is Map
+          ? Map<String, int>.from(
+              ageCountsRaw.map(
+                (key, value) =>
+                    MapEntry(key.toString(), (value as num).toInt()),
+              ),
+            )
+          : {},
     );
   }
 }

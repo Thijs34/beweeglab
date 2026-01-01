@@ -148,8 +148,8 @@ class ObservationFieldRegistry {
       isEnabled: true,
       displayOrder: 50,
       helperText: LocalizedText(
-        nl: 'Alleen nodig bij een groepsmeting.',
-        en: 'Only required when recording a group entry.',
+        nl: 'Hoeveel personen per geslacht?',
+        en: 'How many people of each gender?',
       ),
       config: OptionObservationFieldConfig(
         options: <ObservationFieldOption>[
@@ -179,8 +179,8 @@ class ObservationFieldRegistry {
       isEnabled: true,
       displayOrder: 60,
       helperText: LocalizedText(
-        nl: 'Alleen nodig bij een groepsmeting.',
-        en: 'Only required when recording a group entry.',
+        nl: 'Hoeveel personen per leeftijdsgroep?',
+        en: 'How many people in each age range?',
       ),
       config: OptionObservationFieldConfig(
         options: <ObservationFieldOption>[
@@ -308,7 +308,7 @@ class ObservationFieldRegistry {
           ),
           ObservationFieldOption(
             id: 'unorganized',
-            label: LocalizedText(nl: 'Ongeregeld', en: 'Unorganized'),
+            label: LocalizedText(nl: 'Ongeorganiseerd', en: 'Unorganized'),
           ),
         ],
         allowMultiple: false,

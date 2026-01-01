@@ -362,7 +362,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get observerSummaryEmptySubtitle =>
-      'Record at least one person or group before submitting a session.';
+      'No observations this session. Submit to return to your projects.';
 
   @override
   String get observerSummaryTotalRecorded => 'Total Recorded';
@@ -512,6 +512,44 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get observerPleaseSelectOption => 'Please select an option';
+
+  @override
+  String get observerGenderDistribution => 'Gender Distribution';
+
+  @override
+  String get observerGenderDistributionHelper =>
+      'How many people of each gender?';
+
+  @override
+  String get observerAgeDistribution => 'Age Distribution';
+
+  @override
+  String get observerAgeDistributionHelper =>
+      'How many people in each age range?';
+
+  @override
+  String get observerGenderMale => 'Male';
+
+  @override
+  String get observerGenderFemale => 'Female';
+
+  @override
+  String get observerAge11AndYounger => '11 and younger';
+
+  @override
+  String get observerAge12to17 => '12 – 17';
+
+  @override
+  String get observerAge18to24 => '18 – 24';
+
+  @override
+  String get observerAge25to44 => '25 – 44';
+
+  @override
+  String get observerAge45to64 => '45 – 64';
+
+  @override
+  String get observerAge65Plus => '65+';
 
   @override
   String get observerProjectsTitle => 'Your Projects';

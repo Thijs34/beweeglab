@@ -1440,23 +1440,59 @@ class _ObservationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final locale = Localizations.localeOf(context);
+
+    String? localizeGroupDemographics(String rawValue, String fieldId) {
+      final parsedSegments = rawValue.split(',');
+      final localizedParts = <String>[];
+      for (final segment in parsedSegments) {
+        final pair = segment.split(':');
+        if (pair.length < 2) continue;
+        final key = pair.first.trim();
+        final countString = pair.sublist(1).join(':').trim();
+        final count = int.tryParse(countString);
+        if (key.isEmpty || count == null || count <= 0) continue;
+        final localizedLabel = localizeObservationOption(
+          fields: fields,
+          fieldId: fieldId,
+          rawValue: key,
+          locale: locale,
+        );
+        localizedParts.add('${localizedLabel.isEmpty ? key : localizedLabel}: $count');
+      }
+      if (localizedParts.isEmpty) {
+        return rawValue.trim().isEmpty ? null : rawValue;
+      }
+      return localizedParts.join(', ');
+    }
     final locationDisplay = resolveLocationDisplay(
       record.locationTypeId,
       locationOptions,
     );
     final locationLabel = record.locationLabel ?? locationDisplay.label;
-    final genderValue = localizeObservationOption(
-      fields: fields,
-      fieldId: ObservationFieldRegistry.genderFieldId,
-      rawValue: record.gender,
-      locale: locale,
-    );
-    final ageGroupValue = localizeObservationOption(
-      fields: fields,
-      fieldId: ObservationFieldRegistry.ageGroupFieldId,
-      rawValue: record.ageGroup,
-      locale: locale,
-    );
+    final genderValue = record.isGroup
+        ? (localizeGroupDemographics(
+                record.gender,
+                ObservationFieldRegistry.genderFieldId,
+              ) ??
+            record.gender)
+        : localizeObservationOption(
+            fields: fields,
+            fieldId: ObservationFieldRegistry.genderFieldId,
+            rawValue: record.gender,
+            locale: locale,
+          );
+    final ageGroupValue = record.isGroup
+        ? (localizeGroupDemographics(
+                record.ageGroup,
+                ObservationFieldRegistry.ageGroupFieldId,
+              ) ??
+            record.ageGroup)
+        : localizeObservationOption(
+            fields: fields,
+            fieldId: ObservationFieldRegistry.ageGroupFieldId,
+            rawValue: record.ageGroup,
+            locale: locale,
+          );
     final socialContextValue = localizeObservationOption(
       fields: fields,
       fieldId: ObservationFieldRegistry.socialContextFieldId,
@@ -1478,21 +1514,11 @@ class _ObservationCard extends StatelessWidget {
     final String? genderMixValue =
         record.genderMix == null || record.genderMix!.trim().isEmpty
             ? null
-            : localizeObservationOption(
-                fields: fields,
-                fieldId: ObservationFieldRegistry.groupGenderMixFieldId,
-                rawValue: record.genderMix!,
-                locale: locale,
-              );
+            : record.genderMix;
     final String? ageMixValue =
         record.ageMix == null || record.ageMix!.trim().isEmpty
             ? null
-            : localizeObservationOption(
-                fields: fields,
-                fieldId: ObservationFieldRegistry.groupAgeMixFieldId,
-                rawValue: record.ageMix!,
-                locale: locale,
-              );
+            : record.ageMix;
     final locationRowValue = localizeObservationLocation(
       record: record,
       fields: fields,

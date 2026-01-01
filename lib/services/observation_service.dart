@@ -44,12 +44,7 @@ class ObservationService {
 
     final snapshot = await query.get();
     final records = snapshot.docs
-        .map(
-          (doc) => _mapDocToObservation(
-            doc,
-            fallbackProjectId: projectId,
-          ),
-        )
+        .map((doc) => _mapDocToObservation(doc, fallbackProjectId: projectId))
         .toList(growable: false);
 
     final lastDocument = snapshot.docs.isEmpty ? null : snapshot.docs.last;
@@ -82,10 +77,9 @@ class ObservationService {
     );
 
     await docRef.set(payload);
-    await _firestore.collection(_projectsCollection).doc(project.id).set(
-          {'observationCount': FieldValue.increment(1)},
-          SetOptions(merge: true),
-        );
+    await _firestore.collection(_projectsCollection).doc(project.id).set({
+      'observationCount': FieldValue.increment(1),
+    }, SetOptions(merge: true));
   }
 
   Future<void> updateObservation({
@@ -98,18 +92,15 @@ class ObservationService {
         .collection(_observationsSubcollection)
         .doc(record.id);
 
-    await docRef.set(
-      {
-        'personId': record.personId.trim(),
-        'gender': record.gender.trim(),
-        'ageGroup': record.ageGroup.trim(),
-        'socialContext': record.socialContext.trim(),
-        'activityLevel': record.activityLevel.trim(),
-        'activityType': record.activityType.trim(),
-        'activityNotes': record.notes.trim(),
-      },
-      SetOptions(merge: true),
-    );
+     await docRef.set({
+      'personId': record.personId.trim(),
+      'gender': record.gender.trim(),
+      'ageGroup': record.ageGroup.trim(),
+      'socialContext': record.socialContext.trim(),
+      'activityLevel': record.activityLevel.trim(),
+      'activityType': record.activityType.trim(),
+      'activityNotes': record.notes.trim(),
+    }, SetOptions(merge: true));
   }
 
   Stream<List<ObservationRecord>> watchProjectObservations({
@@ -126,10 +117,8 @@ class ObservationService {
         .map(
           (snapshot) => snapshot.docs
               .map(
-                (doc) => _mapDocToObservation(
-                  doc,
-                  fallbackProjectId: projectId,
-                ),
+                (doc) =>
+                    _mapDocToObservation(doc, fallbackProjectId: projectId),
               )
               .toList(growable: false),
         );
@@ -145,12 +134,7 @@ class ObservationService {
         .orderBy('recordedAt', descending: true)
         .get();
     return snapshot.docs
-        .map(
-          (doc) => _mapDocToObservation(
-            doc,
-            fallbackProjectId: projectId,
-          ),
-        )
+        .map((doc) => _mapDocToObservation(doc, fallbackProjectId: projectId))
         .toList(growable: false);
   }
 
@@ -200,21 +184,21 @@ class ObservationService {
       'activityNotes': shared.activityNotes.trim(),
       if (shared.additionalRemarks.trim().isNotEmpty)
         'additionalRemarks': shared.additionalRemarks.trim(),
-            'personId': isGroup
-              ? 'group-${group?.groupSize ?? 0}'
-              : (personId?.isNotEmpty == true ? personId! : '--'),
-            'gender': isGroup
-              ? (group?.genderMix ?? '--')
-              : (gender?.isNotEmpty == true ? gender! : '--'),
-            'ageGroup': isGroup
-              ? (group?.ageMix ?? '--')
-              : (ageGroup?.isNotEmpty == true ? ageGroup! : '--'),
-            'socialContext': isGroup
-              ? 'together'
-              : (socialContext?.isNotEmpty == true ? socialContext! : '--'),
+      'personId': isGroup
+          ? 'group-${group?.groupSize ?? 0}'
+          : (personId?.isNotEmpty == true ? personId! : '--'),
+      'gender': isGroup
+          ? _serializeDemographicCounts(group?.genderCounts ?? {})
+          : (gender?.isNotEmpty == true ? gender! : '--'),
+      'ageGroup': isGroup
+          ? _serializeDemographicCounts(group?.ageCounts ?? {})
+          : (ageGroup?.isNotEmpty == true ? ageGroup! : '--'),
+      'socialContext': isGroup
+          ? 'together'
+          : (socialContext?.isNotEmpty == true ? socialContext! : '--'),
       'groupSize': group?.groupSize,
-      'genderMix': group?.genderMix,
-      'ageMix': group?.ageMix,
+      'genderCounts': group?.genderCounts,
+      'ageCounts': group?.ageCounts,
     };
 
     return payload;
@@ -225,8 +209,9 @@ class ObservationService {
     required String fallbackProjectId,
   }) {
     final data = doc.data() ?? const <String, dynamic>{};
-    final recordedAt = (data['recordedAt'] as Timestamp?)?.toDate() ??
-      DateTime.tryParse((data['localRecordedAt'] as String?) ?? '');
+    final recordedAt =
+        (data['recordedAt'] as Timestamp?)?.toDate() ??
+        DateTime.tryParse((data['localRecordedAt'] as String?) ?? '');
     final mode = (data['mode'] as String?) ?? 'individual';
     final groupSize = (data['groupSize'] as num?)?.toInt();
     final notes = _composeNotes(
@@ -237,8 +222,8 @@ class ObservationService {
 
     final fallbackPersonId = (data['personId'] as String?) ?? '--';
     final displayPersonId = mode == 'group'
-      ? 'Group ${groupSize ?? ''}'.trim()
-      : fallbackPersonId;
+        ? 'Group ${groupSize ?? ''}'.trim()
+        : fallbackPersonId;
 
     return ObservationRecord(
       id: doc.id,
@@ -256,8 +241,8 @@ class ObservationService {
       observerEmail: data['observerEmail'] as String?,
       observerUid: data['observerUid'] as String?,
       groupSize: groupSize,
-      genderMix: data['genderMix'] as String?,
-      ageMix: data['ageMix'] as String?,
+      genderMix: _extractDemographicDisplay(data, 'genderCounts', 'genderMix'),
+      ageMix: _extractDemographicDisplay(data, 'ageCounts', 'ageMix'),
       locationLabel: data['customLocationLabel'] as String?,
     );
   }
@@ -315,5 +300,39 @@ class ObservationService {
     final hour = value.hour.toString().padLeft(2, '0');
     final minute = value.minute.toString().padLeft(2, '0');
     return '$year-$month-$day $hour:$minute';
+  }
+
+  /// Serializes demographic counts to a readable string for display
+  /// Example: {"male": 3, "female": 2} -> "Male: 3, Female: 2"
+  String _serializeDemographicCounts(Map<String, int> counts) {
+    if (counts.isEmpty) {
+      return '--';
+    }
+    final nonZero = counts.entries.where((e) => e.value > 0);
+    if (nonZero.isEmpty) {
+      return '--';
+    }
+    return nonZero.map((e) => '${e.key}: ${e.value}').join(', ');
+  }
+
+  /// Extracts demographic display from either counts map (new format) or string (old format)
+  String? _extractDemographicDisplay(
+    Map<String, dynamic> data,
+    String countsKey,
+    String fallbackKey,
+  ) {
+    // Try new format first (counts map)
+    final countsData = data[countsKey];
+    if (countsData is Map) {
+      final counts = Map<String, int>.from(
+        countsData.map(
+          (key, value) => MapEntry(key.toString(), (value as num).toInt()),
+        ),
+      );
+      return _serializeDemographicCounts(counts);
+    }
+
+    // Fall back to old format (string)
+    return data[fallbackKey] as String?;
   }
 }

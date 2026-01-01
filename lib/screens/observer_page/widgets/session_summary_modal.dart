@@ -298,7 +298,7 @@ class SessionSummaryModal extends StatelessWidget {
             child: SizedBox(
               height: 48,
               child: ElevatedButton(
-                onPressed: entries.isEmpty ? null : onSubmitSession,
+                onPressed: onSubmitSession,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryOrange,
                   foregroundColor: AppTheme.white,

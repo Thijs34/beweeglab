@@ -28,6 +28,7 @@ import 'package:my_app/screens/observer_page/widgets/observer_option_button.dart
 import 'package:my_app/screens/observer_page/widgets/observer_section_card.dart';
 import 'package:my_app/screens/observer_page/widgets/session_summary_modal.dart';
 import 'package:my_app/screens/observer_page/widgets/success_overlay.dart';
+import 'package:my_app/screens/observer_page/widgets/demographic_counter.dart';
 
 const Map<String, String> _kDefaultLocationLabels = {
   'cruyff-court': 'Cruyff Court (C)',
@@ -94,6 +95,7 @@ class _ObserverPageState extends State<ObserverPage> {
   bool _counterRestored = false;
   String? _sessionProjectKey;
   bool _sessionDraftRestored = false;
+  String? _lastProjectSignature;
 
   final List<ObserverEntry> _sessionEntries = [];
   final Map<String, dynamic> _fieldValues = {};
@@ -101,6 +103,10 @@ class _ObserverPageState extends State<ObserverPage> {
   final Map<String, TextEditingController> _textControllers = {};
   final Map<String, TextEditingController> _otherOptionControllers = {};
   final Map<String, List<ObservationFieldOption>> _customFieldOptions = {};
+  
+  // Group demographics state
+  final Map<String, int> _genderCounts = {};
+  final Map<String, int> _ageCounts = {};
 
   late final String _currentDate;
   late final String _currentTime;
@@ -127,8 +133,17 @@ class _ObserverPageState extends State<ObserverPage> {
     if (initialProject != null) {
       _projectSelectionService.setActiveProject(initialProject);
     }
+    _lastProjectSignature = _buildProjectSignature(
+      _projectSelectionService.currentProject ?? initialProject,
+    );
     _projectSelectionListener = () {
       if (!mounted) return;
+      final selectedProject = _projectSelectionService.currentProject;
+      final nextSignature = _buildProjectSignature(selectedProject);
+      if (nextSignature == _lastProjectSignature) {
+        return;
+      }
+      _lastProjectSignature = nextSignature;
       setState(() => _customFieldOptions.clear());
       _resetInputs(preservePersonId: true);
       _restorePersonCounter();
@@ -680,6 +695,15 @@ class _ObserverPageState extends State<ObserverPage> {
     if (field.id == ObservationFieldRegistry.groupSizeFieldId) {
       return _buildGroupSizeField(field);
     }
+    
+    // Handle group demographics with counters
+    if (field.id == ObservationFieldRegistry.groupGenderMixFieldId) {
+      return _buildGenderCounter();
+    }
+    
+    if (field.id == ObservationFieldRegistry.groupAgeMixFieldId) {
+      return _buildAgeCounter();
+    }
 
     switch (field.type) {
       case ObservationFieldType.text:
@@ -792,11 +816,89 @@ class _ObserverPageState extends State<ObserverPage> {
     int minValue,
     int maxValue,
   ) {
-    final clamped = nextValue.clamp(minValue, maxValue);
+    int clamped = nextValue.clamp(minValue, maxValue).toInt();
+    if (fieldId == ObservationFieldRegistry.groupSizeFieldId) {
+      final int minDemographic = _maxDemographicCount();
+      if (clamped < minDemographic) {
+        clamped = minDemographic.clamp(minValue, maxValue);
+      }
+    }
     setState(() {
       _fieldValues[fieldId] = clamped.toString();
       _fieldErrors.remove(fieldId);
     });
+  }
+
+  Widget _buildGenderCounter() {
+    final l10n = context.l10n;
+    return DemographicCounter(
+      title: l10n.observerGenderDistribution,
+      helperText: l10n.observerGenderDistributionHelper,
+      counts: _genderCounts,
+      categories: [
+        DemographicCategory(
+          id: 'male',
+          label: l10n.observerGenderMale,
+        ),
+        DemographicCategory(
+          id: 'female',
+          label: l10n.observerGenderFemale,
+        ),
+      ],
+      showHeader: false,
+      maxTotal: _currentGroupSize,
+      onCountsChanged: (newCounts) {
+        setState(() {
+          _genderCounts.clear();
+          _genderCounts.addAll(newCounts);
+          _fieldErrors.remove(ObservationFieldRegistry.groupGenderMixFieldId);
+        });
+      },
+    );
+  }
+
+  Widget _buildAgeCounter() {
+    final l10n = context.l10n;
+    return DemographicCounter(
+      title: l10n.observerAgeDistribution,
+      helperText: l10n.observerAgeDistributionHelper,
+      counts: _ageCounts,
+      categories: [
+        DemographicCategory(
+          id: '11-and-younger',
+          label: l10n.observerAge11AndYounger,
+        ),
+        DemographicCategory(
+          id: '12-17',
+          label: l10n.observerAge12to17,
+        ),
+        DemographicCategory(
+          id: '18-24',
+          label: l10n.observerAge18to24,
+        ),
+        DemographicCategory(
+          id: '25-44',
+          label: l10n.observerAge25to44,
+        ),
+        DemographicCategory(
+          id: '45-64',
+          label: l10n.observerAge45to64,
+        ),
+        DemographicCategory(
+          id: '65-plus',
+          label: l10n.observerAge65Plus,
+        ),
+      ],
+      showHeader: false,
+      maxTotal: _currentGroupSize,
+      onCountsChanged: (newCounts) {
+        setState(() {
+          _ageCounts.clear();
+          _ageCounts.addAll(newCounts);
+          _fieldErrors.remove(ObservationFieldRegistry.groupAgeMixFieldId);
+        });
+      },
+    );
   }
 
   void _validateOtherOptionText(
@@ -1398,6 +1500,7 @@ class _ObserverPageState extends State<ObserverPage> {
 
   Map<String, String> _validateCurrent() {
     final errors = <String, String>{};
+    final groupSize = _currentGroupSize;
     for (final field in _visibleFields) {
       final value = _fieldValues[field.id];
       if (field.id == ObservationFieldRegistry.groupSizeFieldId) {
@@ -1421,6 +1524,27 @@ class _ObserverPageState extends State<ObserverPage> {
               errors[field.id] = 'Must be at most $maxValue';
             }
           }
+        }
+        continue;
+      }
+
+      // Validate group demographics
+      if (field.id == ObservationFieldRegistry.groupGenderMixFieldId) {
+        final totalGender = _sumCounts(_genderCounts);
+        if (field.isRequired && totalGender == 0) {
+          errors[field.id] = 'Please specify at least one gender';
+        } else if (totalGender > groupSize) {
+          errors[field.id] = 'Gender total cannot exceed group size ($groupSize)';
+        }
+        continue;
+      }
+
+      if (field.id == ObservationFieldRegistry.groupAgeMixFieldId) {
+        final totalAge = _sumCounts(_ageCounts);
+        if (field.isRequired && totalAge == 0) {
+          errors[field.id] = 'Please specify at least one age group';
+        } else if (totalAge > groupSize) {
+          errors[field.id] = 'Age total cannot exceed group size ($groupSize)';
         }
         continue;
       }
@@ -1514,10 +1638,8 @@ class _ObserverPageState extends State<ObserverPage> {
       timestamp: timestamp,
       group: GroupSnapshot(
         groupSize: _currentGroupSize,
-        genderMix: _stringFieldValue(
-          ObservationFieldRegistry.groupGenderMixFieldId,
-        ),
-        ageMix: _stringFieldValue(ObservationFieldRegistry.groupAgeMixFieldId),
+        genderCounts: Map<String, int>.from(_genderCounts),
+        ageCounts: Map<String, int>.from(_ageCounts),
       ),
     );
   }
@@ -1568,6 +1690,8 @@ class _ObserverPageState extends State<ObserverPage> {
     setState(() {
       _fieldValues.clear();
       _fieldErrors.clear();
+      _genderCounts.clear();
+      _ageCounts.clear();
       _disposeFieldControllers();
       if (shouldIncrement) {
         _personCounter += 1;
@@ -1629,6 +1753,16 @@ class _ObserverPageState extends State<ObserverPage> {
       return value.toInt();
     }
     return 4;
+  }
+
+  int _sumCounts(Map<String, int> counts) {
+    return counts.values.fold(0, (sum, value) => sum + value);
+  }
+
+  int _maxDemographicCount() {
+    final genderTotal = _sumCounts(_genderCounts);
+    final ageTotal = _sumCounts(_ageCounts);
+    return genderTotal > ageTotal ? genderTotal : ageTotal;
   }
 
   String _stringFieldValue(String fieldId) {
@@ -1856,7 +1990,7 @@ class _ObserverPageState extends State<ObserverPage> {
   String get _headerLocation => _activeProject?.name ?? 'No project selected';
 
   Project? get _activeProject =>
-      widget.arguments?.project ?? _projectSelectionService.currentProject;
+      _projectSelectionService.currentProject ?? widget.arguments?.project;
 
   Future<bool> _submitEntry({
     required ObserverEntry entry,
@@ -2084,6 +2218,27 @@ class _ObserverPageState extends State<ObserverPage> {
     final hour = date.hour.toString().padLeft(2, '0');
     final minute = date.minute.toString().padLeft(2, '0');
     return '$hour:$minute';
+  }
+
+  String _buildProjectSignature(Project? project) {
+    if (project == null) {
+      return 'none';
+    }
+    final buffer = StringBuffer(project.id);
+    for (final field in project.fields) {
+      buffer
+        ..write('|${field.id}')
+        ..write('|${field.type.name}')
+        ..write('|${field.audience.name}')
+        ..write('|${field.isRequired ? 1 : 0}')
+        ..write('|${field.isEnabled ? 1 : 0}')
+        ..write('|${field.displayOrder}');
+      final configJson = field.config?.toJson();
+      if (configJson != null) {
+        buffer.write('|${jsonEncode(configJson)}');
+      }
+    }
+    return buffer.toString();
   }
 }
 

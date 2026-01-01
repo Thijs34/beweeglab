@@ -755,7 +755,7 @@ abstract class AppLocalizations {
   /// No description provided for @observerSummaryEmptySubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Record at least one person or group before submitting a session.'**
+  /// **'No observations this session. Submit to return to your projects.'**
   String get observerSummaryEmptySubtitle;
 
   /// No description provided for @observerSummaryTotalRecorded.
@@ -1045,6 +1045,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please select an option'**
   String get observerPleaseSelectOption;
+
+  /// No description provided for @observerGenderDistribution.
+  ///
+  /// In en, this message translates to:
+  /// **'Gender Distribution'**
+  String get observerGenderDistribution;
+
+  /// No description provided for @observerGenderDistributionHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'How many people of each gender?'**
+  String get observerGenderDistributionHelper;
+
+  /// No description provided for @observerAgeDistribution.
+  ///
+  /// In en, this message translates to:
+  /// **'Age Distribution'**
+  String get observerAgeDistribution;
+
+  /// No description provided for @observerAgeDistributionHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'How many people in each age range?'**
+  String get observerAgeDistributionHelper;
+
+  /// No description provided for @observerGenderMale.
+  ///
+  /// In en, this message translates to:
+  /// **'Male'**
+  String get observerGenderMale;
+
+  /// No description provided for @observerGenderFemale.
+  ///
+  /// In en, this message translates to:
+  /// **'Female'**
+  String get observerGenderFemale;
+
+  /// No description provided for @observerAge11AndYounger.
+  ///
+  /// In en, this message translates to:
+  /// **'11 and younger'**
+  String get observerAge11AndYounger;
+
+  /// No description provided for @observerAge12to17.
+  ///
+  /// In en, this message translates to:
+  /// **'12 – 17'**
+  String get observerAge12to17;
+
+  /// No description provided for @observerAge18to24.
+  ///
+  /// In en, this message translates to:
+  /// **'18 – 24'**
+  String get observerAge18to24;
+
+  /// No description provided for @observerAge25to44.
+  ///
+  /// In en, this message translates to:
+  /// **'25 – 44'**
+  String get observerAge25to44;
+
+  /// No description provided for @observerAge45to64.
+  ///
+  /// In en, this message translates to:
+  /// **'45 – 64'**
+  String get observerAge45to64;
+
+  /// No description provided for @observerAge65Plus.
+  ///
+  /// In en, this message translates to:
+  /// **'65+'**
+  String get observerAge65Plus;
 
   /// No description provided for @observerProjectsTitle.
   ///
