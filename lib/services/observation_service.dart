@@ -243,6 +243,8 @@ class ObservationService {
       groupSize: groupSize,
       genderMix: _extractDemographicDisplay(data, 'genderCounts', 'genderMix'),
       ageMix: _extractDemographicDisplay(data, 'ageCounts', 'ageMix'),
+      genderCounts: _extractDemographicCounts(data, 'genderCounts'),
+      ageCounts: _extractDemographicCounts(data, 'ageCounts'),
       locationLabel: data['customLocationLabel'] as String?,
     );
   }
@@ -334,5 +336,24 @@ class ObservationService {
 
     // Fall back to old format (string)
     return data[fallbackKey] as String?;
+  }
+
+  Map<String, int>? _extractDemographicCounts(
+    Map<String, dynamic> data,
+    String key,
+  ) {
+    final raw = data[key];
+    if (raw is Map) {
+      final counts = <String, int>{};
+      raw.forEach((entryKey, value) {
+        if (value is num) {
+          counts[entryKey.toString()] = value.toInt();
+        }
+      });
+      if (counts.isNotEmpty) {
+        return counts;
+      }
+    }
+    return null;
   }
 }

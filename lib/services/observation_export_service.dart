@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:file_saver/file_saver.dart';
@@ -33,8 +34,8 @@ class ObservationExportService {
 
     _buildMetadataSection(sheet, project, records.length, l10n);
     final headerCount = _buildTableHeaders(l10n).length;
-    _buildTable(sheet, records, l10n, project.fields);
-    _autoFitColumns(sheet, records.length, headerCount);
+    final dataRowCount = _buildTable(sheet, records, project.fields);
+    _autoFitColumns(sheet, dataRowCount, headerCount);
     _freezeHeaderRows(sheet);
 
     final List<int> bytes = workbook.saveAsStream();
@@ -85,10 +86,9 @@ class ObservationExportService {
     valueRange.cellStyle.backColor = valueStyleColor;
   }
 
-  void _buildTable(
+  int _buildTable(
     xlsio.Worksheet sheet,
     List<ObservationRecord> records,
-    AppLocalizations l10n,
     List<ObservationField> fields,
   ) {
     final dutchLocale = const Locale('nl');
@@ -112,79 +112,213 @@ class ObservationExportService {
       ..bold = true
       ..hAlign = xlsio.HAlignType.center;
 
-    for (var index = 0; index < records.length; index++) {
+    final rows = _flattenRecords(
+      records: records,
+      fields: fields,
+      locale: dutchLocale,
+      localizedStrings: dutchStrings,
+    );
+
+    for (var index = 0; index < rows.length; index++) {
       final rowIndex = _tableHeaderRowIndex + 1 + index;
-      final record = records[index];
-      final genderValue = localizeObservationOption(
-        fields: fields,
-        fieldId: ObservationFieldRegistry.genderFieldId,
-        rawValue: record.gender,
-        locale: dutchLocale,
-      );
-      final ageGroupValue = localizeObservationOption(
-        fields: fields,
-        fieldId: ObservationFieldRegistry.ageGroupFieldId,
-        rawValue: record.ageGroup,
-        locale: dutchLocale,
-      );
-      final socialContextValue = localizeObservationOption(
-        fields: fields,
-        fieldId: ObservationFieldRegistry.socialContextFieldId,
-        rawValue: record.socialContext,
-        locale: dutchLocale,
-      );
-      final activityLevelValue = localizeObservationOption(
-        fields: fields,
-        fieldId: ObservationFieldRegistry.activityLevelFieldId,
-        rawValue: record.activityLevel,
-        locale: dutchLocale,
-      );
-      final activityTypeValue = localizeObservationOption(
-        fields: fields,
-        fieldId: ObservationFieldRegistry.activityTypeFieldId,
-        rawValue: record.activityType,
-        locale: dutchLocale,
-      );
-      final genderMixValue = record.genderMix ?? '—';
-      final ageMixValue = record.ageMix ?? '—';
-      final locationLabel = localizeObservationLocation(
-        record: record,
-        fields: fields,
-        locale: dutchLocale,
-      );
-      final locationTypeLabel = localizeObservationOption(
-        fields: fields,
-        fieldId: ObservationFieldRegistry.locationTypeFieldId,
-        rawValue: record.locationTypeId,
-        locale: dutchLocale,
-      );
-      final modeValue = record.mode == 'group'
-          ? dutchStrings.adminRecordGroup
-          : dutchStrings.adminRecordIndividual;
-
-      final values = [
-        record.personId,
-        modeValue,
-        record.timestamp,
-        record.observerEmail ?? '—',
-        record.observerUid ?? '—',
-        genderValue,
-        ageGroupValue,
-        socialContextValue,
-        activityLevelValue,
-        activityTypeValue,
-        locationLabel,
-        locationTypeLabel,
-        record.groupSize?.toString() ?? '—',
-        genderMixValue,
-        ageMixValue,
-        record.notes.isEmpty ? '—' : record.notes,
-      ];
-
+      final values = rows[index];
       for (var column = 0; column < values.length; column++) {
         sheet.getRangeByIndex(rowIndex, column + 1).setText(values[column]);
       }
     }
+
+    return rows.length;
+  }
+
+  List<List<String>> _flattenRecords({
+    required List<ObservationRecord> records,
+    required List<ObservationField> fields,
+    required Locale locale,
+    required AppLocalizations localizedStrings,
+  }) {
+    final rows = <List<String>>[];
+    for (final record in records) {
+      if (record.isGroup) {
+        rows.addAll(
+          _expandGroupRecordRows(
+            record: record,
+            fields: fields,
+            locale: locale,
+            localizedStrings: localizedStrings,
+          ),
+        );
+      } else {
+        rows.add(
+          _buildRowForRecord(
+            record: record,
+            fields: fields,
+            locale: locale,
+            localizedStrings: localizedStrings,
+          ),
+        );
+      }
+    }
+    return rows;
+  }
+
+  List<List<String>> _expandGroupRecordRows({
+    required ObservationRecord record,
+    required List<ObservationField> fields,
+    required Locale locale,
+    required AppLocalizations localizedStrings,
+  }) {
+    final genderIds = _expandDemographicCounts(
+      counts: record.genderCounts,
+      fields: fields,
+      fieldId: ObservationFieldRegistry.genderFieldId,
+    );
+    final ageIds = _expandDemographicCounts(
+      counts: record.ageCounts,
+      fields: fields,
+      fieldId: ObservationFieldRegistry.ageGroupFieldId,
+    );
+    final hasGenderData = genderIds.isNotEmpty;
+    final hasAgeData = ageIds.isNotEmpty;
+    final groupSize = record.groupSize ?? 0;
+    final inferredCount = math.max(genderIds.length, ageIds.length);
+    final targetCount = math.max(groupSize, inferredCount).toInt();
+    final rowTotal = targetCount > 0 ? targetCount : 1;
+
+    final rows = <List<String>>[];
+    for (var index = 0; index < rowTotal; index++) {
+      final genderOverrideId = hasGenderData
+          ? (index < genderIds.length ? genderIds[index] : '—')
+          : null;
+      final ageOverrideId = hasAgeData
+          ? (index < ageIds.length ? ageIds[index] : '—')
+          : null;
+      rows.add(
+        _buildRowForRecord(
+          record: record,
+          fields: fields,
+          locale: locale,
+          localizedStrings: localizedStrings,
+          genderOverrideId: genderOverrideId,
+          ageOverrideId: ageOverrideId,
+        ),
+      );
+    }
+
+    return rows;
+  }
+
+  List<String> _buildRowForRecord({
+    required ObservationRecord record,
+    required List<ObservationField> fields,
+    required Locale locale,
+    required AppLocalizations localizedStrings,
+    String? genderOverrideId,
+    String? ageOverrideId,
+  }) {
+    final genderValue = localizeObservationOption(
+      fields: fields,
+      fieldId: ObservationFieldRegistry.genderFieldId,
+      rawValue: genderOverrideId ?? record.gender,
+      locale: locale,
+    );
+    final ageGroupValue = localizeObservationOption(
+      fields: fields,
+      fieldId: ObservationFieldRegistry.ageGroupFieldId,
+      rawValue: ageOverrideId ?? record.ageGroup,
+      locale: locale,
+    );
+    final socialContextValue = localizeObservationOption(
+      fields: fields,
+      fieldId: ObservationFieldRegistry.socialContextFieldId,
+      rawValue: record.socialContext,
+      locale: locale,
+    );
+    final activityLevelValue = localizeObservationOption(
+      fields: fields,
+      fieldId: ObservationFieldRegistry.activityLevelFieldId,
+      rawValue: record.activityLevel,
+      locale: locale,
+    );
+    final activityTypeValue = localizeObservationOption(
+      fields: fields,
+      fieldId: ObservationFieldRegistry.activityTypeFieldId,
+      rawValue: record.activityType,
+      locale: locale,
+    );
+    final locationLabel = localizeObservationLocation(
+      record: record,
+      fields: fields,
+      locale: locale,
+    );
+    final modeValue = record.mode == 'group'
+        ? localizedStrings.adminRecordGroup
+        : localizedStrings.adminRecordIndividual;
+
+    return [
+      record.personId,
+      modeValue,
+      record.timestamp,
+      record.observerEmail ?? '—',
+      genderValue,
+      ageGroupValue,
+      socialContextValue,
+      activityLevelValue,
+      activityTypeValue,
+      locationLabel,
+      record.notes.isEmpty ? '—' : record.notes,
+    ];
+  }
+
+  List<String> _expandDemographicCounts({
+    required Map<String, int>? counts,
+    required List<ObservationField> fields,
+    required String fieldId,
+  }) {
+    if (counts == null || counts.isEmpty) {
+      return const [];
+    }
+    final optionOrder = _fieldOptionOrder(fields, fieldId);
+    final handled = <String>{};
+    final expanded = <String>[];
+    if (optionOrder != null) {
+      for (final optionId in optionOrder) {
+        final value = counts[optionId];
+        if (value != null && value > 0) {
+          expanded.addAll(List<String>.filled(value, optionId));
+          handled.add(optionId);
+        }
+      }
+    }
+    counts.forEach((key, value) {
+      if (value > 0 && !handled.contains(key)) {
+        expanded.addAll(List<String>.filled(value, key));
+      }
+    });
+    return expanded;
+  }
+
+  List<String>? _fieldOptionOrder(
+    List<ObservationField> fields,
+    String fieldId,
+  ) {
+    final field = _getFieldById(fields, fieldId);
+    if (field?.config is OptionObservationFieldConfig) {
+      final config = field!.config as OptionObservationFieldConfig;
+      return config.options.map((option) => option.id).toList(growable: false);
+    }
+    return null;
+  }
+
+  ObservationField? _getFieldById(
+    List<ObservationField> fields,
+    String fieldId,
+  ) {
+    for (final field in fields) {
+      if (field.id == fieldId) {
+        return field;
+      }
+    }
+    return null;
   }
 
   void _autoFitColumns(
@@ -219,17 +353,12 @@ class ObservationExportService {
         l10n.exportHeaderMode,
         l10n.exportHeaderTimestamp,
         l10n.exportHeaderObserverEmail,
-        l10n.exportHeaderObserverUid,
         l10n.exportHeaderGender,
         l10n.exportHeaderAgeGroup,
         l10n.exportHeaderSocialContext,
         l10n.exportHeaderActivityLevel,
         l10n.exportHeaderActivityType,
         l10n.exportHeaderLocation,
-        l10n.exportHeaderLocationTypeId,
-        l10n.exportHeaderGroupSize,
-        l10n.exportHeaderGenderMix,
-        l10n.exportHeaderAgeMix,
         l10n.exportHeaderNotes,
       ];
 }

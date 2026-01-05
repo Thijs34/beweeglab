@@ -1165,12 +1165,19 @@ class _ObserverPageState extends State<ObserverPage> {
   IconData? _inferIconFromLabel(String label) {
     final text = label.trim().toLowerCase();
 
-    // Gender
-    if (text.contains('male') || text.contains(' man') || text == 'man') {
-      return Icons.male;
-    }
-    if (text.contains('female') || text.contains(' woman') || text == 'woman') {
+    // Gender (order matters: female contains "male")
+    if (text.contains('female') ||
+        text.contains('vrouw') ||
+        text.contains(' woman') ||
+        text == 'woman' ||
+        text == 'vrouw') {
       return Icons.female;
+    }
+    if (text.contains('male') ||
+        text.contains(' man') ||
+        text == 'man' ||
+        text.contains('jongen')) {
+      return Icons.male;
     }
 
     // Social context

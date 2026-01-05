@@ -140,6 +140,8 @@ class ObservationRecord {
   final int? groupSize;
   final String? genderMix;
   final String? ageMix;
+  final Map<String, int>? genderCounts;
+  final Map<String, int>? ageCounts;
   final String? locationLabel;
 
   const ObservationRecord({
@@ -160,6 +162,8 @@ class ObservationRecord {
     this.groupSize,
     this.genderMix,
     this.ageMix,
+    this.genderCounts,
+    this.ageCounts,
     this.locationLabel,
   });
 
