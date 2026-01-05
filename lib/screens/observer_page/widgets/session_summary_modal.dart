@@ -49,10 +49,10 @@ class SessionSummaryModal extends StatelessWidget {
                       child: DecoratedBox(
                         decoration: BoxDecoration(
                           color: AppTheme.white,
-                          borderRadius:
-                              BorderRadius.circular(AppTheme.borderRadiusXL),
-                          border:
-                              Border.all(color: AppTheme.gray200, width: 1),
+                          borderRadius: BorderRadius.circular(
+                            AppTheme.borderRadiusXL,
+                          ),
+                          border: Border.all(color: AppTheme.gray200, width: 1),
                           boxShadow: const [
                             BoxShadow(
                               color: Color(0x14000000),
@@ -62,8 +62,9 @@ class SessionSummaryModal extends StatelessWidget {
                           ],
                         ),
                         child: ClipRRect(
-                          borderRadius:
-                              BorderRadius.circular(AppTheme.borderRadiusXL),
+                          borderRadius: BorderRadius.circular(
+                            AppTheme.borderRadiusXL,
+                          ),
                           child: Column(
                             children: [
                               _buildHeader(l10n),
@@ -155,7 +156,9 @@ class SessionSummaryModal extends StatelessWidget {
             title: l10n.observerSummaryTotalRecorded,
             child: Column(
               children: [
-                _DividerLabel(label: l10n.observerSummaryEntries(entries.length)),
+                _DividerLabel(
+                  label: l10n.observerSummaryEntries(entries.length),
+                ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -212,14 +215,6 @@ class SessionSummaryModal extends StatelessWidget {
                     color: AppTheme.gray900,
                   ),
                 ),
-                Container(width: 1, height: 60, color: AppTheme.gray100),
-                Expanded(
-                  child: _CenteredStat(
-                    label: l10n.observerSummaryChildren,
-                    value: stats.children.toString(),
-                    color: const Color(0xFFF59E0B),
-                  ),
-                ),
               ],
             ),
           ),
@@ -250,15 +245,25 @@ class SessionSummaryModal extends StatelessWidget {
             title: l10n.observerSummarySessionDetails,
             child: Column(
               children: [
-                _KeyValueRow(label: l10n.observerSummaryLocation, value: stats.locationsLabel),
+                _KeyValueRow(
+                  label: l10n.observerSummaryLocation,
+                  value: stats.locationsLabel,
+                ),
                 const Divider(height: 24, color: AppTheme.gray100),
-                _KeyValueRow(label: l10n.observerSummaryDate, value: currentDate),
+                _KeyValueRow(
+                  label: l10n.observerSummaryDate,
+                  value: currentDate,
+                ),
                 const Divider(height: 24, color: AppTheme.gray100),
-                _KeyValueRow(label: l10n.observerSummaryTime, value: stats.timeRangeLabel),
+                _KeyValueRow(
+                  label: l10n.observerSummaryTime,
+                  value: stats.timeRangeLabel,
+                ),
                 const Divider(height: 24, color: AppTheme.gray100),
                 _KeyValueRow(
                   label: l10n.observerSummaryWeather,
-                  value: '$temperatureLabel \u2022 ${_readableWeatherLabel(l10n)}',
+                  value:
+                      '$temperatureLabel \u2022 ${_readableWeatherLabel(l10n)}',
                 ),
               ],
             ),
@@ -510,7 +515,6 @@ class _SummaryStats {
   final int groupPercentage;
   final int males;
   final int females;
-  final int children;
   final int activitySedentary;
   final int activityMoving;
   final int activityIntense;
@@ -528,29 +532,51 @@ class _SummaryStats {
                         entries.length) *
                     100)
                 .round(),
-      males = entries.fold(0, (prev, entry) {
-        if (entry.individual?.gender == 'male') return prev + 1;
-        return prev;
-      }),
-      females = entries.fold(0, (prev, entry) {
-        if (entry.individual?.gender == 'female') return prev + 1;
-        return prev;
-      }),
-      children = entries.fold(0, (prev, entry) {
-        if (entry.individual?.ageGroup == 'child') return prev + 1;
-        return prev;
-      }),
-      activitySedentary = entries
-          .where((e) => e.shared.activityLevel == 'sedentary')
-          .length,
-      activityMoving = entries
-          .where((e) => e.shared.activityLevel == 'moving')
-          .length,
-      activityIntense = entries
-          .where((e) => e.shared.activityLevel == 'intense')
-          .length,
+      males = _countPeopleByGender(entries, 'male'),
+      females = _countPeopleByGender(entries, 'female'),
+      activitySedentary = _countPeopleByActivity(entries, 'sedentary'),
+      activityMoving = _countPeopleByActivity(entries, 'moving'),
+      activityIntense = _countPeopleByActivity(entries, 'intense'),
       locationsLabel = _formatLocations(entries, l10n),
       timeRangeLabel = _formatTimeRange(entries);
+
+  static int _countPeopleByActivity(
+    List<ObserverEntry> entries,
+    String activityLevel,
+  ) {
+    int total = 0;
+    for (final entry in entries) {
+      if (entry.shared.activityLevel != activityLevel) {
+        continue;
+      }
+      if (entry.mode == ObservationMode.group) {
+        total += entry.group?.groupSize ?? 0;
+      } else {
+        total += 1;
+      }
+    }
+    return total;
+  }
+
+  static int _countPeopleByGender(
+    List<ObserverEntry> entries,
+    String genderId,
+  ) {
+    int total = 0;
+    for (final entry in entries) {
+      if (entry.mode == ObservationMode.individual) {
+        if (entry.individual?.gender == genderId) {
+          total += 1;
+        }
+      } else if (entry.mode == ObservationMode.group) {
+        final groupCounts = entry.group?.genderCounts;
+        if (groupCounts != null) {
+          total += groupCounts[genderId] ?? 0;
+        }
+      }
+    }
+    return total;
+  }
 
   static String _formatLocations(
     List<ObserverEntry> entries,
