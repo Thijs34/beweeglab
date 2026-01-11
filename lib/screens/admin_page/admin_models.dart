@@ -143,6 +143,7 @@ class ObservationRecord {
   final Map<String, int>? genderCounts;
   final Map<String, int>? ageCounts;
   final String? locationLabel;
+  final List<DemographicPairData>? demographicPairs;
 
   const ObservationRecord({
     required this.id,
@@ -165,6 +166,7 @@ class ObservationRecord {
     this.genderCounts,
     this.ageCounts,
     this.locationLabel,
+    this.demographicPairs,
   });
 
   bool get isGroup => mode == 'group';
@@ -354,4 +356,28 @@ String localizeObservationLocation({
     rawValue: record.locationTypeId,
     locale: locale,
   );
+}
+
+class DemographicPairData {
+  final String genderId;
+  final String ageId;
+
+  const DemographicPairData({
+    required this.genderId,
+    required this.ageId,
+  });
+
+  factory DemographicPairData.fromJson(Map<String, dynamic> json) {
+    return DemographicPairData(
+      genderId: json['genderId'] as String? ?? '',
+      ageId: json['ageId'] as String? ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'genderId': genderId,
+      'ageId': ageId,
+    };
+  }
 }

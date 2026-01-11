@@ -1049,13 +1049,13 @@ abstract class AppLocalizations {
   /// No description provided for @observerGenderDistribution.
   ///
   /// In en, this message translates to:
-  /// **'Gender Distribution'**
+  /// **'Group Demographics'**
   String get observerGenderDistribution;
 
   /// No description provided for @observerGenderDistributionHelper.
   ///
   /// In en, this message translates to:
-  /// **'How many people of each gender?'**
+  /// **'Specify gender and age for each person in the group'**
   String get observerGenderDistributionHelper;
 
   /// No description provided for @observerAgeDistribution.
@@ -2449,6 +2449,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Notes'**
   String get adminFieldNotes;
+
+  /// No description provided for @adminGroupSizeLockedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Group size is always required for group observations and cannot be disabled.'**
+  String get adminGroupSizeLockedNote;
+
+  /// No description provided for @adminGroupSizeRequiredToggleNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Required is fixed on for this field.'**
+  String get adminGroupSizeRequiredToggleNote;
+
+  /// No description provided for @adminDemographicFieldTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Group demographics'**
+  String get adminDemographicFieldTitle;
+
+  /// No description provided for @adminDemographicFieldDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'This field records pairs of gender and age for each person in the group.'**
+  String get adminDemographicFieldDescription;
+
+  /// No description provided for @adminDemographicFixedGenders.
+  ///
+  /// In en, this message translates to:
+  /// **'Genders are fixed and cannot be changed:'**
+  String get adminDemographicFixedGenders;
+
+  /// No description provided for @adminDemographicAgeNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Each selected gender must be paired with an age group when observers fill in the form.'**
+  String get adminDemographicAgeNote;
+
+  /// No description provided for @adminDemographicLockedConfig.
+  ///
+  /// In en, this message translates to:
+  /// **'Options are locked because this field uses the combined gender + age matrix in the observer app.'**
+  String get adminDemographicLockedConfig;
 
   /// No description provided for @adminNoRecordsCollected.
   ///

@@ -74,6 +74,7 @@ class _ObservationEditDialogState extends State<ObservationEditDialog> {
         genderCounts: widget.record.genderCounts,
         ageCounts: widget.record.ageCounts,
         locationLabel: widget.record.locationLabel,
+        demographicPairs: widget.record.demographicPairs,
       ),
     );
   }

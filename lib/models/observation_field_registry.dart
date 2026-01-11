@@ -140,7 +140,10 @@ class ObservationFieldRegistry {
     ),
     ObservationField(
       id: groupGenderMixFieldId,
-      label: LocalizedText(nl: 'Geslachtsverdeling', en: 'Gender Mix'),
+      label: LocalizedText(
+        nl: 'Groepsdemografie',
+        en: 'Group Demographics',
+      ),
       type: ObservationFieldType.multiSelect,
       audience: ObservationFieldAudience.group,
       isRequired: true,
@@ -148,8 +151,8 @@ class ObservationFieldRegistry {
       isEnabled: true,
       displayOrder: 50,
       helperText: LocalizedText(
-        nl: 'Hoeveel personen per geslacht?',
-        en: 'How many people of each gender?',
+        nl: 'Koppel voor elke persoon een geslacht en leeftijdsgroep.',
+        en: 'Pair a gender and age group for each person in the group.',
       ),
       config: OptionObservationFieldConfig(
         options: <ObservationFieldOption>[
@@ -160,45 +163,6 @@ class ObservationFieldRegistry {
           ObservationFieldOption(
             id: 'female',
             label: LocalizedText(nl: 'Vrouw', en: 'Female'),
-          ),
-          ObservationFieldOption(
-            id: 'mixed',
-            label: LocalizedText(nl: 'Gemengd', en: 'Mixed'),
-          ),
-        ],
-        allowMultiple: false,
-      ),
-    ),
-    ObservationField(
-      id: groupAgeMixFieldId,
-      label: LocalizedText(nl: 'Leeftijdsverdeling', en: 'Age Mix'),
-      type: ObservationFieldType.multiSelect,
-      audience: ObservationFieldAudience.group,
-      isRequired: true,
-      isStandard: true,
-      isEnabled: true,
-      displayOrder: 60,
-      helperText: LocalizedText(
-        nl: 'Hoeveel personen per leeftijdsgroep?',
-        en: 'How many people in each age range?',
-      ),
-      config: OptionObservationFieldConfig(
-        options: <ObservationFieldOption>[
-          ObservationFieldOption(
-            id: 'child',
-            label: LocalizedText(nl: 'Kind', en: 'Child'),
-          ),
-          ObservationFieldOption(
-            id: 'teen',
-            label: LocalizedText(nl: 'Tiener', en: 'Teen'),
-          ),
-          ObservationFieldOption(
-            id: 'adult',
-            label: LocalizedText(nl: 'Volwassene', en: 'Adult'),
-          ),
-          ObservationFieldOption(
-            id: 'mixed',
-            label: LocalizedText(nl: 'Gemengd', en: 'Mixed'),
           ),
         ],
         allowMultiple: false,

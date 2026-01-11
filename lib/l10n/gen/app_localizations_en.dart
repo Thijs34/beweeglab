@@ -514,11 +514,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get observerPleaseSelectOption => 'Please select an option';
 
   @override
-  String get observerGenderDistribution => 'Gender Distribution';
+  String get observerGenderDistribution => 'Group Demographics';
 
   @override
   String get observerGenderDistributionHelper =>
-      'How many people of each gender?';
+      'Specify gender and age for each person in the group';
 
   @override
   String get observerAgeDistribution => 'Age Distribution';
@@ -1324,6 +1324,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get adminFieldNotes => 'Notes';
+
+  @override
+  String get adminGroupSizeLockedNote =>
+      'Group size is always required for group observations and cannot be disabled.';
+
+  @override
+  String get adminGroupSizeRequiredToggleNote =>
+      'Required is fixed on for this field.';
+
+  @override
+  String get adminDemographicFieldTitle => 'Group demographics';
+
+  @override
+  String get adminDemographicFieldDescription =>
+      'This field records pairs of gender and age for each person in the group.';
+
+  @override
+  String get adminDemographicFixedGenders =>
+      'Genders are fixed and cannot be changed:';
+
+  @override
+  String get adminDemographicAgeNote =>
+      'Each selected gender must be paired with an age group when observers fill in the form.';
+
+  @override
+  String get adminDemographicLockedConfig =>
+      'Options are locked because this field uses the combined gender + age matrix in the observer app.';
 
   @override
   String get adminNoRecordsCollected => 'No records collected yet';

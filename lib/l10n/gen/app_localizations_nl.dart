@@ -516,11 +516,11 @@ class AppLocalizationsNl extends AppLocalizations {
   String get observerPleaseSelectOption => 'Selecteer een optie';
 
   @override
-  String get observerGenderDistribution => 'Geslachtsverdeling';
+  String get observerGenderDistribution => 'Groepsdemografie';
 
   @override
   String get observerGenderDistributionHelper =>
-      'Hoeveel personen van elk geslacht?';
+      'Specificeer geslacht en leeftijd voor elke persoon in de groep';
 
   @override
   String get observerAgeDistribution => 'Leeftijdsverdeling';
@@ -1326,6 +1326,33 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get adminFieldNotes => 'Notities';
+
+  @override
+  String get adminGroupSizeLockedNote =>
+      'Groepsgrootte is altijd verplicht bij groepsobservaties en kan niet worden uitgezet.';
+
+  @override
+  String get adminGroupSizeRequiredToggleNote =>
+      'Verplicht staat vast aan voor dit veld.';
+
+  @override
+  String get adminDemographicFieldTitle => 'Groepsdemografie';
+
+  @override
+  String get adminDemographicFieldDescription =>
+      'Dit veld registreert voor elke persoon in de groep een combinatie van geslacht en leeftijd.';
+
+  @override
+  String get adminDemographicFixedGenders =>
+      'Geslachtsopties liggen vast en kunnen niet worden aangepast:';
+
+  @override
+  String get adminDemographicAgeNote =>
+      'Elke gekozen geslachtsoptie wordt tijdens het invullen gekoppeld aan een leeftijdsgroep.';
+
+  @override
+  String get adminDemographicLockedConfig =>
+      'Opties zijn vergrendeld omdat dit veld de gecombineerde geslacht + leeftijd matrix in de observeerapp gebruikt.';
 
   @override
   String get adminNoRecordsCollected => 'Nog geen registraties';

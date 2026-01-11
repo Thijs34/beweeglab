@@ -91,11 +91,13 @@ class GroupSnapshot {
   final int groupSize;
   final Map<String, int> genderCounts;
   final Map<String, int> ageCounts;
+  final List<DemographicPair>? demographicPairs;
 
   const GroupSnapshot({
     required this.groupSize,
     required this.genderCounts,
     required this.ageCounts,
+    this.demographicPairs,
   });
 
   Map<String, dynamic> toJson() {
@@ -103,12 +105,15 @@ class GroupSnapshot {
       'groupSize': groupSize,
       'genderCounts': genderCounts,
       'ageCounts': ageCounts,
+      if (demographicPairs != null)
+        'demographicPairs': demographicPairs!.map((p) => p.toJson()).toList(),
     };
   }
 
   factory GroupSnapshot.fromJson(Map<String, dynamic> json) {
     final genderCountsRaw = json['genderCounts'];
     final ageCountsRaw = json['ageCounts'];
+    final demographicPairsRaw = json['demographicPairs'];
 
     return GroupSnapshot(
       groupSize: (json['groupSize'] as num?)?.toInt() ?? 0,
@@ -128,8 +133,49 @@ class GroupSnapshot {
               ),
             )
           : {},
+      demographicPairs: demographicPairsRaw is List
+          ? demographicPairsRaw
+              .whereType<Map<String, dynamic>>()
+              .map((e) => DemographicPair.fromJson(e))
+              .toList()
+          : null,
     );
   }
+}
+
+class DemographicPair {
+  final String genderId;
+  final String ageId;
+
+  const DemographicPair({
+    required this.genderId,
+    required this.ageId,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'genderId': genderId,
+      'ageId': ageId,
+    };
+  }
+
+  factory DemographicPair.fromJson(Map<String, dynamic> json) {
+    return DemographicPair(
+      genderId: json['genderId'] as String? ?? '',
+      ageId: json['ageId'] as String? ?? '',
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is DemographicPair &&
+          runtimeType == other.runtimeType &&
+          genderId == other.genderId &&
+          ageId == other.ageId;
+
+  @override
+  int get hashCode => genderId.hashCode ^ ageId.hashCode;
 }
 
 class SharedSnapshot {

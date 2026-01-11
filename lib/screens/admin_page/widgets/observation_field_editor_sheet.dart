@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:my_app/l10n/l10n.dart';
 import 'package:my_app/models/observation_field.dart';
+import 'package:my_app/models/observation_field_registry.dart';
 import 'package:my_app/theme/app_theme.dart';
 
 enum _FieldLanguage { nl, en }
@@ -56,6 +57,8 @@ class _ObservationFieldEditorSheetState
   late bool _isRequired;
   late Map<_FieldLanguage, TextEditingController> _labelControllers;
   late Map<_FieldLanguage, TextEditingController> _helperControllers;
+  late bool _isDemographicField;
+  late bool _isGroupSizeField;
 
   late TextEditingController _textPlaceholderController;
   late TextEditingController _textMaxLengthController;
@@ -78,13 +81,20 @@ class _ObservationFieldEditorSheetState
     super.initState();
     final config = widget.field.config;
     _type = widget.field.type;
+    _isDemographicField =
+        widget.field.id == ObservationFieldRegistry.groupGenderMixFieldId;
+    _isGroupSizeField =
+      widget.field.id == ObservationFieldRegistry.groupSizeFieldId;
+    _isRequired = widget.field.isRequired;
+    if (_isGroupSizeField) {
+      _isRequired = true;
+    }
     if (_type == ObservationFieldType.dropdown) {
       _type = ObservationFieldType.multiSelect;
     }
     if (widget.canEditType && !_supportedTypes.contains(_type)) {
       _type = ObservationFieldType.text;
     }
-    _isRequired = widget.field.isRequired;
     _labelControllers = {
       _FieldLanguage.nl:
           TextEditingController(text: widget.field.label.nl.trim()),
@@ -318,13 +328,35 @@ class _ObservationFieldEditorSheetState
                 readOnly: true,
               ),
             const SizedBox(height: 16),
+            if (_isGroupSizeField)
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.gray50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.gray200),
+                ),
+                child: Text(
+                  l10n.adminGroupSizeLockedNote,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.gray700,
+                  ),
+                ),
+              ),
             SwitchListTile.adaptive(
               contentPadding: EdgeInsets.zero,
               value: _isRequired,
-              onChanged: (value) => setState(() => _isRequired = value),
+              onChanged: _isGroupSizeField
+                  ? null
+                  : (value) => setState(() => _isRequired = value),
               title: Text(l10n.adminRequiredField),
               subtitle: Text(
-                l10n.adminRequiredFieldSubtitle,
+                _isGroupSizeField
+                    ? l10n.adminGroupSizeRequiredToggleNote
+                    : l10n.adminRequiredFieldSubtitle,
               ),
             ),
             const SizedBox(height: 16),
@@ -365,6 +397,9 @@ class _ObservationFieldEditorSheetState
   }
 
   Widget _buildConfigSection() {
+    if (_isDemographicField) {
+      return _buildDemographicConfigInfo();
+    }
     switch (_type) {
       case ObservationFieldType.text:
         return _buildTextConfig();
@@ -374,6 +409,60 @@ class _ObservationFieldEditorSheetState
       default:
         return const SizedBox.shrink();
     }
+  }
+
+  Widget _buildDemographicConfigInfo() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.adminDemographicFieldTitle,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          l10n.adminDemographicFieldDescription,
+          style: const TextStyle(color: AppTheme.gray700),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppTheme.gray50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppTheme.gray200),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.adminDemographicFixedGenders,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.gray900,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '- ${l10n.observerGenderMale}\n- ${l10n.observerGenderFemale}',
+                style: const TextStyle(color: AppTheme.gray700),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                l10n.adminDemographicAgeNote,
+                style: const TextStyle(color: AppTheme.gray700),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          l10n.adminDemographicLockedConfig,
+          style: const TextStyle(color: AppTheme.gray500, fontSize: 12),
+        ),
+      ],
+    );
   }
 
   Widget _buildAudienceSelector() {
@@ -580,6 +669,11 @@ class _ObservationFieldEditorSheetState
         break;
       case ObservationFieldType.dropdown:
       case ObservationFieldType.multiSelect:
+        if (_isDemographicField) {
+          // Keep demographic field config fixed (gender+age pairs handled in UI)
+          config = widget.field.config;
+          break;
+        }
         final options = _optionDrafts
             .map((draft) => draft.toOption())
             .where((option) => option.label.nl.trim().isNotEmpty)
@@ -612,7 +706,7 @@ class _ObservationFieldEditorSheetState
         en: labelEn.isEmpty ? null : labelEn,
       ),
       helperText: helper,
-      isRequired: _isRequired,
+      isRequired: _isGroupSizeField ? true : _isRequired,
       audience: _audience,
       type: widget.canEditType ? _type : widget.field.type,
       config: config,

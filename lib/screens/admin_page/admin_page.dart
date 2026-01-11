@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -221,9 +222,101 @@ class _AdminPageState extends State<AdminPage> {
     final sourceFields = project.fields.isEmpty
         ? ObservationFieldRegistry.defaultFields()
         : project.fields;
+    final normalized = _normalizeGroupDemographicFields(
+      sourceFields.map((field) => field.copyWith()).toList(),
+    );
     _fieldDraftProjectId = project.id;
-    _fieldDrafts = sourceFields.map((field) => field.copyWith()).toList();
-    _fieldEditsDirty = false;
+    _fieldDrafts = normalized.fields;
+    _fieldEditsDirty = normalized.changed;
+  }
+
+  _FieldNormalizationResult _normalizeGroupDemographicFields(
+    List<ObservationField> drafts,
+  ) {
+    bool changed = false;
+    final demographicTemplate = ObservationFieldRegistry.defaultFields()
+        .firstWhere(
+          (field) =>
+              field.id == ObservationFieldRegistry.groupGenderMixFieldId,
+        );
+
+    final filtered = drafts
+        .where((field) {
+          final isLegacyAgeMix =
+              field.id == ObservationFieldRegistry.groupAgeMixFieldId;
+          if (isLegacyAgeMix) changed = true;
+          return !isLegacyAgeMix;
+        })
+        .map((field) {
+          if (field.id == ObservationFieldRegistry.groupSizeFieldId &&
+              field.isEnabled == false) {
+            changed = true;
+            return field.copyWith(isEnabled: true);
+          }
+          return field;
+        })
+        .toList();
+
+    final demographicIndex = filtered.indexWhere(
+      (field) => field.id == ObservationFieldRegistry.groupGenderMixFieldId,
+    );
+
+    if (demographicIndex >= 0) {
+      final existing = filtered[demographicIndex];
+      final merged = _mergeDemographicField(existing, demographicTemplate);
+      if (!_fieldsEquivalent(existing, merged)) {
+        changed = true;
+      }
+      filtered[demographicIndex] = merged;
+    } else {
+      final insertIndex = filtered.indexWhere(
+        (field) => field.id == ObservationFieldRegistry.locationTypeFieldId,
+      );
+      final targetIndex = insertIndex == -1 ? filtered.length : insertIndex;
+      filtered.insert(targetIndex, demographicTemplate);
+      changed = true;
+    }
+
+    return _FieldNormalizationResult(fields: filtered, changed: changed);
+  }
+
+  ObservationField _mergeDemographicField(
+    ObservationField existing,
+    ObservationField template,
+  ) {
+    return existing.copyWith(
+      label: template.label,
+      helperText: template.helperText,
+      type: template.type,
+      audience: template.audience,
+      isRequired: template.isRequired,
+      config: template.config,
+    );
+  }
+
+  bool _fieldsEquivalent(ObservationField a, ObservationField b) {
+    return a.id == b.id &&
+        _localizedEquals(a.label, b.label) &&
+        _localizedEquals(a.helperText, b.helperText) &&
+        a.type == b.type &&
+        a.audience == b.audience &&
+        a.isRequired == b.isRequired &&
+        _configEquals(a.config, b.config);
+  }
+
+  bool _localizedEquals(LocalizedText? a, LocalizedText? b) {
+    if (a == null && b == null) return true;
+    if (a == null || b == null) return false;
+    return a.nl == b.nl && (a.en ?? '') == (b.en ?? '');
+  }
+
+  bool _configEquals(
+    ObservationFieldConfig? a,
+    ObservationFieldConfig? b,
+  ) {
+    if (a == null && b == null) return true;
+    if (a == null || b == null) return false;
+    return jsonEncode(a.toJson()) == jsonEncode(b.toJson());
   }
 
   Future<void> _loadProjects() async {
@@ -1806,6 +1899,16 @@ class _AdminPageState extends State<AdminPage> {
       },
     );
   }
+}
+
+class _FieldNormalizationResult {
+  final List<ObservationField> fields;
+  final bool changed;
+
+  const _FieldNormalizationResult({
+    required this.fields,
+    required this.changed,
+  });
 }
 
 class _AdminLoadingState extends StatelessWidget {

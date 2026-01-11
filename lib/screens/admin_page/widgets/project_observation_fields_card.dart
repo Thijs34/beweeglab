@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:my_app/l10n/l10n.dart';
 import 'package:my_app/models/observation_field.dart';
+import 'package:my_app/models/observation_field_registry.dart';
 import 'package:my_app/theme/app_theme.dart';
 
 class ProjectObservationFieldsCard extends StatelessWidget {
@@ -538,6 +539,8 @@ class _FieldRow extends StatelessWidget {
     final l10n = context.l10n;
     final localeCode = Localizations.localeOf(context).languageCode;
     final helper = field.helperForLocale(localeCode);
+    final isGroupSizeField =
+        field.id == ObservationFieldRegistry.groupSizeFieldId;
     final chips = <Widget>[
       _buildChip(
         label: _typeLabel(l10n, field.type),
@@ -610,6 +613,17 @@ class _FieldRow extends StatelessWidget {
                           ),
                         ),
                       ),
+                    if (isGroupSizeField)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                          l10n.adminGroupSizeLockedNote,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.gray600,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -618,7 +632,8 @@ class _FieldRow extends StatelessWidget {
                 children: [
                   Switch.adaptive(
                     value: field.isEnabled,
-                    onChanged: (value) => onToggleField(value),
+                    onChanged:
+                        isGroupSizeField ? null : (value) => onToggleField(value),
                   ),
                   const SizedBox(height: 6),
                   Row(

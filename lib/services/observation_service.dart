@@ -199,6 +199,8 @@ class ObservationService {
       'groupSize': group?.groupSize,
       'genderCounts': group?.genderCounts,
       'ageCounts': group?.ageCounts,
+      if (group?.demographicPairs != null && group!.demographicPairs!.isNotEmpty)
+        'demographicPairs': group.demographicPairs!.map((p) => p.toJson()).toList(),
     };
 
     return payload;
@@ -246,6 +248,7 @@ class ObservationService {
       genderCounts: _extractDemographicCounts(data, 'genderCounts'),
       ageCounts: _extractDemographicCounts(data, 'ageCounts'),
       locationLabel: data['customLocationLabel'] as String?,
+      demographicPairs: _extractDemographicPairs(data),
     );
   }
 
@@ -352,6 +355,22 @@ class ObservationService {
       });
       if (counts.isNotEmpty) {
         return counts;
+      }
+    }
+    return null;
+  }
+
+  List<DemographicPairData>? _extractDemographicPairs(
+    Map<String, dynamic> data,
+  ) {
+    final raw = data['demographicPairs'];
+    if (raw is List) {
+      final pairs = raw
+          .whereType<Map<String, dynamic>>()
+          .map((e) => DemographicPairData.fromJson(e))
+          .toList();
+      if (pairs.isNotEmpty) {
+        return pairs;
       }
     }
     return null;

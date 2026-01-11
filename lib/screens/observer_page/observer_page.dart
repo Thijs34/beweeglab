@@ -28,7 +28,7 @@ import 'package:my_app/screens/observer_page/widgets/observer_option_button.dart
 import 'package:my_app/screens/observer_page/widgets/observer_section_card.dart';
 import 'package:my_app/screens/observer_page/widgets/session_summary_modal.dart';
 import 'package:my_app/screens/observer_page/widgets/success_overlay.dart';
-import 'package:my_app/screens/observer_page/widgets/demographic_counter.dart';
+import 'package:my_app/screens/observer_page/widgets/demographic_matrix.dart';
 
 const Map<String, String> _kDefaultLocationLabels = {
   'cruyff-court': 'Cruyff Court (C)',
@@ -107,6 +107,7 @@ class _ObserverPageState extends State<ObserverPage> {
   // Group demographics state
   final Map<String, int> _genderCounts = {};
   final Map<String, int> _ageCounts = {};
+  final List<DemographicPair> _demographicPairs = [];
 
   late final String _currentDate;
   late final String _currentTime;
@@ -696,13 +697,14 @@ class _ObserverPageState extends State<ObserverPage> {
       return _buildGroupSizeField(field);
     }
     
-    // Handle group demographics with counters
+    // Handle group demographics with combined gender+age matrix
     if (field.id == ObservationFieldRegistry.groupGenderMixFieldId) {
-      return _buildGenderCounter();
+      return _buildDemographicMatrix();
     }
     
+    // Skip age field since it's now part of the matrix
     if (field.id == ObservationFieldRegistry.groupAgeMixFieldId) {
-      return _buildAgeCounter();
+      return const SizedBox.shrink();
     }
 
     switch (field.type) {
@@ -818,7 +820,8 @@ class _ObserverPageState extends State<ObserverPage> {
   ) {
     int clamped = nextValue.clamp(minValue, maxValue).toInt();
     if (fieldId == ObservationFieldRegistry.groupSizeFieldId) {
-      final int minDemographic = _maxDemographicCount();
+      // Allow decreasing group size by comparing with the target size
+      final int minDemographic = _maxDemographicCount(targetSize: clamped);
       if (clamped < minDemographic) {
         clamped = minDemographic.clamp(minValue, maxValue);
       }
@@ -829,77 +832,88 @@ class _ObserverPageState extends State<ObserverPage> {
     });
   }
 
-  Widget _buildGenderCounter() {
+  Widget _buildDemographicMatrix() {
     final l10n = context.l10n;
-    return DemographicCounter(
-      title: l10n.observerGenderDistribution,
-      helperText: l10n.observerGenderDistributionHelper,
-      counts: _genderCounts,
-      categories: [
-        DemographicCategory(
+    return DemographicMatrix(
+      pairs: _demographicPairs,
+      genderOptions: [
+        GenderOption(
+          id: '',
+          label: l10n.observerPleaseSelectOption,
+          icon: Icons.help_outline,
+        ),
+        GenderOption(
           id: 'male',
           label: l10n.observerGenderMale,
+          icon: Icons.male,
         ),
-        DemographicCategory(
+        GenderOption(
           id: 'female',
           label: l10n.observerGenderFemale,
+          icon: Icons.female,
         ),
       ],
-      showHeader: false,
-      maxTotal: _currentGroupSize,
-      onCountsChanged: (newCounts) {
-        setState(() {
-          _genderCounts.clear();
-          _genderCounts.addAll(newCounts);
-          _fieldErrors.remove(ObservationFieldRegistry.groupGenderMixFieldId);
-        });
-      },
-    );
-  }
-
-  Widget _buildAgeCounter() {
-    final l10n = context.l10n;
-    return DemographicCounter(
-      title: l10n.observerAgeDistribution,
-      helperText: l10n.observerAgeDistributionHelper,
-      counts: _ageCounts,
-      categories: [
-        DemographicCategory(
+      ageOptions: [
+        AgeOption(
+          id: '',
+          label: l10n.observerPleaseSelectOption,
+        ),
+        AgeOption(
           id: '11-and-younger',
           label: l10n.observerAge11AndYounger,
         ),
-        DemographicCategory(
+        AgeOption(
           id: '12-17',
           label: l10n.observerAge12to17,
         ),
-        DemographicCategory(
+        AgeOption(
           id: '18-24',
           label: l10n.observerAge18to24,
         ),
-        DemographicCategory(
+        AgeOption(
           id: '25-44',
           label: l10n.observerAge25to44,
         ),
-        DemographicCategory(
+        AgeOption(
           id: '45-64',
           label: l10n.observerAge45to64,
         ),
-        DemographicCategory(
+        AgeOption(
           id: '65-plus',
           label: l10n.observerAge65Plus,
         ),
       ],
-      showHeader: false,
       maxTotal: _currentGroupSize,
-      onCountsChanged: (newCounts) {
+      onPairsChanged: (newPairs) {
         setState(() {
-          _ageCounts.clear();
-          _ageCounts.addAll(newCounts);
+          _demographicPairs.clear();
+          _demographicPairs.addAll(newPairs);
+          
+          // Update legacy counts for backward compatibility
+          _updateLegacyCounts(newPairs);
+          
+          _fieldErrors.remove(ObservationFieldRegistry.groupGenderMixFieldId);
           _fieldErrors.remove(ObservationFieldRegistry.groupAgeMixFieldId);
         });
       },
     );
   }
+
+  void _updateLegacyCounts(List<DemographicPair> pairs) {
+    _genderCounts.clear();
+    _ageCounts.clear();
+    
+    for (final pair in pairs) {
+      if (pair.genderId.isNotEmpty) {
+        _genderCounts[pair.genderId] = (_genderCounts[pair.genderId] ?? 0) + 1;
+      }
+      if (pair.ageId.isNotEmpty) {
+        _ageCounts[pair.ageId] = (_ageCounts[pair.ageId] ?? 0) + 1;
+      }
+    }
+  }
+
+
 
   void _validateOtherOptionText(
     ObservationField field,
@@ -1537,22 +1551,21 @@ class _ObserverPageState extends State<ObserverPage> {
 
       // Validate group demographics
       if (field.id == ObservationFieldRegistry.groupGenderMixFieldId) {
-        final totalGender = _sumCounts(_genderCounts);
-        if (field.isRequired && totalGender == 0) {
-          errors[field.id] = 'Please specify at least one gender';
-        } else if (totalGender > groupSize) {
-          errors[field.id] = 'Gender total cannot exceed group size ($groupSize)';
+        // Validate demographic pairs (gender+age per person)
+        if (field.isRequired && _demographicPairs.isEmpty) {
+          errors[field.id] = 'Please specify at least one individual';
+        } else if (_demographicPairs.length > groupSize) {
+          errors[field.id] = 'Total individuals cannot exceed group size ($groupSize)';
+        } else if (_demographicPairs.any(
+          (p) => p.genderId.isEmpty || p.ageId.isEmpty,
+        )) {
+          errors[field.id] = 'Please select gender and age for everyone';
         }
         continue;
       }
 
       if (field.id == ObservationFieldRegistry.groupAgeMixFieldId) {
-        final totalAge = _sumCounts(_ageCounts);
-        if (field.isRequired && totalAge == 0) {
-          errors[field.id] = 'Please specify at least one age group';
-        } else if (totalAge > groupSize) {
-          errors[field.id] = 'Age total cannot exceed group size ($groupSize)';
-        }
+        // Skip age validation since it's part of demographic pairs now
         continue;
       }
 
@@ -1647,6 +1660,9 @@ class _ObserverPageState extends State<ObserverPage> {
         groupSize: _currentGroupSize,
         genderCounts: Map<String, int>.from(_genderCounts),
         ageCounts: Map<String, int>.from(_ageCounts),
+        demographicPairs: _demographicPairs.isNotEmpty 
+            ? List<DemographicPair>.from(_demographicPairs)
+            : null,
       ),
     );
   }
@@ -1670,6 +1686,14 @@ class _ObserverPageState extends State<ObserverPage> {
         return value.trim().isNotEmpty;
       }
       return value != null;
+    }
+
+    // Check demographic pairs for gender/age mix fields
+    if (field.id == ObservationFieldRegistry.groupGenderMixFieldId ||
+        field.id == ObservationFieldRegistry.groupAgeMixFieldId) {
+      return _demographicPairs.any(
+        (p) => p.genderId.isNotEmpty && p.ageId.isNotEmpty,
+      );
     }
 
     switch (field.type) {
@@ -1699,6 +1723,7 @@ class _ObserverPageState extends State<ObserverPage> {
       _fieldErrors.clear();
       _genderCounts.clear();
       _ageCounts.clear();
+      _demographicPairs.clear();
       _disposeFieldControllers();
       if (shouldIncrement) {
         _personCounter += 1;
@@ -1766,10 +1791,18 @@ class _ObserverPageState extends State<ObserverPage> {
     return counts.values.fold(0, (sum, value) => sum + value);
   }
 
-  int _maxDemographicCount() {
+  int _maxDemographicCount({int? targetSize}) {
+    // Use demographic pairs if available, otherwise fall back to legacy counts
+    final limit = targetSize ?? _currentGroupSize;
+    if (_demographicPairs.isNotEmpty) {
+      final filledPairs = _demographicPairs
+          .where((p) => p.genderId.isNotEmpty || p.ageId.isNotEmpty)
+          .length;
+      return filledPairs.clamp(0, limit);
+    }
     final genderTotal = _sumCounts(_genderCounts);
     final ageTotal = _sumCounts(_ageCounts);
-    return genderTotal > ageTotal ? genderTotal : ageTotal;
+    return (genderTotal > ageTotal ? genderTotal : ageTotal).clamp(0, limit);
   }
 
   String _stringFieldValue(String fieldId) {
