@@ -140,16 +140,32 @@ class _PairRow extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Row(
-              children: [
-                Expanded(
-                  child: _buildGenderDropdown(),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildAgeDropdown(),
-                ),
-              ],
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isNarrow = constraints.maxWidth < 360;
+                if (isNarrow) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildGenderDropdown(),
+                      const SizedBox(height: 8),
+                      _buildAgeDropdown(),
+                    ],
+                  );
+                }
+
+                return Row(
+                  children: [
+                    Expanded(
+                      child: _buildGenderDropdown(),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildAgeDropdown(),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ],
@@ -178,17 +194,9 @@ class _PairRow extends StatelessWidget {
         items: genderOptions.map((gender) {
           return DropdownMenuItem<String>(
             value: gender.id,
-            child: Row(
-              children: [
-                Icon(gender.icon, size: 16, color: AppTheme.gray700),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    gender.label,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
+            child: Text(
+              gender.label,
+              overflow: TextOverflow.ellipsis,
             ),
           );
         }).toList(),
@@ -241,12 +249,10 @@ class _PairRow extends StatelessWidget {
 class GenderOption {
   final String id;
   final String label;
-  final IconData icon;
 
   const GenderOption({
     required this.id,
     required this.label,
-    required this.icon,
   });
 }
 

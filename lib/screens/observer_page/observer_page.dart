@@ -840,17 +840,14 @@ class _ObserverPageState extends State<ObserverPage> {
         GenderOption(
           id: '',
           label: l10n.observerPleaseSelectOption,
-          icon: Icons.help_outline,
         ),
         GenderOption(
           id: 'male',
           label: l10n.observerGenderMale,
-          icon: Icons.male,
         ),
         GenderOption(
           id: 'female',
           label: l10n.observerGenderFemale,
-          icon: Icons.female,
         ),
       ],
       ageOptions: [
