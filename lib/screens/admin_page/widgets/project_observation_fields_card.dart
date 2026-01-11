@@ -1,10 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:my_app/l10n/l10n.dart';
 import 'package:my_app/models/observation_field.dart';
 import 'package:my_app/models/observation_field_registry.dart';
 import 'package:my_app/theme/app_theme.dart';
 
-class ProjectObservationFieldsCard extends StatelessWidget {
+class ProjectObservationFieldsCard extends StatefulWidget {
   const ProjectObservationFieldsCard({
     super.key,
     required this.fields,
@@ -18,6 +20,7 @@ class ProjectObservationFieldsCard extends StatelessWidget {
     required this.onReorderField,
     required this.onToggleField,
     required this.onDeleteField,
+    required this.scrollController,
     required this.onResetFields,
     required this.onSaveFields,
     required this.onDiscardChanges,
@@ -35,14 +38,35 @@ class ProjectObservationFieldsCard extends StatelessWidget {
   final void Function(int oldIndex, int newIndex) onReorderField;
   final void Function(String fieldId, bool isEnabled) onToggleField;
   final void Function(String fieldId) onDeleteField;
+  final ScrollController scrollController;
   final VoidCallback onResetFields;
   final Future<void> Function() onSaveFields;
   final VoidCallback onDiscardChanges;
 
   @override
+  State<ProjectObservationFieldsCard> createState() =>
+      _ProjectObservationFieldsCardState();
+}
+
+class _ProjectObservationFieldsCardState
+    extends State<ProjectObservationFieldsCard> {
+  static const double _autoScrollEdgeExtent = 120;
+  static const double _autoScrollMaxStep = 18;
+
+  bool _isDragging = false;
+  double _autoScrollStep = 0;
+  Timer? _autoScrollTimer;
+
+  @override
+  void dispose() {
+    _stopAutoScroll();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final visibleCount = fields.length;
+    final visibleCount = widget.fields.length;
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -102,7 +126,7 @@ class ProjectObservationFieldsCard extends StatelessWidget {
               );
 
               final addButton = OutlinedButton.icon(
-                onPressed: () => onAddField(context),
+                onPressed: () => widget.onAddField(context),
                 icon: const Icon(Icons.add, size: 18),
                 label: Text(l10n.adminAddField),
                 style: OutlinedButton.styleFrom(
@@ -139,53 +163,70 @@ class ProjectObservationFieldsCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _AudienceSegmentedControl(
-            activeAudience: activeAudience,
-            fieldCounts: fieldCounts,
-            onAudienceChanged: onAudienceChanged,
+            activeAudience: widget.activeAudience,
+            fieldCounts: widget.fieldCounts,
+            onAudienceChanged: widget.onAudienceChanged,
           ),
           const SizedBox(height: 16),
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 250),
-            child: hasChanges
+            child: widget.hasChanges
                 ? Padding(
                     padding: const EdgeInsets.only(bottom: 16),
                     child: _UnsavedChangesBanner(
                       key: const ValueKey('fields-unsaved-banner'),
-                      isSaving: isSaving,
-                      onDiscardChanges: onDiscardChanges,
-                      onSaveFields: onSaveFields,
+                      isSaving: widget.isSaving,
+                      onDiscardChanges: widget.onDiscardChanges,
+                      onSaveFields: widget.onSaveFields,
                     ),
                   )
                 : const SizedBox.shrink(),
           ),
-          if (fields.isEmpty)
+          if (widget.fields.isEmpty)
             _EmptyState(
-              onAddField: onAddField,
-              audienceLabel: _audienceLabel(l10n, activeAudience),
-              audienceIcon: _audienceIcon(activeAudience),
+              onAddField: widget.onAddField,
+              audienceLabel: _audienceLabel(l10n, widget.activeAudience),
+              audienceIcon: _audienceIcon(widget.activeAudience),
             )
           else
-            ReorderableListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              buildDefaultDragHandles: false,
-              itemCount: fields.length,
-              onReorder: onReorderField,
-              itemBuilder: (context, index) {
-                final field = fields[index];
-                return Container(
-                  key: ValueKey(field.id),
-                  child: _FieldRow(
-                    index: index,
-                    field: field,
-                    isLast: index == fields.length - 1,
-                    onToggleField: (isEnabled) =>
-                        onToggleField(field.id, isEnabled),
-                    onDeleteField: () => _confirmDelete(context, field),
-                    onEditField: () => onEditField(context, field),
-                  ),
-                );
-              },
+            Listener(
+              behavior: HitTestBehavior.opaque,
+              onPointerMove: _handlePointerMove,
+              onPointerUp: _handlePointerEnd,
+              onPointerCancel: _handlePointerEnd,
+              child: ReorderableListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                buildDefaultDragHandles: false,
+                itemCount: widget.fields.length,
+                onReorderStart: (_) {
+                  _isDragging = true;
+                },
+                onReorderEnd: (_) {
+                  _isDragging = false;
+                  _stopAutoScroll();
+                },
+                onReorder: (oldIndex, newIndex) {
+                  widget.onReorderField(oldIndex, newIndex);
+                  _isDragging = false;
+                  _stopAutoScroll();
+                },
+                itemBuilder: (context, index) {
+                  final field = widget.fields[index];
+                  return Container(
+                    key: ValueKey(field.id),
+                    child: _FieldRow(
+                      index: index,
+                      field: field,
+                      isLast: index == widget.fields.length - 1,
+                      onToggleField: (isEnabled) =>
+                          widget.onToggleField(field.id, isEnabled),
+                      onDeleteField: () => _confirmDelete(context, field),
+                      onEditField: () => widget.onEditField(context, field),
+                    ),
+                  );
+                },
+              ),
             ),
           const SizedBox(height: 20),
           LayoutBuilder(
@@ -193,7 +234,7 @@ class ProjectObservationFieldsCard extends StatelessWidget {
               final isCompact = constraints.maxWidth < 420;
 
               final resetButton = TextButton.icon(
-                onPressed: onResetFields,
+                onPressed: widget.onResetFields,
                 icon: const Icon(Icons.settings_backup_restore, size: 18),
                 label: Text(l10n.adminRestoreDefaults),
                 style: TextButton.styleFrom(
@@ -202,9 +243,10 @@ class ProjectObservationFieldsCard extends StatelessWidget {
               );
 
               final saveButton = ElevatedButton.icon(
-                onPressed:
-                    !hasChanges || isSaving ? null : () => onSaveFields(),
-                icon: isSaving
+                onPressed: !widget.hasChanges || widget.isSaving
+                    ? null
+                    : () => widget.onSaveFields(),
+                icon: widget.isSaving
                     ? SizedBox(
                         width: 16,
                         height: 16,
@@ -215,7 +257,9 @@ class ProjectObservationFieldsCard extends StatelessWidget {
                       )
                     : const Icon(Icons.save_outlined, size: 18),
                 label: Text(
-                  isSaving ? l10n.adminSaving : l10n.adminSaveChanges,
+                  widget.isSaving
+                      ? l10n.adminSaving
+                      : l10n.adminSaveChanges,
                 ),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
@@ -253,7 +297,73 @@ class ProjectObservationFieldsCard extends StatelessWidget {
     );
   }
 
-  Future<void> _confirmDelete(BuildContext context, ObservationField field) async {
+  void _handlePointerMove(PointerMoveEvent event) {
+    if (!_isDragging || !widget.scrollController.hasClients) {
+      return;
+    }
+    final viewportHeight = MediaQuery.sizeOf(context).height;
+    final topEdge = _autoScrollEdgeExtent;
+    final bottomEdge = viewportHeight - _autoScrollEdgeExtent;
+    final positionY = event.position.dy;
+
+    double step = 0;
+    if (positionY < topEdge) {
+      final t = (topEdge - positionY) / _autoScrollEdgeExtent;
+      step = -_autoScrollMaxStep * t.clamp(0, 1);
+    } else if (positionY > bottomEdge) {
+      final t = (positionY - bottomEdge) / _autoScrollEdgeExtent;
+      step = _autoScrollMaxStep * t.clamp(0, 1);
+    }
+
+    if (step == 0) {
+      _stopAutoScroll();
+      return;
+    }
+    _startAutoScroll(step);
+  }
+
+  void _handlePointerEnd(PointerEvent event) {
+    _isDragging = false;
+    _stopAutoScroll();
+  }
+
+  void _startAutoScroll(double step) {
+    _autoScrollStep = step;
+    _autoScrollTimer ??=
+        Timer.periodic(const Duration(milliseconds: 16), (_) {
+      _performAutoScroll();
+    });
+  }
+
+  void _performAutoScroll() {
+    if (!_isDragging || !widget.scrollController.hasClients) {
+      _stopAutoScroll();
+      return;
+    }
+
+    final position = widget.scrollController.position;
+    final target = (position.pixels + _autoScrollStep)
+        .clamp(position.minScrollExtent, position.maxScrollExtent)
+        .toDouble();
+
+    if (target == position.pixels) {
+      _stopAutoScroll();
+      return;
+    }
+
+    position.jumpTo(target);
+  }
+
+  void _stopAutoScroll() {
+    _autoScrollTimer?.cancel();
+    _autoScrollTimer = null;
+    _autoScrollStep = 0;
+  }
+
+  Future<void> _confirmDelete(
+    BuildContext context,
+    ObservationField field,
+  ) async {
     if (field.isStandard) {
       return;
     }
@@ -285,7 +395,7 @@ class ProjectObservationFieldsCard extends StatelessWidget {
         ) ??
         false;
     if (confirmed) {
-      onDeleteField(field.id);
+      widget.onDeleteField(field.id);
     }
   }
 }

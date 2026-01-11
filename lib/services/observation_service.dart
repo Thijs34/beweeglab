@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:my_app/models/project.dart';
+import 'package:my_app/models/observation_field_registry.dart';
 import 'package:my_app/screens/admin_page/admin_models.dart';
 import 'package:my_app/screens/observer_page/models/observation_mode.dart';
 import 'package:my_app/screens/observer_page/models/observer_entry.dart';
@@ -92,7 +93,7 @@ class ObservationService {
         .collection(_observationsSubcollection)
         .doc(record.id);
 
-     await docRef.set({
+    await docRef.set({
       'personId': record.personId.trim(),
       'gender': record.gender.trim(),
       'ageGroup': record.ageGroup.trim(),
@@ -163,6 +164,7 @@ class ObservationService {
     final individual = entry.individual;
     final group = entry.group;
     final personId = individual?.personId.trim();
+    final groupNumber = group?.groupNumber;
     final gender = individual?.gender.trim();
     final ageGroup = individual?.ageGroup.trim();
     final socialContext = individual?.socialContext.trim();
@@ -173,19 +175,23 @@ class ObservationService {
       'observerUid': observerUid,
       if (observerEmail != null) 'observerEmail': observerEmail,
       'mode': entry.mode.name,
+      'fieldValues': entry.fieldValues,
       'recordedAt': FieldValue.serverTimestamp(),
       'localRecordedAt': entry.timestamp.toIso8601String(),
       'locationTypeId': locationId,
+      'weatherCondition': entry.weatherCondition.name,
+      'temperatureLabel': entry.temperatureLabel,
       if (shared.customLocation != null &&
           shared.customLocation!.trim().isNotEmpty)
         'customLocationLabel': shared.customLocation!.trim(),
       'activityLevel': shared.activityLevel,
       'activityType': shared.activityType,
       'activityNotes': shared.activityNotes.trim(),
-      if (shared.additionalRemarks.trim().isNotEmpty)
-        'additionalRemarks': shared.additionalRemarks.trim(),
+      'additionalRemarks': shared.additionalRemarks.trim(),
       'personId': isGroup
-          ? 'group-${group?.groupSize ?? 0}'
+          ? (groupNumber != null && groupNumber > 0
+                ? 'group-$groupNumber'
+                : 'group-${group?.groupSize ?? 0}')
           : (personId?.isNotEmpty == true ? personId! : '--'),
       'gender': isGroup
           ? _serializeDemographicCounts(group?.genderCounts ?? {})
@@ -197,10 +203,14 @@ class ObservationService {
           ? 'together'
           : (socialContext?.isNotEmpty == true ? socialContext! : '--'),
       'groupSize': group?.groupSize,
+      'groupNumber': groupNumber,
       'genderCounts': group?.genderCounts,
       'ageCounts': group?.ageCounts,
-      if (group?.demographicPairs != null && group!.demographicPairs!.isNotEmpty)
-        'demographicPairs': group.demographicPairs!.map((p) => p.toJson()).toList(),
+      if (group?.demographicPairs != null &&
+          group!.demographicPairs!.isNotEmpty)
+        'demographicPairs': group.demographicPairs!
+            .map((p) => p.toJson())
+            .toList(),
     };
 
     return payload;
@@ -216,16 +226,35 @@ class ObservationService {
         DateTime.tryParse((data['localRecordedAt'] as String?) ?? '');
     final mode = (data['mode'] as String?) ?? 'individual';
     final groupSize = (data['groupSize'] as num?)?.toInt();
+    final groupNumber = (data['groupNumber'] as num?)?.toInt();
+    final activityNotes = (data['activityNotes'] as String?)?.trim();
+    final additionalRemarks = (data['additionalRemarks'] as String?)?.trim();
     final notes = _composeNotes(
-      data['activityNotes'] as String?,
-      data['additionalRemarks'] as String?,
+      activityNotes,
+      additionalRemarks,
     );
     final locationId = _extractLocationId(data);
+    final weatherCondition = (data['weatherCondition'] as String?) ?? '';
+    final temperatureLabel = (data['temperatureLabel'] as String?) ?? '--°C';
+    final rawFieldValues = data['fieldValues'];
+    Map<String, dynamic>? fieldValues;
+    if (rawFieldValues is Map<String, dynamic>) {
+      fieldValues = Map<String, dynamic>.from(rawFieldValues);
+    }
+    fieldValues ??= <String, dynamic>{};
+    void ensureFieldValue(String key, String? value) {
+      if (value == null || value.trim().isEmpty) return;
+      fieldValues!.putIfAbsent(key, () => value.trim());
+    }
+    ensureFieldValue(ObservationFieldRegistry.activityNotesFieldId, activityNotes);
+    ensureFieldValue(ObservationFieldRegistry.remarksFieldId, additionalRemarks);
 
     final fallbackPersonId = (data['personId'] as String?) ?? '--';
     final displayPersonId = mode == 'group'
-        ? 'Group ${groupSize ?? ''}'.trim()
-        : fallbackPersonId;
+      ? (groupNumber != null && groupNumber > 0
+          ? 'Group $groupNumber'
+          : 'Group ${groupSize ?? ''}'.trim())
+      : fallbackPersonId;
 
     return ObservationRecord(
       id: doc.id,
@@ -242,13 +271,15 @@ class ObservationService {
       mode: mode,
       observerEmail: data['observerEmail'] as String?,
       observerUid: data['observerUid'] as String?,
+      groupNumber: groupNumber,
       groupSize: groupSize,
-      genderMix: _extractDemographicDisplay(data, 'genderCounts', 'genderMix'),
-      ageMix: _extractDemographicDisplay(data, 'ageCounts', 'ageMix'),
       genderCounts: _extractDemographicCounts(data, 'genderCounts'),
       ageCounts: _extractDemographicCounts(data, 'ageCounts'),
       locationLabel: data['customLocationLabel'] as String?,
       demographicPairs: _extractDemographicPairs(data),
+      fieldValues: fieldValues.isEmpty ? null : fieldValues,
+      weatherCondition: weatherCondition,
+      temperatureLabel: temperatureLabel,
     );
   }
 
@@ -318,27 +349,6 @@ class ObservationService {
       return '--';
     }
     return nonZero.map((e) => '${e.key}: ${e.value}').join(', ');
-  }
-
-  /// Extracts demographic display from either counts map (new format) or string (old format)
-  String? _extractDemographicDisplay(
-    Map<String, dynamic> data,
-    String countsKey,
-    String fallbackKey,
-  ) {
-    // Try new format first (counts map)
-    final countsData = data[countsKey];
-    if (countsData is Map) {
-      final counts = Map<String, int>.from(
-        countsData.map(
-          (key, value) => MapEntry(key.toString(), (value as num).toInt()),
-        ),
-      );
-      return _serializeDemographicCounts(counts);
-    }
-
-    // Fall back to old format (string)
-    return data[fallbackKey] as String?;
   }
 
   Map<String, int>? _extractDemographicCounts(

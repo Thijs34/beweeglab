@@ -137,13 +137,15 @@ class ObservationRecord {
   final String mode;
   final String? observerEmail;
   final String? observerUid;
+  final int? groupNumber;
   final int? groupSize;
-  final String? genderMix;
-  final String? ageMix;
   final Map<String, int>? genderCounts;
   final Map<String, int>? ageCounts;
   final String? locationLabel;
   final List<DemographicPairData>? demographicPairs;
+  final Map<String, dynamic>? fieldValues;
+  final String weatherCondition;
+  final String temperatureLabel;
 
   const ObservationRecord({
     required this.id,
@@ -160,13 +162,15 @@ class ObservationRecord {
     this.mode = 'individual',
     this.observerEmail,
     this.observerUid,
+    this.groupNumber,
     this.groupSize,
-    this.genderMix,
-    this.ageMix,
     this.genderCounts,
     this.ageCounts,
     this.locationLabel,
     this.demographicPairs,
+    this.fieldValues,
+    this.weatherCondition = '',
+    this.temperatureLabel = '--°C',
   });
 
   bool get isGroup => mode == 'group';
@@ -362,10 +366,7 @@ class DemographicPairData {
   final String genderId;
   final String ageId;
 
-  const DemographicPairData({
-    required this.genderId,
-    required this.ageId,
-  });
+  const DemographicPairData({required this.genderId, required this.ageId});
 
   factory DemographicPairData.fromJson(Map<String, dynamic> json) {
     return DemographicPairData(
@@ -375,9 +376,6 @@ class DemographicPairData {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'genderId': genderId,
-      'ageId': ageId,
-    };
+    return {'genderId': genderId, 'ageId': ageId};
   }
 }

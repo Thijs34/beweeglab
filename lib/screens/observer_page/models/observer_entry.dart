@@ -1,16 +1,23 @@
 import 'package:my_app/screens/observer_page/models/observation_mode.dart';
+import 'package:my_app/screens/observer_page/models/weather_condition.dart';
 
 class ObserverEntry {
   final ObservationMode mode;
   final IndividualSnapshot? individual;
   final GroupSnapshot? group;
   final SharedSnapshot shared;
+  final Map<String, dynamic> fieldValues;
+  final WeatherCondition weatherCondition;
+  final String temperatureLabel;
   final DateTime timestamp;
 
   ObserverEntry({
     required this.mode,
     required this.shared,
     required this.timestamp,
+    required this.weatherCondition,
+    required this.temperatureLabel,
+    this.fieldValues = const {},
     this.individual,
     this.group,
   });
@@ -20,6 +27,9 @@ class ObserverEntry {
       'mode': mode.name,
       'timestamp': timestamp.toIso8601String(),
       'shared': shared.toJson(),
+      'fieldValues': fieldValues,
+      'weatherCondition': weatherCondition.name,
+      'temperatureLabel': temperatureLabel,
       if (individual != null) 'individual': individual!.toJson(),
       if (group != null) 'group': group!.toJson(),
     };
@@ -35,6 +45,13 @@ class ObserverEntry {
     final sharedRaw = json['shared'];
     final individualRaw = json['individual'];
     final groupRaw = json['group'];
+    final fieldValuesRaw = json['fieldValues'];
+    final weatherRaw = json['weatherCondition'] as String?;
+    final temperatureLabel = json['temperatureLabel'] as String? ?? '--°C';
+    final parsedWeather = WeatherCondition.values.firstWhere(
+      (item) => item.name == weatherRaw,
+      orElse: () => WeatherCondition.sunny,
+    );
     return ObserverEntry(
       mode: parsedMode,
       shared: SharedSnapshot.fromJson(
@@ -45,6 +62,11 @@ class ObserverEntry {
       timestamp:
           DateTime.tryParse(json['timestamp'] as String? ?? '') ??
           DateTime.now(),
+      fieldValues: fieldValuesRaw is Map<String, dynamic>
+          ? Map<String, dynamic>.from(fieldValuesRaw)
+          : const <String, dynamic>{},
+      weatherCondition: parsedWeather,
+      temperatureLabel: temperatureLabel,
       individual: individualRaw is Map<String, dynamic>
           ? IndividualSnapshot.fromJson(individualRaw)
           : null,
@@ -89,12 +111,14 @@ class IndividualSnapshot {
 
 class GroupSnapshot {
   final int groupSize;
+  final int groupNumber;
   final Map<String, int> genderCounts;
   final Map<String, int> ageCounts;
   final List<DemographicPair>? demographicPairs;
 
   const GroupSnapshot({
     required this.groupSize,
+    required this.groupNumber,
     required this.genderCounts,
     required this.ageCounts,
     this.demographicPairs,
@@ -103,6 +127,7 @@ class GroupSnapshot {
   Map<String, dynamic> toJson() {
     return {
       'groupSize': groupSize,
+      'groupNumber': groupNumber,
       'genderCounts': genderCounts,
       'ageCounts': ageCounts,
       if (demographicPairs != null)
@@ -117,6 +142,7 @@ class GroupSnapshot {
 
     return GroupSnapshot(
       groupSize: (json['groupSize'] as num?)?.toInt() ?? 0,
+      groupNumber: (json['groupNumber'] as num?)?.toInt() ?? 1,
       genderCounts: genderCountsRaw is Map
           ? Map<String, int>.from(
               genderCountsRaw.map(
@@ -135,9 +161,9 @@ class GroupSnapshot {
           : {},
       demographicPairs: demographicPairsRaw is List
           ? demographicPairsRaw
-              .whereType<Map<String, dynamic>>()
-              .map((e) => DemographicPair.fromJson(e))
-              .toList()
+                .whereType<Map<String, dynamic>>()
+                .map((e) => DemographicPair.fromJson(e))
+                .toList()
           : null,
     );
   }
@@ -147,16 +173,10 @@ class DemographicPair {
   final String genderId;
   final String ageId;
 
-  const DemographicPair({
-    required this.genderId,
-    required this.ageId,
-  });
+  const DemographicPair({required this.genderId, required this.ageId});
 
   Map<String, dynamic> toJson() {
-    return {
-      'genderId': genderId,
-      'ageId': ageId,
-    };
+    return {'genderId': genderId, 'ageId': ageId};
   }
 
   factory DemographicPair.fromJson(Map<String, dynamic> json) {

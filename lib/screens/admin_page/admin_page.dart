@@ -103,6 +103,7 @@ class _AdminPageState extends State<AdminPage> {
   String _newProjectObserverSearch = '';
   bool _isCreatingProject = false;
   Map<String, String> _newProjectErrors = {};
+  final ScrollController _detailScrollController = ScrollController();
 
   // Detail view state
   bool _showObserverSelector = false;
@@ -153,6 +154,7 @@ class _AdminPageState extends State<AdminPage> {
     _customLocationController.dispose();
     _addLocationController.dispose();
     _projectMainLocationController.dispose();
+    _detailScrollController.dispose();
     _locationAutocompleteService.dispose();
     super.dispose();
   }
@@ -1668,6 +1670,7 @@ class _AdminPageState extends State<AdminPage> {
                   ),
                   Expanded(
                   child: SingleChildScrollView(
+                    controller: _detailScrollController,
                     child: Padding(
                     padding: EdgeInsets.fromLTRB(
                       AppTheme.pageGutter,
@@ -1766,6 +1769,7 @@ class _AdminPageState extends State<AdminPage> {
                         activeSection: _projectDetailSection,
                         onSectionChange:
                           _handleProjectSectionChanged,
+                        scrollController: _detailScrollController,
                         mainLocationController:
                           _projectMainLocationController,
                         mainLocationError:

@@ -68,13 +68,13 @@ class _ObservationEditDialogState extends State<ObservationEditDialog> {
         mode: widget.record.mode,
         observerEmail: widget.record.observerEmail,
         observerUid: widget.record.observerUid,
+        groupNumber: widget.record.groupNumber,
         groupSize: widget.record.groupSize,
-        genderMix: widget.record.genderMix,
-        ageMix: widget.record.ageMix,
         genderCounts: widget.record.genderCounts,
         ageCounts: widget.record.ageCounts,
         locationLabel: widget.record.locationLabel,
         demographicPairs: widget.record.demographicPairs,
+        fieldValues: widget.record.fieldValues,
       ),
     );
   }
@@ -329,7 +329,7 @@ class _OptionGroup extends StatelessWidget {
                         width: 2,
                       ),
                     ),
-                      child: Text(labelBuilder(option)),
+                    child: Text(labelBuilder(option)),
                   ),
                 );
               }).toList(),

@@ -77,7 +77,6 @@ class _ObserverPageState extends State<ObserverPage> {
   bool _showSuccessOverlay = false;
   bool _showSummary = false;
   bool _isSubmitting = false;
-  bool _isEditingPersonId = false;
   final AdminNotificationService _notificationService =
       AdminNotificationService.instance;
   final ObservationService _observationService = ObservationService.instance;
@@ -90,6 +89,7 @@ class _ObserverPageState extends State<ObserverPage> {
   int _unreadNotificationCount = 0;
 
   String _personId = '1';
+  int _groupCounter = 1;
   int _personCounter = 1;
   String? _counterProjectKey;
   bool _counterRestored = false;
@@ -103,7 +103,7 @@ class _ObserverPageState extends State<ObserverPage> {
   final Map<String, TextEditingController> _textControllers = {};
   final Map<String, TextEditingController> _otherOptionControllers = {};
   final Map<String, List<ObservationFieldOption>> _customFieldOptions = {};
-  
+
   // Group demographics state
   final Map<String, int> _genderCounts = {};
   final Map<String, int> _ageCounts = {};
@@ -223,8 +223,10 @@ class _ObserverPageState extends State<ObserverPage> {
     final double scrollDelta = rawDelta.clamp(0.0, maxDelta);
 
     final position = _scrollController.position;
-    final targetOffset = (position.pixels + scrollDelta)
-        .clamp(0.0, position.maxScrollExtent);
+    final targetOffset = (position.pixels + scrollDelta).clamp(
+      0.0,
+      position.maxScrollExtent,
+    );
 
     _scrollController.animateTo(
       targetOffset,
@@ -307,14 +309,17 @@ class _ObserverPageState extends State<ObserverPage> {
 
   Widget _buildScrollArea(ProfileMenuController menuController) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    final double extraScrollPadding =
-        _isAndroidWeb && bottomInset > 0 ? 300 : 120;
+    final double extraScrollPadding = _isAndroidWeb && bottomInset > 0
+        ? 300
+        : 120;
     return Align(
       alignment: Alignment.topCenter,
       child: LayoutBuilder(
         builder: (context, constraints) {
           return ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: AppTheme.maxContentWidth),
+            constraints: const BoxConstraints(
+              maxWidth: AppTheme.maxContentWidth,
+            ),
             child: Column(
               children: [
                 Expanded(
@@ -454,8 +459,8 @@ class _ObserverPageState extends State<ObserverPage> {
                               )
                             : Text(
                                 _mode == ObservationMode.group
-                                ? context.l10n.observerSubmitGroup
-                                : context.l10n.observerSubmitPerson,
+                                    ? context.l10n.observerSubmitGroup
+                                    : context.l10n.observerSubmitPerson,
                               ),
                       ),
                     ),
@@ -609,6 +614,10 @@ class _ObserverPageState extends State<ObserverPage> {
       children
         ..add(_buildPersonIdField())
         ..add(const SizedBox(height: 16));
+    } else {
+      children
+        ..add(_buildGroupIdField())
+        ..add(const SizedBox(height: 16));
     }
     children.add(_buildDynamicFields());
     return Column(
@@ -696,12 +705,12 @@ class _ObserverPageState extends State<ObserverPage> {
     if (field.id == ObservationFieldRegistry.groupSizeFieldId) {
       return _buildGroupSizeField(field);
     }
-    
+
     // Handle group demographics with combined gender+age matrix
     if (field.id == ObservationFieldRegistry.groupGenderMixFieldId) {
       return _buildDemographicMatrix();
     }
-    
+
     // Skip age field since it's now part of the matrix
     if (field.id == ObservationFieldRegistry.groupAgeMixFieldId) {
       return const SizedBox.shrink();
@@ -837,58 +846,28 @@ class _ObserverPageState extends State<ObserverPage> {
     return DemographicMatrix(
       pairs: _demographicPairs,
       genderOptions: [
-        GenderOption(
-          id: '',
-          label: l10n.observerPleaseSelectOption,
-        ),
-        GenderOption(
-          id: 'male',
-          label: l10n.observerGenderMale,
-        ),
-        GenderOption(
-          id: 'female',
-          label: l10n.observerGenderFemale,
-        ),
+        GenderOption(id: '', label: l10n.observerPleaseSelectOption),
+        GenderOption(id: 'male', label: l10n.observerGenderMale),
+        GenderOption(id: 'female', label: l10n.observerGenderFemale),
       ],
       ageOptions: [
-        AgeOption(
-          id: '',
-          label: l10n.observerPleaseSelectOption,
-        ),
-        AgeOption(
-          id: '11-and-younger',
-          label: l10n.observerAge11AndYounger,
-        ),
-        AgeOption(
-          id: '12-17',
-          label: l10n.observerAge12to17,
-        ),
-        AgeOption(
-          id: '18-24',
-          label: l10n.observerAge18to24,
-        ),
-        AgeOption(
-          id: '25-44',
-          label: l10n.observerAge25to44,
-        ),
-        AgeOption(
-          id: '45-64',
-          label: l10n.observerAge45to64,
-        ),
-        AgeOption(
-          id: '65-plus',
-          label: l10n.observerAge65Plus,
-        ),
+        AgeOption(id: '', label: l10n.observerPleaseSelectOption),
+        AgeOption(id: '11-and-younger', label: l10n.observerAge11AndYounger),
+        AgeOption(id: '12-17', label: l10n.observerAge12to17),
+        AgeOption(id: '18-24', label: l10n.observerAge18to24),
+        AgeOption(id: '25-44', label: l10n.observerAge25to44),
+        AgeOption(id: '45-64', label: l10n.observerAge45to64),
+        AgeOption(id: '65-plus', label: l10n.observerAge65Plus),
       ],
       maxTotal: _currentGroupSize,
       onPairsChanged: (newPairs) {
         setState(() {
           _demographicPairs.clear();
           _demographicPairs.addAll(newPairs);
-          
+
           // Update legacy counts for backward compatibility
           _updateLegacyCounts(newPairs);
-          
+
           _fieldErrors.remove(ObservationFieldRegistry.groupGenderMixFieldId);
           _fieldErrors.remove(ObservationFieldRegistry.groupAgeMixFieldId);
         });
@@ -899,7 +878,7 @@ class _ObserverPageState extends State<ObserverPage> {
   void _updateLegacyCounts(List<DemographicPair> pairs) {
     _genderCounts.clear();
     _ageCounts.clear();
-    
+
     for (final pair in pairs) {
       if (pair.genderId.isNotEmpty) {
         _genderCounts[pair.genderId] = (_genderCounts[pair.genderId] ?? 0) + 1;
@@ -909,8 +888,6 @@ class _ObserverPageState extends State<ObserverPage> {
       }
     }
   }
-
-
 
   void _validateOtherOptionText(
     ObservationField field,
@@ -1098,7 +1075,8 @@ class _ObserverPageState extends State<ObserverPage> {
 
     final normalizedLabel = rawLabel.toLowerCase();
     final labelExists = existingOptions.any(
-      (option) => option.labelForLocale(locale).trim().toLowerCase() == normalizedLabel,
+      (option) =>
+          option.labelForLocale(locale).trim().toLowerCase() == normalizedLabel,
     );
     if (labelExists) {
       setState(() {
@@ -1258,60 +1236,87 @@ class _ObserverPageState extends State<ObserverPage> {
           ],
         ),
         const SizedBox(height: 4),
-        if (_isEditingPersonId)
-          SizedBox(
-            height: 44,
-            child: TextField(
-              controller: _personIdController,
-              keyboardType: TextInputType.number,
-              autofocus: true,
-              onChanged: (value) => setState(() => _personId = value),
-              onEditingComplete: () =>
-                  setState(() => _isEditingPersonId = false),
-              decoration: _inputDecoration().copyWith(hintText: 'Enter ID'),
-            ),
-          )
-        else
-          GestureDetector(
-            onTap: () => setState(() => _isEditingPersonId = true),
-            child: Container(
-              height: 44,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: AppTheme.gray50,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppTheme.gray300, width: 1),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  RichText(
-                    text: TextSpan(
-                      text: 'Person #$_personId ',
-                      style: const TextStyle(
-                        color: AppTheme.gray900,
-                        fontSize: 14,
-                      ),
-                      children: const [
-                        TextSpan(
-                          text: '(Auto ID)',
-                          style: TextStyle(
-                            color: AppTheme.gray500,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(
-                    Icons.edit_outlined,
-                    size: 18,
-                    color: AppTheme.gray400,
-                  ),
-                ],
-              ),
-            ),
+        Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: AppTheme.gray50,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppTheme.gray300, width: 1),
           ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              RichText(
+                text: TextSpan(
+                  text: 'Person #$_personId ',
+                  style: const TextStyle(color: AppTheme.gray900, fontSize: 14),
+                  children: const [
+                    TextSpan(
+                      text: '(Auto ID)',
+                      style: TextStyle(color: AppTheme.gray500, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.lock_outline, size: 18, color: AppTheme.gray400),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGroupIdField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text(
+              'Group ID',
+              style: TextStyle(fontSize: 14, color: AppTheme.gray700),
+            ),
+            const Spacer(),
+            IconButton(
+              tooltip: 'Reset form',
+              onPressed: () => _resetInputs(preservePersonId: true),
+              icon: const Icon(
+                Icons.refresh,
+                size: 18,
+                color: AppTheme.gray400,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: AppTheme.gray50,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppTheme.gray300, width: 1),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              RichText(
+                text: TextSpan(
+                  text: 'Group #$_groupCounter ',
+                  style: const TextStyle(color: AppTheme.gray900, fontSize: 14),
+                  children: const [
+                    TextSpan(
+                      text: '(Auto ID)',
+                      style: TextStyle(color: AppTheme.gray500, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.lock_outline, size: 18, color: AppTheme.gray400),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -1341,7 +1346,8 @@ class _ObserverPageState extends State<ObserverPage> {
         }
 
         int resolvedColumns = maxColumns;
-        while (resolvedColumns > 1 && widthFor(resolvedColumns) < minItemWidth) {
+        while (resolvedColumns > 1 &&
+            widthFor(resolvedColumns) < minItemWidth) {
           resolvedColumns -= 1;
         }
 
@@ -1460,10 +1466,7 @@ class _ObserverPageState extends State<ObserverPage> {
       }
       final project = _activeProject;
       if (project == null) {
-        _showSnackMessage(
-          context.l10n.observerSelectProject,
-          isError: true,
-        );
+        _showSnackMessage(context.l10n.observerSelectProject, isError: true);
         return;
       }
       final observerUid = FirebaseAuth.instance.currentUser?.uid;
@@ -1552,7 +1555,8 @@ class _ObserverPageState extends State<ObserverPage> {
         if (field.isRequired && _demographicPairs.isEmpty) {
           errors[field.id] = 'Please specify at least one individual';
         } else if (_demographicPairs.length > groupSize) {
-          errors[field.id] = 'Total individuals cannot exceed group size ($groupSize)';
+          errors[field.id] =
+              'Total individuals cannot exceed group size ($groupSize)';
         } else if (_demographicPairs.any(
           (p) => p.genderId.isEmpty || p.ageId.isEmpty,
         )) {
@@ -1638,6 +1642,9 @@ class _ObserverPageState extends State<ObserverPage> {
         mode: ObservationMode.individual,
         shared: shared,
         timestamp: timestamp,
+        weatherCondition: _weatherCondition,
+        temperatureLabel: _temperatureLabel,
+        fieldValues: _buildFieldValuePayload(),
         individual: IndividualSnapshot(
           personId: _personIdController.text.trim(),
           gender: _stringFieldValue(ObservationFieldRegistry.genderFieldId),
@@ -1653,15 +1660,85 @@ class _ObserverPageState extends State<ObserverPage> {
       mode: ObservationMode.group,
       shared: shared,
       timestamp: timestamp,
+      weatherCondition: _weatherCondition,
+      temperatureLabel: _temperatureLabel,
+      fieldValues: _buildFieldValuePayload(),
       group: GroupSnapshot(
         groupSize: _currentGroupSize,
+        groupNumber: _groupCounter,
         genderCounts: Map<String, int>.from(_genderCounts),
         ageCounts: Map<String, int>.from(_ageCounts),
-        demographicPairs: _demographicPairs.isNotEmpty 
+        demographicPairs: _demographicPairs.isNotEmpty
             ? List<DemographicPair>.from(_demographicPairs)
             : null,
       ),
     );
+  }
+
+  Map<String, dynamic> _buildFieldValuePayload() {
+    final values = <String, dynamic>{};
+    for (final field in _visibleFields) {
+      if (field.id == ObservationFieldRegistry.groupGenderMixFieldId) {
+        values[field.id] = {
+          'demographicPairs': _demographicPairs
+              .map((pair) => pair.toJson())
+              .toList(growable: false),
+          'genderCounts': Map<String, int>.from(_genderCounts),
+          'ageCounts': Map<String, int>.from(_ageCounts),
+        };
+        continue;
+      }
+      if (field.id == ObservationFieldRegistry.groupAgeMixFieldId) {
+        continue;
+      }
+      final normalized =
+          _normalizeFieldValueForStorage(field, _fieldValues[field.id]);
+      if (normalized != null) {
+        values[field.id] = normalized;
+      }
+    }
+    return values;
+  }
+
+  dynamic _normalizeFieldValueForStorage(
+    ObservationField field,
+    dynamic raw,
+  ) {
+    switch (field.type) {
+      case ObservationFieldType.text:
+        return raw is String
+            ? raw.trim()
+            : raw?.toString().trim();
+      case ObservationFieldType.number:
+        if (raw is num) return raw.toInt();
+        if (raw is String && raw.trim().isNotEmpty) {
+          final parsed = num.tryParse(raw.trim());
+          return parsed?.toInt();
+        }
+        return null;
+      case ObservationFieldType.dropdown:
+      case ObservationFieldType.multiSelect:
+        final config = field.config as OptionObservationFieldConfig?;
+        final allowsMultiple = _fieldAllowsMultipleSelections(field, config);
+        if (allowsMultiple) {
+          if (raw is List) {
+            return raw.whereType<String>().toList(growable: false);
+          }
+          if (raw is String && raw.isNotEmpty) {
+            return <String>[raw];
+          }
+          return const <String>[];
+        }
+        if (raw is String) {
+          return raw.trim();
+        }
+        return raw?.toString().trim();
+      default:
+        if (raw is String) return raw.trim();
+        if (raw is List) return raw.whereType<String>().toList(growable: false);
+        if (raw is num) return raw;
+        return null;
+    }
   }
 
   bool _isFormEmpty() {
@@ -1712,9 +1789,6 @@ class _ObserverPageState extends State<ObserverPage> {
 
   void _resetInputs({required bool preservePersonId}) {
     final shouldIncrement = !preservePersonId;
-    final nextId = shouldIncrement
-        ? (_personCounter + 1).toString()
-        : _personIdController.text;
     setState(() {
       _fieldValues.clear();
       _fieldErrors.clear();
@@ -1723,13 +1797,16 @@ class _ObserverPageState extends State<ObserverPage> {
       _demographicPairs.clear();
       _disposeFieldControllers();
       if (shouldIncrement) {
-        _personCounter += 1;
-        _personIdController.text = nextId;
+        if (_mode == ObservationMode.group) {
+          _groupCounter += 1;
+        } else {
+          _personCounter += 1;
+          _personIdController.text = _personCounter.toString();
+        }
       }
       _personId = _personIdController.text;
-      _isEditingPersonId = false;
     });
-    if (shouldIncrement) {
+    if (shouldIncrement && _mode == ObservationMode.individual) {
       _persistPersonCounter();
     }
   }

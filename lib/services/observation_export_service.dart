@@ -33,7 +33,12 @@ class ObservationExportService {
     sheet.name = l10n.exportSheetName;
 
     _buildMetadataSection(sheet, project, records.length, l10n);
-    final headerCount = _buildTableHeaders(l10n).length;
+    final headerCount = _buildTableHeaders(
+      l10n,
+      project.fields,
+      const Locale('nl'),
+      const [],
+    ).length;
     final dataRowCount = _buildTable(sheet, records, project.fields);
     _autoFitColumns(sheet, dataRowCount, headerCount);
     _freezeHeaderRows(sheet);
@@ -93,7 +98,13 @@ class ObservationExportService {
   ) {
     final dutchLocale = const Locale('nl');
     final dutchStrings = lookupAppLocalizations(dutchLocale);
-    final headers = _buildTableHeaders(dutchStrings);
+    final customFields = _customExportFields(fields);
+    final headers = _buildTableHeaders(
+      dutchStrings,
+      fields,
+      dutchLocale,
+      customFields,
+    );
     for (var column = 0; column < headers.length; column++) {
       sheet
           .getRangeByIndex(_tableHeaderRowIndex, column + 1)
@@ -117,6 +128,7 @@ class ObservationExportService {
       fields: fields,
       locale: dutchLocale,
       localizedStrings: dutchStrings,
+      customFields: customFields,
     );
 
     for (var index = 0; index < rows.length; index++) {
@@ -135,6 +147,7 @@ class ObservationExportService {
     required List<ObservationField> fields,
     required Locale locale,
     required AppLocalizations localizedStrings,
+    required List<ObservationField> customFields,
   }) {
     final rows = <List<String>>[];
     for (final record in records) {
@@ -145,6 +158,7 @@ class ObservationExportService {
             fields: fields,
             locale: locale,
             localizedStrings: localizedStrings,
+            customFields: customFields,
           ),
         );
       } else {
@@ -154,6 +168,7 @@ class ObservationExportService {
             fields: fields,
             locale: locale,
             localizedStrings: localizedStrings,
+            customFields: customFields,
           ),
         );
       }
@@ -166,6 +181,7 @@ class ObservationExportService {
     required List<ObservationField> fields,
     required Locale locale,
     required AppLocalizations localizedStrings,
+    required List<ObservationField> customFields,
   }) {
     final genderIds = _expandDemographicCounts(
       counts: record.genderCounts,
@@ -198,6 +214,7 @@ class ObservationExportService {
           fields: fields,
           locale: locale,
           localizedStrings: localizedStrings,
+          customFields: customFields,
           genderOverrideId: genderOverrideId,
           ageOverrideId: ageOverrideId,
         ),
@@ -212,6 +229,7 @@ class ObservationExportService {
     required List<ObservationField> fields,
     required Locale locale,
     required AppLocalizations localizedStrings,
+    required List<ObservationField> customFields,
     String? genderOverrideId,
     String? ageOverrideId,
   }) {
@@ -245,6 +263,10 @@ class ObservationExportService {
       rawValue: record.activityType,
       locale: locale,
     );
+    final weatherValue = _localizeWeather(
+      localizedStrings,
+      record.weatherCondition,
+    );
     final locationLabel = localizeObservationLocation(
       record: record,
       fields: fields,
@@ -253,11 +275,20 @@ class ObservationExportService {
     final modeValue = record.mode == 'group'
         ? localizedStrings.adminRecordGroup
         : localizedStrings.adminRecordIndividual;
-
-    return [
+    String textValue(String fieldId) {
+      final raw = record.fieldValues?[fieldId];
+      if (raw is String) return raw.trim();
+      if (raw != null) return raw.toString().trim();
+      return '';
+    }
+    final activityNotes = textValue(ObservationFieldRegistry.activityNotesFieldId);
+    final additionalRemarks = textValue(ObservationFieldRegistry.remarksFieldId);
+    final base = [
       record.personId,
       modeValue,
       record.timestamp,
+      weatherValue,
+      record.temperatureLabel.isEmpty ? '—' : record.temperatureLabel,
       record.observerEmail ?? '—',
       genderValue,
       ageGroupValue,
@@ -265,7 +296,23 @@ class ObservationExportService {
       activityLevelValue,
       activityTypeValue,
       locationLabel,
-      record.notes.isEmpty ? '—' : record.notes,
+      activityNotes.isEmpty ? '—' : activityNotes,
+      additionalRemarks.isEmpty ? '—' : additionalRemarks,
+    ];
+
+    if (customFields.isEmpty) {
+      return base;
+    }
+
+    final customValues = customFields.map((field) {
+      final raw = record.fieldValues?[field.id];
+      final formatted = _formatFieldValue(field, locale, raw);
+      return (formatted == null || formatted.isEmpty) ? '—' : formatted;
+    });
+
+    return [
+      ...base,
+      ...customValues,
     ];
   }
 
@@ -321,6 +368,90 @@ class ObservationExportService {
     return null;
   }
 
+  String _fieldLabel(
+    List<ObservationField> fields,
+    String fieldId,
+    Locale locale,
+  ) {
+    final field = _getFieldById(fields, fieldId);
+    if (field != null) {
+      return field.labelForLocale(locale.languageCode);
+    }
+    return fieldId;
+  }
+
+  String? _formatFieldValue(
+    ObservationField field,
+    Locale locale,
+    dynamic raw,
+  ) {
+    if (raw == null) return null;
+
+    String resolveOption(String value) {
+      final config = field.config;
+      if (config is OptionObservationFieldConfig) {
+        final match = config.options.firstWhere(
+          (opt) => opt.id == value,
+          orElse: () => const ObservationFieldOption(
+            id: '',
+            label: LocalizedText(nl: ''),
+          ),
+        );
+        if (match.id.isNotEmpty) {
+          final label = match.labelForLocale(locale.languageCode);
+          if (label.trim().isNotEmpty) return label.trim();
+        }
+      }
+      const otherPrefix = 'other:';
+      if (value.startsWith(otherPrefix)) {
+        return value.substring(otherPrefix.length).trim();
+      }
+      return value.trim();
+    }
+
+    if (raw is String) {
+      final resolved = resolveOption(raw);
+      return resolved.isEmpty ? null : resolved;
+    }
+
+    if (raw is num) return raw.toString();
+    if (raw is bool) return raw ? 'Yes' : 'No';
+
+    if (raw is Iterable) {
+      final entries = raw
+          .whereType<String>()
+          .map(resolveOption)
+          .where((e) => e.isNotEmpty)
+          .toList(growable: false);
+      if (entries.isEmpty) return null;
+      return entries.join(', ');
+    }
+
+    if (raw is Map) {
+      // Skip demographic matrix payloads; they are captured via counts.
+      if (raw.containsKey('genderCounts') || raw.containsKey('ageCounts')) {
+        return null;
+      }
+      final parts = <String>[];
+      raw.forEach((key, value) {
+        if (value == null) return;
+        final rendered = value is String
+            ? resolveOption(value)
+            : value is num
+                ? value.toString()
+                : value.toString();
+        if (rendered.trim().isNotEmpty) {
+          parts.add('$key: ${rendered.trim()}');
+        }
+      });
+      if (parts.isEmpty) return null;
+      return parts.join(', ');
+    }
+
+    final text = raw.toString().trim();
+    return text.isEmpty ? null : text;
+  }
+
   void _autoFitColumns(
     xlsio.Worksheet sheet,
     int recordCount,
@@ -348,17 +479,69 @@ class ObservationExportService {
     return sanitized.isEmpty ? 'project' : sanitized.replaceAll(' ', '_');
   }
 
-  List<String> _buildTableHeaders(AppLocalizations l10n) => [
-        l10n.exportHeaderPersonId,
-        l10n.exportHeaderMode,
-        l10n.exportHeaderTimestamp,
-        l10n.exportHeaderObserverEmail,
-        l10n.exportHeaderGender,
-        l10n.exportHeaderAgeGroup,
-        l10n.exportHeaderSocialContext,
-        l10n.exportHeaderActivityLevel,
-        l10n.exportHeaderActivityType,
-        l10n.exportHeaderLocation,
-        l10n.exportHeaderNotes,
-      ];
+  String _localizeWeather(AppLocalizations l10n, String raw) {
+    switch (raw) {
+      case 'sunny':
+        return l10n.weatherSunny;
+      case 'cloudy':
+        return l10n.weatherCloudy;
+      case 'rainy':
+        return l10n.weatherRainy;
+      default:
+        return raw.isEmpty ? '—' : raw;
+    }
+  }
+
+  List<String> _buildTableHeaders(
+    AppLocalizations l10n,
+    List<ObservationField> fields,
+    Locale locale,
+    List<ObservationField> customFields,
+  ) {
+    final headers = <String>[
+      l10n.exportHeaderPersonId,
+      l10n.exportHeaderMode,
+      l10n.exportHeaderTimestamp,
+      l10n.observerSummaryWeather,
+      'Temperature (°C)',
+      l10n.exportHeaderObserverEmail,
+      l10n.exportHeaderGender,
+      l10n.exportHeaderAgeGroup,
+      l10n.exportHeaderSocialContext,
+      l10n.exportHeaderActivityLevel,
+      l10n.exportHeaderActivityType,
+      l10n.exportHeaderLocation,
+      _fieldLabel(fields, ObservationFieldRegistry.activityNotesFieldId, locale),
+      _fieldLabel(fields, ObservationFieldRegistry.remarksFieldId, locale),
+    ];
+
+    for (final field in customFields) {
+      headers.add(field.labelForLocale(locale.languageCode));
+    }
+    return headers;
+  }
+
+  List<ObservationField> _customExportFields(
+    List<ObservationField> fields,
+  ) {
+    const excludedFieldIds = <String>{
+      ObservationFieldRegistry.genderFieldId,
+      ObservationFieldRegistry.ageGroupFieldId,
+      ObservationFieldRegistry.socialContextFieldId,
+      ObservationFieldRegistry.locationTypeFieldId,
+      ObservationFieldRegistry.customLocationFieldId,
+      ObservationFieldRegistry.activityLevelFieldId,
+      ObservationFieldRegistry.activityTypeFieldId,
+      ObservationFieldRegistry.activityNotesFieldId,
+      ObservationFieldRegistry.remarksFieldId,
+      ObservationFieldRegistry.groupSizeFieldId,
+      ObservationFieldRegistry.groupGenderMixFieldId,
+      ObservationFieldRegistry.groupAgeMixFieldId,
+    };
+
+    return fields
+        .where((field) => field.isEnabled && !excludedFieldIds.contains(field.id))
+        .toList()
+      ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+  }
 }

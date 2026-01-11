@@ -638,9 +638,16 @@ class _ObservationFieldEditorSheetState
     }
   }
 
+  bool _isDefaultFieldLabelEn(String value) {
+    final trimmed = value.trim().toLowerCase();
+    return trimmed.isEmpty || trimmed == 'new field';
+  }
+
   void _handleSubmit() {
     final labelNl = _labelControllers[_FieldLanguage.nl]!.text.trim();
     final labelEn = _labelControllers[_FieldLanguage.en]!.text.trim();
+    final effectiveLabelEn =
+        (labelEn.isEmpty || _isDefaultFieldLabelEn(labelEn)) ? labelNl : labelEn;
     if (labelNl.isEmpty) {
       setState(() => _errorText = l10n.adminFieldLabelRequiredError);
       return;
@@ -648,11 +655,12 @@ class _ObservationFieldEditorSheetState
 
     final helperNl = _helperControllers[_FieldLanguage.nl]!.text.trim();
     final helperEn = _helperControllers[_FieldLanguage.en]!.text.trim();
+    final effectiveHelperEn = helperEn.isEmpty ? helperNl : helperEn;
     final helper = helperNl.isEmpty && helperEn.isEmpty
         ? null
         : LocalizedText(
             nl: helperNl,
-            en: helperEn.isEmpty ? null : helperEn,
+            en: effectiveHelperEn.isEmpty ? null : effectiveHelperEn,
           );
     ObservationFieldConfig? config;
 
@@ -703,7 +711,7 @@ class _ObservationFieldEditorSheetState
     final updated = widget.field.copyWith(
       label: LocalizedText(
         nl: labelNl,
-        en: labelEn.isEmpty ? null : labelEn,
+        en: effectiveLabelEn.isEmpty ? null : effectiveLabelEn,
       ),
       helperText: helper,
       isRequired: _isGroupSizeField ? true : _isRequired,
@@ -739,17 +747,29 @@ class _OptionDraft {
   ObservationFieldOption toOption() {
     final labelNl = labelControllers[_FieldLanguage.nl]!.text.trim();
     final labelEn = labelControllers[_FieldLanguage.en]!.text.trim();
+    final effectiveEn = (labelEn.isEmpty || _isDefaultOptionLabelEn(labelEn))
+        ? labelNl
+        : labelEn;
     final slug = _slugify(labelNl.isNotEmpty ? labelNl : labelEn);
     final id = (_id.isNotEmpty ? _id : slug).trim();
     return ObservationFieldOption(
       id: id.isEmpty ? 'option-${DateTime.now().millisecondsSinceEpoch}' : id,
       label: LocalizedText(
         nl: labelNl.isEmpty ? l10n.adminOptionFallback : labelNl,
-        en: labelEn.isEmpty ? null : labelEn,
+        en: effectiveEn.isEmpty ? null : effectiveEn,
       ),
       description: null,
     );
   }
+
+  bool _isDefaultOptionLabelEn(String value) {
+    final trimmed = value.trim();
+    return trimmed == l10n.adminOptionNumber(1) ||
+        trimmed == l10n.adminOptionNumber(2) ||
+        trimmed == l10n.adminOptionFallback ||
+        trimmed.isEmpty;
+  }
+
 
   void dispose() {
     for (final controller in labelControllers.values) {

@@ -16,6 +16,7 @@ class ProjectDetailView extends StatelessWidget {
   final List<AdminLocationOption> locationOptions;
   final ProjectDetailSection activeSection;
   final ValueChanged<ProjectDetailSection> onSectionChange;
+  final ScrollController scrollController;
   final TextEditingController mainLocationController;
   final String? mainLocationError;
   final ValueChanged<String> onMainLocationChanged;
@@ -76,6 +77,7 @@ class ProjectDetailView extends StatelessWidget {
     required this.locationOptions,
     required this.activeSection,
     required this.onSectionChange,
+    required this.scrollController,
     required this.mainLocationController,
     required this.mainLocationError,
     required this.onMainLocationChanged,
@@ -232,6 +234,7 @@ class ProjectDetailView extends StatelessWidget {
             onReorderField: onReorderField,
             onToggleField: onToggleField,
             onDeleteField: onDeleteField,
+            scrollController: scrollController,
             onResetFields: onResetFields,
             onSaveFields: onSaveFields,
             onDiscardChanges: onDiscardFieldChanges,
@@ -1440,6 +1443,134 @@ class _ObservationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final locale = Localizations.localeOf(context);
+    String fieldLabel(String fieldId) {
+      final match = fields.firstWhere(
+        (field) => field.id == fieldId,
+        orElse: () => ObservationField(
+          id: fieldId,
+          label: LocalizedText(en: fieldId, nl: fieldId),
+          type: ObservationFieldType.text,
+          audience: ObservationFieldAudience.all,
+          isStandard: false,
+          isEnabled: true,
+          displayOrder: 0,
+        ),
+      );
+      return match.labelForLocale(locale.languageCode);
+    }
+
+    String _textValue(String fieldId) {
+      final raw = record.fieldValues?[fieldId];
+      if (raw is String) return raw.trim();
+      if (raw != null) return raw.toString().trim();
+      return '';
+    }
+
+    String? _formatFieldValue(
+      ObservationField field,
+      Locale locale,
+      dynamic raw,
+    ) {
+      if (raw == null) return null;
+
+      String resolveOption(String value) {
+        final config = field.config;
+        if (config is OptionObservationFieldConfig) {
+          final match = config.options.firstWhere(
+            (opt) => opt.id == value,
+            orElse: () => const ObservationFieldOption(
+              id: '',
+              label: LocalizedText(nl: ''),
+            ),
+          );
+          if (match.id.isNotEmpty) {
+            final label = match.labelForLocale(locale.languageCode);
+            if (label.trim().isNotEmpty) return label.trim();
+          }
+        }
+        const otherPrefix = 'other:';
+        if (value.startsWith(otherPrefix)) {
+          return value.substring(otherPrefix.length).trim();
+        }
+        return value.trim();
+      }
+
+      if (raw is String) {
+        final resolved = resolveOption(raw);
+        return resolved.isEmpty ? null : resolved;
+      }
+
+      if (raw is num) return raw.toString();
+      if (raw is bool) return raw ? 'Yes' : 'No';
+
+      if (raw is Iterable) {
+        final entries = raw
+            .whereType<String>()
+            .map(resolveOption)
+            .where((e) => e.isNotEmpty)
+            .toList(growable: false);
+        if (entries.isEmpty) return null;
+        return entries.join(', ');
+      }
+
+      if (raw is Map) {
+        // Skip demographic matrix payloads; they are shown elsewhere.
+        if (raw.containsKey('genderCounts') || raw.containsKey('ageCounts')) {
+          return null;
+        }
+        final parts = <String>[];
+        raw.forEach((key, value) {
+          if (value == null) return;
+          final rendered = value is String
+              ? resolveOption(value)
+              : value is num
+                  ? value.toString()
+                  : value.toString();
+          if (rendered.trim().isNotEmpty) {
+            parts.add('$key: ${rendered.trim()}');
+          }
+        });
+        if (parts.isEmpty) return null;
+        return parts.join(', ');
+      }
+
+      final text = raw.toString().trim();
+      return text.isEmpty ? null : text;
+    }
+
+    final activityNotesValue = _textValue(ObservationFieldRegistry.activityNotesFieldId);
+    final additionalRemarksValue = _textValue(ObservationFieldRegistry.remarksFieldId);
+
+    final excludedFieldIds = <String>{
+      ObservationFieldRegistry.genderFieldId,
+      ObservationFieldRegistry.ageGroupFieldId,
+      ObservationFieldRegistry.socialContextFieldId,
+      ObservationFieldRegistry.locationTypeFieldId,
+      ObservationFieldRegistry.customLocationFieldId,
+      ObservationFieldRegistry.activityLevelFieldId,
+      ObservationFieldRegistry.activityTypeFieldId,
+      ObservationFieldRegistry.activityNotesFieldId,
+      ObservationFieldRegistry.remarksFieldId,
+      ObservationFieldRegistry.groupSizeFieldId,
+      ObservationFieldRegistry.groupGenderMixFieldId,
+      ObservationFieldRegistry.groupAgeMixFieldId,
+    };
+
+    final customFieldRows = <Widget>[];
+    if (record.fieldValues != null && record.fieldValues!.isNotEmpty) {
+      for (final field in fields) {
+        if (excludedFieldIds.contains(field.id)) continue;
+        final formatted =
+          _formatFieldValue(field, locale, record.fieldValues![field.id]);
+        if (formatted == null || formatted.isEmpty) continue;
+        customFieldRows.add(
+          _ObservationRow(
+            label: field.labelForLocale(locale.languageCode),
+            value: formatted,
+          ),
+        );
+      }
+    }
 
     String? localizeGroupDemographics(String rawValue, String fieldId) {
       final parsedSegments = rawValue.split(',');
@@ -1511,14 +1642,6 @@ class _ObservationCard extends StatelessWidget {
       rawValue: record.activityType,
       locale: locale,
     );
-    final String? genderMixValue =
-        record.genderMix == null || record.genderMix!.trim().isEmpty
-            ? null
-            : record.genderMix;
-    final String? ageMixValue =
-        record.ageMix == null || record.ageMix!.trim().isEmpty
-            ? null
-            : record.ageMix;
     final locationRowValue = localizeObservationLocation(
       record: record,
       fields: fields,
@@ -1582,6 +1705,9 @@ class _ObservationCard extends StatelessWidget {
               }
 
               Widget buildPersonChip() {
+                final label = record.isGroup
+                    ? record.personId
+                    : '#${record.personId}';
                 return Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
@@ -1589,7 +1715,7 @@ class _ObservationCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
-                    '#${record.personId}',
+                    label,
                     style: const TextStyle(
                       color: AppTheme.white,
                       fontSize: 12,
@@ -1659,22 +1785,26 @@ class _ObservationCard extends StatelessWidget {
               label: l10n.adminFieldGroupSize,
               value: record.groupSize.toString(),
             ),
-          if (record.isGroup && genderMixValue != null)
-            _ObservationRow(
-              label: l10n.adminFieldGenderMix,
-              value: genderMixValue,
-            ),
-          if (record.isGroup && ageMixValue != null)
-            _ObservationRow(label: l10n.adminFieldAgeMix, value: ageMixValue),
           _ObservationRow(
             label: l10n.adminFieldActivity,
             value: activityLevelValue,
           ),
           _ObservationRow(label: l10n.adminFieldType, value: activityTypeValue),
+          if (activityNotesValue.isNotEmpty)
+            _ObservationRow(
+              label: fieldLabel(ObservationFieldRegistry.activityNotesFieldId),
+              value: activityNotesValue,
+            ),
+          if (additionalRemarksValue.isNotEmpty)
+            _ObservationRow(
+              label: fieldLabel(ObservationFieldRegistry.remarksFieldId),
+              value: additionalRemarksValue,
+            ),
           _ObservationRow(
             label: l10n.adminFieldLocation,
             value: locationRowValue.isEmpty ? locationLabel : locationRowValue,
           ),
+          ...customFieldRows,
           if (record.observerEmail?.isNotEmpty ?? false) ...[
             const SizedBox(height: 8),
             Row(
@@ -1706,29 +1836,6 @@ class _ObservationCard extends StatelessWidget {
                   ),
                 ),
               ],
-            ),
-          ],
-          if (record.notes.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(
-              l10n.adminFieldNotes,
-              style: const TextStyle(fontSize: 12, color: AppTheme.gray500),
-            ),
-            const SizedBox(height: 4),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppTheme.white,
-                borderRadius: BorderRadius.circular(
-                  AppTheme.borderRadiusMedium,
-                ),
-                border: Border.all(color: AppTheme.gray200),
-              ),
-              child: Text(
-                record.notes,
-                style: const TextStyle(color: AppTheme.gray700),
-              ),
             ),
           ],
         ],
