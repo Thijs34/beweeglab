@@ -1567,7 +1567,10 @@ class _AdminPageState extends State<AdminPage> {
     final updatedRecord = await showDialog<ObservationRecord>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => ObservationEditDialog(record: record),
+      builder: (context) => ObservationEditDialog(
+        record: record,
+        fields: project?.fields ?? const [],
+      ),
     );
 
     if (updatedRecord == null) return;

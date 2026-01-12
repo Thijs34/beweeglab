@@ -132,6 +132,8 @@ class ObservationRecord {
   final String activityLevel;
   final String activityType;
   final String notes;
+  final String activityNotes;
+  final String additionalRemarks;
   final String timestamp;
   final String projectId;
   final String mode;
@@ -157,6 +159,8 @@ class ObservationRecord {
     required this.activityLevel,
     required this.activityType,
     required this.notes,
+    this.activityNotes = '',
+    this.additionalRemarks = '',
     required this.timestamp,
     this.projectId = '',
     this.mode = 'individual',

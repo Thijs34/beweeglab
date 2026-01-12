@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:my_app/l10n/l10n.dart';
+import 'package:my_app/models/observation_field.dart';
+import 'package:my_app/models/observation_field_registry.dart';
 import 'package:my_app/screens/admin_page/admin_models.dart';
 import 'package:my_app/theme/app_theme.dart';
 
 //dialog for editing observation
 class ObservationEditDialog extends StatefulWidget {
   final ObservationRecord record;
+  final List<ObservationField> fields;
 
-  const ObservationEditDialog({super.key, required this.record});
+  const ObservationEditDialog({
+    super.key,
+    required this.record,
+    required this.fields,
+  });
 
   @override
   State<ObservationEditDialog> createState() => _ObservationEditDialogState();
@@ -20,8 +27,12 @@ class _ObservationEditDialogState extends State<ObservationEditDialog> {
   late String _socialContext;
   late String _activityLevel;
   late String _activityType;
-  late TextEditingController _notesController;
+  late TextEditingController _activityNotesController;
+  late TextEditingController _remarksController;
   late TextEditingController _personIdController;
+  late Map<String, dynamic> _fieldValues;
+  late List<ObservationField> _customFields;
+  final Map<String, TextEditingController> _customTextControllers = {};
 
   static const _genderOptions = ['male', 'female'];
   static const _ageOptions = ['child', 'teen', 'adult', 'senior'];
@@ -40,18 +51,58 @@ class _ObservationEditDialogState extends State<ObservationEditDialog> {
     _socialContext = widget.record.socialContext;
     _activityLevel = widget.record.activityLevel;
     _activityType = widget.record.activityType;
-    _notesController = TextEditingController(text: widget.record.notes);
+    _fieldValues = Map<String, dynamic>.from(widget.record.fieldValues ?? {});
+    _customFields = widget.fields.where(_isCustomField).toList(growable: false);
+
+    final activityNotes = (widget.record.activityNotes.isNotEmpty
+            ? widget.record.activityNotes
+            : (_fieldValues[ObservationFieldRegistry.activityNotesFieldId]
+                    as String?)) ??
+        '';
+    final additionalRemarks = (widget.record.additionalRemarks.isNotEmpty
+            ? widget.record.additionalRemarks
+            : (_fieldValues[ObservationFieldRegistry.remarksFieldId]
+                    as String?)) ??
+        '';
+
+    _activityNotesController = TextEditingController(text: activityNotes);
+    _remarksController = TextEditingController(text: additionalRemarks);
     _personIdController = TextEditingController(text: widget.record.personId);
+
+    for (final field in _customFields) {
+      if (_isTextLike(field)) {
+        final initial = _fieldValues[field.id];
+        _customTextControllers[field.id] = TextEditingController(
+          text: initial == null ? '' : initial.toString(),
+        );
+      }
+    }
   }
 
   @override
   void dispose() {
     _personIdController.dispose();
-    _notesController.dispose();
+    _activityNotesController.dispose();
+    _remarksController.dispose();
+    for (final controller in _customTextControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
   void _handleSave() {
+    for (final entry in _customTextControllers.entries) {
+      _fieldValues[entry.key] = entry.value.text.trim();
+    }
+    final activityNotes = _activityNotesController.text.trim();
+    final additionalRemarks = _remarksController.text.trim();
+    final combinedNotes = _combineNotes(activityNotes, additionalRemarks);
+    final updatedFieldValues = Map<String, dynamic>.from(_fieldValues);
+    updatedFieldValues[ObservationFieldRegistry.activityNotesFieldId] =
+        activityNotes;
+    updatedFieldValues[ObservationFieldRegistry.remarksFieldId] =
+        additionalRemarks;
+
     Navigator.of(context).pop(
       ObservationRecord(
         id: widget.record.id,
@@ -62,7 +113,9 @@ class _ObservationEditDialogState extends State<ObservationEditDialog> {
         locationTypeId: widget.record.locationTypeId,
         activityLevel: _activityLevel,
         activityType: _activityType,
-        notes: _notesController.text.trim(),
+        notes: combinedNotes,
+        activityNotes: activityNotes,
+        additionalRemarks: additionalRemarks,
         timestamp: widget.record.timestamp,
         projectId: widget.record.projectId,
         mode: widget.record.mode,
@@ -74,9 +127,129 @@ class _ObservationEditDialogState extends State<ObservationEditDialog> {
         ageCounts: widget.record.ageCounts,
         locationLabel: widget.record.locationLabel,
         demographicPairs: widget.record.demographicPairs,
-        fieldValues: widget.record.fieldValues,
+        fieldValues: updatedFieldValues,
       ),
     );
+  }
+
+  Widget _buildCustomField(ObservationField field, AppLocalizations l10n) {
+    final locale = Localizations.localeOf(context).languageCode;
+    final label = field.labelForLocale(locale);
+    if (_isTextLike(field)) {
+      final controller = _customTextControllers[field.id]!;
+      final isMultiline = (field.config is TextObservationFieldConfig)
+          ? (field.config as TextObservationFieldConfig).multiline
+          : false;
+      return _LabeledField(
+        label: label,
+        child: TextField(
+          controller: controller,
+          minLines: isMultiline ? 2 : 1,
+          maxLines: isMultiline ? 4 : 1,
+          onChanged: (value) => _fieldValues[field.id] = value,
+        ),
+      );
+    }
+
+    final config = field.config;
+    if (config is OptionObservationFieldConfig) {
+      final allowMultiple = config.allowMultiple;
+      final selected = _selectedOptions(field.id);
+      if (!allowMultiple) {
+        return _OptionGroup(
+          label: label,
+          options: config.options.map((opt) => opt.id).toList(),
+          selectedValue: selected.isNotEmpty ? selected.first : '',
+          columns: 2,
+          optionLabelBuilder: (value) {
+            final match = config.options.firstWhere(
+              (opt) => opt.id == value,
+              orElse: () => ObservationFieldOption(
+                id: value,
+                label: LocalizedText(nl: value, en: value),
+              ),
+            );
+            return match.labelForLocale(locale);
+          },
+          onSelected: (value) {
+            setState(() {
+              _fieldValues[field.id] = value;
+            });
+          },
+        );
+      }
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.gray700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: config.options.map((option) {
+              final isSelected = selected.contains(option.id);
+              return SizedBox(
+                width: 150,
+                child: OutlinedButton(
+                  onPressed: () {
+                    setState(() {
+                      final updated = _selectedOptions(field.id);
+                      if (isSelected) {
+                        updated.remove(option.id);
+                      } else {
+                        updated.add(option.id);
+                      }
+                      _fieldValues[field.id] = updated.toList();
+                    });
+                  },
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    backgroundColor:
+                        isSelected ? AppTheme.primaryOrange : AppTheme.white,
+                    foregroundColor:
+                        isSelected ? AppTheme.white : AppTheme.gray700,
+                    side: BorderSide(
+                      color: isSelected
+                          ? AppTheme.primaryOrange
+                          : AppTheme.gray300,
+                      width: 2,
+                    ),
+                  ),
+                  child: Text(option.labelForLocale(locale)),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      );
+    }
+
+    return _LabeledField(
+      label: label,
+      child: Text(
+        _fieldValues[field.id]?.toString() ?? '--',
+        style: const TextStyle(color: AppTheme.gray600),
+      ),
+    );
+  }
+
+  Set<String> _selectedOptions(String fieldId) {
+    final raw = _fieldValues[fieldId];
+    if (raw is Iterable) {
+      return raw.whereType<String>().toSet();
+    }
+    if (raw is String && raw.isNotEmpty) {
+      return {raw};
+    }
+    return <String>{};
   }
 
   @override
@@ -183,16 +356,44 @@ class _ObservationEditDialogState extends State<ObservationEditDialog> {
                     ),
                     const SizedBox(height: 16),
                     _LabeledField(
-                      label: l10n.adminFieldNotes,
+                      label: 'Activity notes',
                       child: TextField(
-                        controller: _notesController,
-                        minLines: 3,
-                        maxLines: 5,
-                        decoration: InputDecoration(
-                          hintText: l10n.adminAdditionalNotesHint,
+                        controller: _activityNotesController,
+                        minLines: 2,
+                        maxLines: 4,
+                        decoration: const InputDecoration(
+                          hintText: 'Describe the activity (optional)',
                         ),
                       ),
                     ),
+                    const SizedBox(height: 16),
+                    _LabeledField(
+                      label: 'Additional remarks',
+                      child: TextField(
+                        controller: _remarksController,
+                        minLines: 2,
+                        maxLines: 4,
+                        decoration: const InputDecoration(
+                          hintText: 'Other notes (optional)',
+                        ),
+                      ),
+                    ),
+                    if (_customFields.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Text(
+                        'Custom fields',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.gray700,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ..._customFields.map((field) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _buildCustomField(field, l10n),
+                          )),
+                    ],
                   ],
                 ),
               ),
@@ -236,6 +437,37 @@ class _ObservationEditDialogState extends State<ObservationEditDialog> {
       ),
     );
   }
+}
+
+bool _isCustomField(ObservationField field) {
+  const excluded = <String>{
+    ObservationFieldRegistry.genderFieldId,
+    ObservationFieldRegistry.ageGroupFieldId,
+    ObservationFieldRegistry.socialContextFieldId,
+    ObservationFieldRegistry.locationTypeFieldId,
+    ObservationFieldRegistry.customLocationFieldId,
+    ObservationFieldRegistry.activityLevelFieldId,
+    ObservationFieldRegistry.activityTypeFieldId,
+    ObservationFieldRegistry.activityNotesFieldId,
+    ObservationFieldRegistry.remarksFieldId,
+    ObservationFieldRegistry.groupSizeFieldId,
+    ObservationFieldRegistry.groupGenderMixFieldId,
+    ObservationFieldRegistry.groupAgeMixFieldId,
+  };
+  return !excluded.contains(field.id) && field.isEnabled;
+}
+
+bool _isTextLike(ObservationField field) {
+  return field.type == ObservationFieldType.text ||
+      field.type == ObservationFieldType.number ||
+      field.type == ObservationFieldType.rating;
+}
+
+String _combineNotes(String activityNotes, String additionalRemarks) {
+  final parts = <String>[];
+  if (activityNotes.isNotEmpty) parts.add(activityNotes);
+  if (additionalRemarks.isNotEmpty) parts.add(additionalRemarks);
+  return parts.join('\n');
 }
 
 class _LabeledField extends StatelessWidget {

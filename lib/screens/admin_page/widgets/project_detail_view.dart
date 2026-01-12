@@ -1459,14 +1459,14 @@ class _ObservationCard extends StatelessWidget {
       return match.labelForLocale(locale.languageCode);
     }
 
-    String _textValue(String fieldId) {
+    String textValue(String fieldId) {
       final raw = record.fieldValues?[fieldId];
       if (raw is String) return raw.trim();
       if (raw != null) return raw.toString().trim();
       return '';
     }
 
-    String? _formatFieldValue(
+    String? formatFieldValue(
       ObservationField field,
       Locale locale,
       dynamic raw,
@@ -1538,8 +1538,8 @@ class _ObservationCard extends StatelessWidget {
       return text.isEmpty ? null : text;
     }
 
-    final activityNotesValue = _textValue(ObservationFieldRegistry.activityNotesFieldId);
-    final additionalRemarksValue = _textValue(ObservationFieldRegistry.remarksFieldId);
+    final activityNotesValue = textValue(ObservationFieldRegistry.activityNotesFieldId);
+    final additionalRemarksValue = textValue(ObservationFieldRegistry.remarksFieldId);
 
     final excludedFieldIds = <String>{
       ObservationFieldRegistry.genderFieldId,
@@ -1561,7 +1561,7 @@ class _ObservationCard extends StatelessWidget {
       for (final field in fields) {
         if (excludedFieldIds.contains(field.id)) continue;
         final formatted =
-          _formatFieldValue(field, locale, record.fieldValues![field.id]);
+          formatFieldValue(field, locale, record.fieldValues![field.id]);
         if (formatted == null || formatted.isEmpty) continue;
         customFieldRows.add(
           _ObservationRow(

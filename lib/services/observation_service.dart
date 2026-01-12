@@ -100,7 +100,9 @@ class ObservationService {
       'socialContext': record.socialContext.trim(),
       'activityLevel': record.activityLevel.trim(),
       'activityType': record.activityType.trim(),
-      'activityNotes': record.notes.trim(),
+      'activityNotes': record.activityNotes.trim(),
+      'additionalRemarks': record.additionalRemarks.trim(),
+      'fieldValues': record.fieldValues ?? <String, dynamic>{},
     }, SetOptions(merge: true));
   }
 
@@ -267,6 +269,8 @@ class ObservationService {
       activityLevel: (data['activityLevel'] as String?) ?? '--',
       activityType: (data['activityType'] as String?) ?? '--',
       notes: notes,
+      activityNotes: activityNotes ?? '',
+      additionalRemarks: additionalRemarks ?? '',
       timestamp: _formatTimestamp(recordedAt),
       mode: mode,
       observerEmail: data['observerEmail'] as String?,
