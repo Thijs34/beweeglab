@@ -1046,6 +1046,18 @@ abstract class AppLocalizations {
   /// **'Please select an option'**
   String get observerPleaseSelectOption;
 
+  /// No description provided for @observerSelectGender.
+  ///
+  /// In en, this message translates to:
+  /// **'Select gender'**
+  String get observerSelectGender;
+
+  /// No description provided for @observerSelectAge.
+  ///
+  /// In en, this message translates to:
+  /// **'Select age'**
+  String get observerSelectAge;
+
   /// No description provided for @observerGenderDistribution.
   ///
   /// In en, this message translates to:

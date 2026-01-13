@@ -194,6 +194,8 @@
   "observerPleaseSignIn": "Please sign in again to continue.",
   "observerEnterNumber": "Please enter a number",
   "observerPleaseSelectOption": "Please select an option",
+  "observerSelectGender": "Select gender",
+  "observerSelectAge": "Select age",
   "observerGenderDistribution": "Group Demographics",
   "observerGenderDistributionHelper": "Specify gender and age for each person in the group",
   "observerAgeDistribution": "Age Distribution",

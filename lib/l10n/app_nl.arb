@@ -194,6 +194,8 @@
   "observerPleaseSignIn": "Meld je opnieuw aan om door te gaan.",
   "observerEnterNumber": "Vul een getal in",
   "observerPleaseSelectOption": "Selecteer een optie",
+  "observerSelectGender": "Selecteer geslacht",
+  "observerSelectAge": "Selecteer leeftijd",
   "observerGenderDistribution": "Groepsdemografie",
   "observerGenderDistributionHelper": "Specificeer geslacht en leeftijd voor elke persoon in de groep",
   "observerAgeDistribution": "Leeftijdsverdeling",

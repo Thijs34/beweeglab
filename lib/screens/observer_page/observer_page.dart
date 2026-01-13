@@ -846,12 +846,12 @@ class _ObserverPageState extends State<ObserverPage> {
     return DemographicMatrix(
       pairs: _demographicPairs,
       genderOptions: [
-        GenderOption(id: '', label: l10n.observerPleaseSelectOption),
+        GenderOption(id: '', label: l10n.observerSelectGender),
         GenderOption(id: 'male', label: l10n.observerGenderMale),
         GenderOption(id: 'female', label: l10n.observerGenderFemale),
       ],
       ageOptions: [
-        AgeOption(id: '', label: l10n.observerPleaseSelectOption),
+        AgeOption(id: '', label: l10n.observerSelectAge),
         AgeOption(id: '11-and-younger', label: l10n.observerAge11AndYounger),
         AgeOption(id: '12-17', label: l10n.observerAge12to17),
         AgeOption(id: '18-24', label: l10n.observerAge18to24),

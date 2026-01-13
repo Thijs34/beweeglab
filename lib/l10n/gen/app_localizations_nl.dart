@@ -516,6 +516,12 @@ class AppLocalizationsNl extends AppLocalizations {
   String get observerPleaseSelectOption => 'Selecteer een optie';
 
   @override
+  String get observerSelectGender => 'Selecteer geslacht';
+
+  @override
+  String get observerSelectAge => 'Selecteer leeftijd';
+
+  @override
   String get observerGenderDistribution => 'Groepsdemografie';
 
   @override

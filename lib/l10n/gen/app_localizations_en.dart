@@ -514,6 +514,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get observerPleaseSelectOption => 'Please select an option';
 
   @override
+  String get observerSelectGender => 'Select gender';
+
+  @override
+  String get observerSelectAge => 'Select age';
+
+  @override
   String get observerGenderDistribution => 'Group Demographics';
 
   @override
