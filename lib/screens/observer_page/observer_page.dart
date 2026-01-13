@@ -1516,6 +1516,7 @@ class _ObserverPageState extends State<ObserverPage> {
     });
     unawaited(_clearSessionDrafts());
     _clearPersistedPersonCounter();
+    _projectSelectionService.clearSelection();
     _navigateToProjects();
   }
 

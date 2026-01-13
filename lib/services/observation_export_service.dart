@@ -134,8 +134,12 @@ class ObservationExportService {
     for (var index = 0; index < rows.length; index++) {
       final rowIndex = _tableHeaderRowIndex + 1 + index;
       final values = rows[index];
-      for (var column = 0; column < values.length; column++) {
-        sheet.getRangeByIndex(rowIndex, column + 1).setText(values[column]);
+      final rowValues = List<String>.from(values);
+      if (rowValues.isNotEmpty) {
+        rowValues[0] = (index + 1).toString();
+      }
+      for (var column = 0; column < rowValues.length; column++) {
+        sheet.getRangeByIndex(rowIndex, column + 1).setText(rowValues[column]);
       }
     }
 
