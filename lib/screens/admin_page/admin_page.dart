@@ -224,8 +224,12 @@ class _AdminPageState extends State<AdminPage> {
     final sourceFields = project.fields.isEmpty
         ? ObservationFieldRegistry.defaultFields()
         : project.fields;
+    // Always sort by displayOrder to avoid nondeterministic ordering when
+    // Firestore data has equal or missing displayOrder values.
+    final sorted = [...sourceFields]
+      ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
     final normalized = _normalizeGroupDemographicFields(
-      sourceFields.map((field) => field.copyWith()).toList(),
+      sorted.map((field) => field.copyWith()).toList(),
     );
     _fieldDraftProjectId = project.id;
     _fieldDrafts = normalized.fields;
