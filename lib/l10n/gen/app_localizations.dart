@@ -1040,11 +1040,59 @@ abstract class AppLocalizations {
   /// **'Please enter a number'**
   String get observerEnterNumber;
 
+  /// No description provided for @observerEnterValidNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid number'**
+  String get observerEnterValidNumber;
+
+  /// No description provided for @observerNumberAtLeast.
+  ///
+  /// In en, this message translates to:
+  /// **'Must be at least {min}'**
+  String observerNumberAtLeast(Object min);
+
+  /// No description provided for @observerNumberAtMost.
+  ///
+  /// In en, this message translates to:
+  /// **'Must be at most {max}'**
+  String observerNumberAtMost(Object max);
+
   /// No description provided for @observerPleaseSelectOption.
   ///
   /// In en, this message translates to:
   /// **'Please select an option'**
   String get observerPleaseSelectOption;
+
+  /// No description provided for @observerSelectAtLeastOneOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Select at least one option'**
+  String get observerSelectAtLeastOneOption;
+
+  /// No description provided for @observerEnterValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a value'**
+  String get observerEnterValue;
+
+  /// No description provided for @observerOtherOptionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please describe the other option'**
+  String get observerOtherOptionRequired;
+
+  /// No description provided for @observerCustomOptionLabelRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a label for the custom option'**
+  String get observerCustomOptionLabelRequired;
+
+  /// No description provided for @observerCustomOptionExists.
+  ///
+  /// In en, this message translates to:
+  /// **'That option already exists'**
+  String get observerCustomOptionExists;
 
   /// No description provided for @observerSelectGender.
   ///
@@ -1069,6 +1117,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Specify gender and age for each person in the group'**
   String get observerGenderDistributionHelper;
+
+  /// No description provided for @observerSpecifyAtLeastOneIndividual.
+  ///
+  /// In en, this message translates to:
+  /// **'Please specify at least one individual'**
+  String get observerSpecifyAtLeastOneIndividual;
+
+  /// No description provided for @observerGroupExceedsSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Total individuals cannot exceed group size ({groupSize})'**
+  String observerGroupExceedsSize(int groupSize);
+
+  /// No description provided for @observerSelectGenderAndAge.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select gender and age for everyone'**
+  String get observerSelectGenderAndAge;
 
   /// No description provided for @observerAgeDistribution.
   ///
@@ -1520,6 +1586,12 @@ abstract class AppLocalizations {
   /// **'Project Name'**
   String get adminNewProjectNameLabel;
 
+  /// No description provided for @adminNewProjectNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a project name'**
+  String get adminNewProjectNameRequired;
+
   /// No description provided for @adminNewProjectNameHint.
   ///
   /// In en, this message translates to:
@@ -1531,6 +1603,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Main Location'**
   String get adminNewProjectMainLocationLabel;
+
+  /// No description provided for @adminNewProjectMainLocationRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a main location'**
+  String get adminNewProjectMainLocationRequired;
 
   /// No description provided for @adminNewProjectMainLocationHint.
   ///
@@ -1561,6 +1639,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Creating...'**
   String get adminCreating;
+
+  /// No description provided for @adminCreateProjectFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to create project. Please try again.'**
+  String get adminCreateProjectFailed;
 
   /// No description provided for @adminCreateProject.
   ///
@@ -1609,6 +1693,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add team members who can collect observations for this project'**
   String get adminAssignObserversSubtitle;
+
+  /// No description provided for @adminLocationTypesRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select at least one location type'**
+  String get adminLocationTypesRequired;
 
   /// No description provided for @adminAddObserver.
   ///

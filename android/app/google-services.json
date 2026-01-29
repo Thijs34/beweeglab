@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "701733039580",
-    "project_id": "balz2-83929",
-    "storage_bucket": "balz2-83929.firebasestorage.app"
+    "project_number": "1045791792298",
+    "project_id": "pipo-ea3fc",
+    "storage_bucket": "pipo-ea3fc.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:701733039580:android:2ede431fc6ab327ead7319",
+        "mobilesdk_app_id": "1:1045791792298:android:bdee6725ae14eb547c04d3",
         "android_client_info": {
           "package_name": "com.example.my_app"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBGj301-nMzDhgiBF-a0zLPjuaYnAferOs"
+          "current_key": "AIzaSyBdIy2YKjB1dasXOOn6qG9QqZWBOdmn0so"
         }
       ],
       "services": {

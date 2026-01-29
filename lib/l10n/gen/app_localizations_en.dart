@@ -511,7 +511,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String get observerEnterNumber => 'Please enter a number';
 
   @override
+  String get observerEnterValidNumber => 'Please enter a valid number';
+
+  @override
+  String observerNumberAtLeast(Object min) {
+    return 'Must be at least $min';
+  }
+
+  @override
+  String observerNumberAtMost(Object max) {
+    return 'Must be at most $max';
+  }
+
+  @override
   String get observerPleaseSelectOption => 'Please select an option';
+
+  @override
+  String get observerSelectAtLeastOneOption => 'Select at least one option';
+
+  @override
+  String get observerEnterValue => 'Please enter a value';
+
+  @override
+  String get observerOtherOptionRequired => 'Please describe the other option';
+
+  @override
+  String get observerCustomOptionLabelRequired =>
+      'Please enter a label for the custom option';
+
+  @override
+  String get observerCustomOptionExists => 'That option already exists';
 
   @override
   String get observerSelectGender => 'Select gender';
@@ -525,6 +554,19 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get observerGenderDistributionHelper =>
       'Specify gender and age for each person in the group';
+
+  @override
+  String get observerSpecifyAtLeastOneIndividual =>
+      'Please specify at least one individual';
+
+  @override
+  String observerGroupExceedsSize(int groupSize) {
+    return 'Total individuals cannot exceed group size ($groupSize)';
+  }
+
+  @override
+  String get observerSelectGenderAndAge =>
+      'Please select gender and age for everyone';
 
   @override
   String get observerAgeDistribution => 'Age Distribution';
@@ -784,10 +826,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get adminNewProjectNameLabel => 'Project Name';
 
   @override
+  String get adminNewProjectNameRequired => 'Please enter a project name';
+
+  @override
   String get adminNewProjectNameHint => 'e.g., Parkstraat Observation Site';
 
   @override
   String get adminNewProjectMainLocationLabel => 'Main Location';
+
+  @override
+  String get adminNewProjectMainLocationRequired =>
+      'Please enter a main location';
 
   @override
   String get adminNewProjectMainLocationHint => 'e.g., Parkstraat, Amsterdam';
@@ -804,6 +853,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get adminCreating => 'Creating...';
+
+  @override
+  String get adminCreateProjectFailed =>
+      'Failed to create project. Please try again.';
 
   @override
   String get adminCreateProject => 'Create Project';
@@ -831,6 +884,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get adminAssignObserversSubtitle =>
       'Add team members who can collect observations for this project';
+
+  @override
+  String get adminLocationTypesRequired =>
+      'Please select at least one location type';
 
   @override
   String get adminAddObserver => 'Add Observer';

@@ -907,7 +907,7 @@ class _ObserverPageState extends State<ObserverPage> {
       requiresText = value.whereType<String>().contains(_kOtherOptionValue);
     }
     if (requiresText && otherText.isEmpty) {
-      errors[field.id] = 'Please describe the other option';
+      errors[field.id] = context.l10n.observerOtherOptionRequired;
     }
   }
 
@@ -1068,7 +1068,8 @@ class _ObserverPageState extends State<ObserverPage> {
     final rawLabel = controller.text.trim();
     if (rawLabel.isEmpty) {
       setState(() {
-        _fieldErrors[field.id] = 'Please enter a label for the custom option';
+        _fieldErrors[field.id] =
+            context.l10n.observerCustomOptionLabelRequired;
       });
       return;
     }
@@ -1080,7 +1081,7 @@ class _ObserverPageState extends State<ObserverPage> {
     );
     if (labelExists) {
       setState(() {
-        _fieldErrors[field.id] = 'That option already exists';
+        _fieldErrors[field.id] = context.l10n.observerCustomOptionExists;
       });
       return;
     }
@@ -1537,13 +1538,13 @@ class _ObserverPageState extends State<ObserverPage> {
           final minValue = (config?.minValue ?? 1).round();
           final maxValue = (config?.maxValue ?? 60).round();
           if (parsed == null) {
-            errors[field.id] = 'Please enter a valid number';
+            errors[field.id] = context.l10n.observerEnterValidNumber;
           } else {
             if (parsed < minValue) {
-              errors[field.id] = 'Must be at least $minValue';
+              errors[field.id] = context.l10n.observerNumberAtLeast(minValue);
             }
             if (parsed > maxValue) {
-              errors[field.id] = 'Must be at most $maxValue';
+              errors[field.id] = context.l10n.observerNumberAtMost(maxValue);
             }
           }
         }
@@ -1554,14 +1555,15 @@ class _ObserverPageState extends State<ObserverPage> {
       if (field.id == ObservationFieldRegistry.groupGenderMixFieldId) {
         // Validate demographic pairs (gender+age per person)
         if (field.isRequired && _demographicPairs.isEmpty) {
-          errors[field.id] = 'Please specify at least one individual';
+          errors[field.id] =
+              context.l10n.observerSpecifyAtLeastOneIndividual;
         } else if (_demographicPairs.length > groupSize) {
           errors[field.id] =
-              'Total individuals cannot exceed group size ($groupSize)';
+              context.l10n.observerGroupExceedsSize(groupSize);
         } else if (_demographicPairs.any(
           (p) => p.genderId.isEmpty || p.ageId.isEmpty,
         )) {
-          errors[field.id] = 'Please select gender and age for everyone';
+          errors[field.id] = context.l10n.observerSelectGenderAndAge;
         }
         continue;
       }
@@ -1575,7 +1577,7 @@ class _ObserverPageState extends State<ObserverPage> {
         case ObservationFieldType.text:
           final text = (value as String?)?.trim() ?? '';
           if (field.isRequired && text.isEmpty) {
-            errors[field.id] = 'Please enter a value';
+            errors[field.id] = context.l10n.observerEnterValue;
           }
           break;
         case ObservationFieldType.multiSelect:
@@ -1587,7 +1589,8 @@ class _ObserverPageState extends State<ObserverPage> {
                 ? value.whereType<String>().toList()
                 : const <String>[];
             if (field.isRequired && selections.isEmpty) {
-              errors[field.id] = 'Select at least one option';
+              errors[field.id] =
+                  context.l10n.observerSelectAtLeastOneOption;
             } else {
               _validateOtherOptionText(field, selections, errors);
             }
@@ -1603,7 +1606,7 @@ class _ObserverPageState extends State<ObserverPage> {
         default:
           final text = (value == null ? '' : value.toString()).trim();
           if (field.isRequired && text.isEmpty) {
-            errors[field.id] = 'Please enter a value';
+            errors[field.id] = context.l10n.observerEnterValue;
           }
           break;
       }

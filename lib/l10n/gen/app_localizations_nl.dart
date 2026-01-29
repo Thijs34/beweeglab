@@ -513,7 +513,36 @@ class AppLocalizationsNl extends AppLocalizations {
   String get observerEnterNumber => 'Vul een getal in';
 
   @override
+  String get observerEnterValidNumber => 'Vul een geldig getal in';
+
+  @override
+  String observerNumberAtLeast(Object min) {
+    return 'Minimaal $min';
+  }
+
+  @override
+  String observerNumberAtMost(Object max) {
+    return 'Maximaal $max';
+  }
+
+  @override
   String get observerPleaseSelectOption => 'Selecteer een optie';
+
+  @override
+  String get observerSelectAtLeastOneOption => 'Selecteer minimaal één optie';
+
+  @override
+  String get observerEnterValue => 'Vul een waarde in';
+
+  @override
+  String get observerOtherOptionRequired => 'Beschrijf de optie \'Anders\'';
+
+  @override
+  String get observerCustomOptionLabelRequired =>
+      'Voer een label in voor de aangepaste optie';
+
+  @override
+  String get observerCustomOptionExists => 'Die optie bestaat al';
 
   @override
   String get observerSelectGender => 'Selecteer geslacht';
@@ -527,6 +556,19 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get observerGenderDistributionHelper =>
       'Specificeer geslacht en leeftijd voor elke persoon in de groep';
+
+  @override
+  String get observerSpecifyAtLeastOneIndividual =>
+      'Specificeer minimaal één persoon';
+
+  @override
+  String observerGroupExceedsSize(int groupSize) {
+    return 'Totaal aantal personen mag de groepsgrootte ($groupSize) niet overschrijden';
+  }
+
+  @override
+  String get observerSelectGenderAndAge =>
+      'Selecteer voor iedereen een geslacht en leeftijd';
 
   @override
   String get observerAgeDistribution => 'Leeftijdsverdeling';
@@ -785,10 +827,16 @@ class AppLocalizationsNl extends AppLocalizations {
   String get adminNewProjectNameLabel => 'Projectnaam';
 
   @override
+  String get adminNewProjectNameRequired => 'Vul een projectnaam in';
+
+  @override
   String get adminNewProjectNameHint => 'bijv. Parkstraat observatielocatie';
 
   @override
   String get adminNewProjectMainLocationLabel => 'Hoofdlocatie';
+
+  @override
+  String get adminNewProjectMainLocationRequired => 'Vul een hoofdlocatie in';
 
   @override
   String get adminNewProjectMainLocationHint => 'bijv. Parkstraat, Amsterdam';
@@ -805,6 +853,10 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get adminCreating => 'Bezig met aanmaken...';
+
+  @override
+  String get adminCreateProjectFailed =>
+      'Project aanmaken is niet gelukt. Probeer het opnieuw.';
 
   @override
   String get adminCreateProject => 'Project aanmaken';
@@ -832,6 +884,9 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get adminAssignObserversSubtitle =>
       'Voeg teamleden toe die observaties voor dit project kunnen verzamelen';
+
+  @override
+  String get adminLocationTypesRequired => 'Selecteer minimaal één locatietype';
 
   @override
   String get adminAddObserver => 'Observator toevoegen';

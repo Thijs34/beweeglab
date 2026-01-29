@@ -722,15 +722,16 @@ class _AdminPageState extends State<AdminPage> {
   }
 
   Future<void> _handleCreateProject() async {
+    final l10n = context.l10n;
     final errors = <String, String>{};
     if (_newProjectNameController.text.trim().isEmpty) {
-      errors['name'] = 'Please enter a project name';
+      errors['name'] = l10n.adminNewProjectNameRequired;
     }
     if (_newProjectMainLocationController.text.trim().isEmpty) {
-      errors['mainLocation'] = 'Please enter a main location';
+      errors['mainLocation'] = l10n.adminNewProjectMainLocationRequired;
     }
     if (_newProjectLocationTypeIds.isEmpty) {
-      errors['locationTypes'] = 'Please select at least one location type';
+      errors['locationTypes'] = l10n.adminLocationTypesRequired;
     }
 
     setState(() => _newProjectErrors = errors);
@@ -782,7 +783,7 @@ class _AdminPageState extends State<AdminPage> {
     } catch (error) {
       debugPrint('Failed to create project: $error');
       _showSnackMessage(
-        'Failed to create project. Please try again.',
+        l10n.adminCreateProjectFailed,
         isError: true,
       );
     } finally {
@@ -813,7 +814,8 @@ class _AdminPageState extends State<AdminPage> {
     final value = _projectMainLocationController.text.trim();
     if (value.isEmpty) {
       setState(() {
-        _projectMainLocationError = 'Please enter a main location';
+        _projectMainLocationError =
+            context.l10n.adminNewProjectMainLocationRequired;
       });
       return;
     }

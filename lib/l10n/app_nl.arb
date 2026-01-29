@@ -193,11 +193,39 @@
   "observerSelectProject": "Kies eerst een project voordat je observaties registreert.",
   "observerPleaseSignIn": "Meld je opnieuw aan om door te gaan.",
   "observerEnterNumber": "Vul een getal in",
+  "observerEnterValidNumber": "Vul een geldig getal in",
+  "observerNumberAtLeast": "Minimaal {min}",
+  "@observerNumberAtLeast": {
+    "placeholders": {
+      "min": {}
+    }
+  },
+  "observerNumberAtMost": "Maximaal {max}",
+  "@observerNumberAtMost": {
+    "placeholders": {
+      "max": {}
+    }
+  },
   "observerPleaseSelectOption": "Selecteer een optie",
+  "observerSelectAtLeastOneOption": "Selecteer minimaal één optie",
+  "observerEnterValue": "Vul een waarde in",
+  "observerOtherOptionRequired": "Beschrijf de optie 'Anders'",
+  "observerCustomOptionLabelRequired": "Voer een label in voor de aangepaste optie",
+  "observerCustomOptionExists": "Die optie bestaat al",
   "observerSelectGender": "Selecteer geslacht",
   "observerSelectAge": "Selecteer leeftijd",
   "observerGenderDistribution": "Groepsdemografie",
   "observerGenderDistributionHelper": "Specificeer geslacht en leeftijd voor elke persoon in de groep",
+  "observerSpecifyAtLeastOneIndividual": "Specificeer minimaal één persoon",
+  "observerGroupExceedsSize": "Totaal aantal personen mag de groepsgrootte ({groupSize}) niet overschrijden",
+  "@observerGroupExceedsSize": {
+    "placeholders": {
+      "groupSize": {
+        "type": "int"
+      }
+    }
+  },
+  "observerSelectGenderAndAge": "Selecteer voor iedereen een geslacht en leeftijd",
   "observerAgeDistribution": "Leeftijdsverdeling",
   "observerAgeDistributionHelper": "Hoeveel personen per leeftijdscategorie?",
   "observerGenderMale": "Man",
@@ -320,13 +348,16 @@
     }
   },
   "adminNewProjectNameLabel": "Projectnaam",
+  "adminNewProjectNameRequired": "Vul een projectnaam in",
   "adminNewProjectNameHint": "bijv. Parkstraat observatielocatie",
   "adminNewProjectMainLocationLabel": "Hoofdlocatie",
+  "adminNewProjectMainLocationRequired": "Vul een hoofdlocatie in",
   "adminNewProjectMainLocationHint": "bijv. Parkstraat, Amsterdam",
   "adminNoSuggestionsFound": "Geen suggesties gevonden",
   "adminDescriptionOptionalLabel": "Beschrijving (optioneel)",
   "adminDescriptionOptionalHint": "Voeg een beschrijving of notities toe...",
   "adminCreating": "Bezig met aanmaken...",
+  "adminCreateProjectFailed": "Project aanmaken is niet gelukt. Probeer het opnieuw.",
   "adminCreateProject": "Project aanmaken",
   "adminLocationTypesTitle": "Locatietypes",
   "adminLocationTypesSubtitle": "Selecteer alle locatietypes die hier beschikbaar zijn",
@@ -335,6 +366,7 @@
   "adminHiddenLocationTypes": "Verborgen locatietypes:",
   "adminAssignObserversTitle": "Observatoren toewijzen (optioneel)",
   "adminAssignObserversSubtitle": "Voeg teamleden toe die observaties voor dit project kunnen verzamelen",
+  "adminLocationTypesRequired": "Selecteer minimaal één locatietype",
   "adminAddObserver": "Observator toevoegen",
   "adminSearchObserversPlaceholder": "Zoek observatoren op naam of e-mail...",
   "adminNoObserversFound": "Geen observatoren gevonden",

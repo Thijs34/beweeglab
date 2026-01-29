@@ -193,11 +193,39 @@
   "observerSelectProject": "Select a project before recording observations.",
   "observerPleaseSignIn": "Please sign in again to continue.",
   "observerEnterNumber": "Please enter a number",
+  "observerEnterValidNumber": "Please enter a valid number",
+  "observerNumberAtLeast": "Must be at least {min}",
+  "@observerNumberAtLeast": {
+    "placeholders": {
+      "min": {}
+    }
+  },
+  "observerNumberAtMost": "Must be at most {max}",
+  "@observerNumberAtMost": {
+    "placeholders": {
+      "max": {}
+    }
+  },
   "observerPleaseSelectOption": "Please select an option",
+  "observerSelectAtLeastOneOption": "Select at least one option",
+  "observerEnterValue": "Please enter a value",
+  "observerOtherOptionRequired": "Please describe the other option",
+  "observerCustomOptionLabelRequired": "Please enter a label for the custom option",
+  "observerCustomOptionExists": "That option already exists",
   "observerSelectGender": "Select gender",
   "observerSelectAge": "Select age",
   "observerGenderDistribution": "Group Demographics",
   "observerGenderDistributionHelper": "Specify gender and age for each person in the group",
+  "observerSpecifyAtLeastOneIndividual": "Please specify at least one individual",
+  "observerGroupExceedsSize": "Total individuals cannot exceed group size ({groupSize})",
+  "@observerGroupExceedsSize": {
+    "placeholders": {
+      "groupSize": {
+        "type": "int"
+      }
+    }
+  },
+  "observerSelectGenderAndAge": "Please select gender and age for everyone",
   "observerAgeDistribution": "Age Distribution",
   "observerAgeDistributionHelper": "How many people in each age range?",
   "observerGenderMale": "Male",
@@ -320,13 +348,16 @@
     }
   },
   "adminNewProjectNameLabel": "Project Name",
+  "adminNewProjectNameRequired": "Please enter a project name",
   "adminNewProjectNameHint": "e.g., Parkstraat Observation Site",
   "adminNewProjectMainLocationLabel": "Main Location",
+  "adminNewProjectMainLocationRequired": "Please enter a main location",
   "adminNewProjectMainLocationHint": "e.g., Parkstraat, Amsterdam",
   "adminNoSuggestionsFound": "No suggestions found",
   "adminDescriptionOptionalLabel": "Description (Optional)",
   "adminDescriptionOptionalHint": "Add project description or notes...",
   "adminCreating": "Creating...",
+  "adminCreateProjectFailed": "Failed to create project. Please try again.",
   "adminCreateProject": "Create Project",
   "adminLocationTypesTitle": "Location Types",
   "adminLocationTypesSubtitle": "Select all location types available at this site",
@@ -335,6 +366,7 @@
   "adminHiddenLocationTypes": "Hidden location types:",
   "adminAssignObserversTitle": "Assign Observers (Optional)",
   "adminAssignObserversSubtitle": "Add team members who can collect observations for this project",
+  "adminLocationTypesRequired": "Please select at least one location type",
   "adminAddObserver": "Add Observer",
   "adminSearchObserversPlaceholder": "Search observers by name or email...",
   "adminNoObserversFound": "No observers found",
